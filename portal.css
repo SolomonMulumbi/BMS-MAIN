@@ -5436,7 +5436,8 @@ ul.notifications {
   background-color: darkred;
 }
 
-#uploadBtn {
+#uploadBtn,
+#appointment {
   background-color: #00aeef;
   color: #fff;
   border: none;
@@ -5447,7 +5448,8 @@ ul.notifications {
   float: left;
 }
 
-#uploadBtn:hover {
+#uploadBtn:hover
+#appointment:hover {
   background-color: #0056b3;
 }
 
@@ -5835,6 +5837,17 @@ h2 {
   background-color: rgba(0, 0, 0, 0.5);
   display: none;
   z-index: 9999;
+}
+
+#overlay3 {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: none;
+  z-index: 999;
 }
 .patients-table {
   width: 100%;
@@ -6433,13 +6446,13 @@ margin-top: 30px;
    
   }
   section {
-    background: linear-gradient(270deg, #0a7102, #0038a2);
-    background-size: 400% 400%;
-
-    -webkit-animation: AnimationName 33s ease infinite;
-    -moz-animation: AnimationName 33s ease infinite;
-    animation: AnimationName 33s ease infinite;
+    background: linear-gradient(270deg, rgba(10, 113, 2, 0.8), rgba(0, 56, 162, 0.8)), 
+                url('back2.jpg') no-repeat center center/cover;
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed; /* Keeps background stable while scrolling */
 }
+
 
 @-webkit-keyframes AnimationName {
     0%{background-position:0% 50%}
@@ -6548,7 +6561,7 @@ margin-top: 30px;
 .patient-table {
   width: 100%;
   border-collapse: collapse;
-
+font-size: 13px;
 }
 
 .table-header th {
@@ -9792,27 +9805,47 @@ button{
 }
 /* Style the action center container */
 .action-center {
-  border: 1px solid #ccc;
-  padding: 10px;
- 
-  /* Background image and overlay */
-  background-image: url('chat.jpg'); /* Add the path to your background image */
-  background-color: rgba(0, 0, 0, 0.1); /* Black color with low opacity (adjust the last value for dimming) */
-  text-align: center;
-  margin-top: 30px;
-  border-radius: 10px;
-  margin-bottom: 50px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
-  width: 100%;
-
+  border: 1px solid #ccc; /* Light border color */
+  padding: 20px; /* Increased padding for more spacing */
+  border-radius: 10px; /* Rounded corners */
+  margin-bottom: 30px; /* Spacing between this and the next element */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* Softer shadow for depth */
+  width: 100%; /* Full width */
+  background-color: #f9f9f9; /* Light background color */
+  font-family: Arial, sans-serif; /* Clean font */
 }
 
-/* Style the header */
-.action-header {
-  font-size: 30px;
-  font-weight: bold;
-  margin-bottom: 10px;
-  color: white;
+/* Action center title styling */
+.action-center .action-header {
+  font-size: 24px; /* Larger font size for emphasis */
+  font-weight: bold; /* Make it bold */
+  color: #333; /* Darker text color */
+  margin-bottom: 15px; /* Space below the header */
+  text-transform: uppercase; /* All uppercase letters */
+}
+
+/* Add some hover effect to buttons within action center */
+.action-center button {
+  background-color: #4CAF50; /* Green background */
+  color: white; /* White text */
+  border: none;
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 5px; /* Rounded corners */
+  transition: background-color 0.3s ease; /* Smooth transition on hover */
+}
+
+.action-center button:hover {
+  background-color: #45a049; /* Darker green on hover */
+}
+
+/* Optional: Add some styling for text or other content within the action center */
+.action-center p {
+  font-size: 16px;
+  color: #666; /* Light gray text */
+  line-height: 1.5;
+  margin-bottom: 15px;
 }
 
 /* Style the send message button */
@@ -10918,4 +10951,369 @@ label {
   100% {
     background-position: 100px 0;
   }
+}
+
+
+#appointmentsTable {
+  border: 1px solid #ccc;
+  text-align: left;
+  font-size: 14px;
+}
+
+#appointmentsTable th, #appointmentsTable td {
+  padding: 8px;
+  border: 1px solid #ccc;
+}
+
+#appointmentsTable th {
+  background-color: #f4f4f4;
+  font-weight: bold;
+}
+
+#appointmentsTable tbody tr:hover {
+  background-color: #f9f9f9;
+}
+
+/* Overlay Styling */
+#popupOverlay,
+#popupOverlay2,
+#popupOverlay3 {
+  backdrop-filter: blur(2px); /* Optional blur effect */
+  transition: opacity 0.3s ease;
+}
+
+/* Popup Animation */
+#reportPopup {
+  animation: fadeIn 0.3s ease-out;
+  z-index: 999999;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -60%);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
+
+/* Buttons */
+.btn {
+  display: inline-block;
+  padding: 10px 15px;
+  font-size: 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  text-transform: uppercase;
+  font-weight: bold;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.btn-add-report {
+  background-color: #28a745; /* Green */
+  color: white;
+}
+
+.btn-add-report:hover {
+  background-color: #218838;
+  transform: translateY(-2px);
+}
+
+.btn-submit-report {
+  background-color: #007bff; /* Blue */
+  color: white;
+}
+
+.btn-submit-report:hover {
+  background-color: #0056b3;
+  transform: translateY(-2px);
+}
+
+.btn-close-popup {
+  background-color: #dc3545; /* Red */
+  color: white;
+}
+
+.btn-close-popup:hover {
+  background-color: #c82333;
+  transform: translateY(-2px);
+}
+
+
+/* Reports Container Styling */
+#reportsList {
+  padding: 10px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Report Details Popup Animation */
+#reportDetailsPopup {
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -60%);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
+
+/* Button Styling */
+.btn-close-popup {
+  background: #f44336;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.btn-close-popup:hover {
+  background: #d32f2f;
+}
+/* General Styling for the Popup */
+#reportDetailsPopup {
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 70%;
+  max-height: 95%;
+overflow: auto;
+  padding: 20px;
+  background: #fff;
+  box-shadow: 0px 6px 15px rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
+  z-index: 100000;
+  font-family: Arial, sans-serif;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+/* Popup Header */
+#reportDetailsPopup h3 {
+  margin-top: 0;
+  font-size: 1.7rem;
+  color: #333;
+  border-bottom: 2px solid #f2f2f2;
+  padding-bottom: 10px;
+}
+
+/* Popup Paragraphs */
+#reportDetailsPopup p {
+  margin: 10px 0;
+  font-size: 1.5rem;
+  color: #555;
+  line-height: 1.5;
+}
+
+/* Strong Styling */
+#reportDetailsPopup strong {
+  color: #444;
+}
+
+/* Close Button */
+.btn.btn-close-popup {
+  display: inline-block;
+  margin-top: 20px;
+  padding: 10px 15px;
+  background: #f44336;
+  color: #fff;
+  font-size: 1rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.3s ease-in-out;
+}
+
+.btn.btn-close-popup:hover {
+  background: #d32f2f;
+}
+
+/* Fade-In Animation for Popup */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -55%);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
+
+
+.registration-rate {
+  background-color: #f8f9fa; /* Light gray background */
+  border-left: 5px solid #007bff; /* Blue left border */
+  padding: 15px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: bold;
+  color: #333;
+  box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.5);
+  max-width: 350px;
+  margin: 20px auto;
+  text-align: center;
+  position: relative;
+}
+
+.registration-rate p {
+  margin: 5px 0;
+  font-size: 18px;
+}
+
+.registration-rate strong {
+  color: #007bff; /* Blue text for numbers */
+}
+
+.reports-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); /* Auto grid with minimum width of 280px */
+  gap: 15px; /* Gap between grid items */
+  margin-top: 20px;
+}
+
+.report-item {
+ 
+  
+  padding: 15px;
+  background: #f9f9f9;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+
+
+  background-color: #f8f9fa; /* Light gray background */
+  border-left: 5px solid orange; /* Blue left border */
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: bold;
+  box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);
+  max-width: 350px;
+  text-align: center;
+
+
+  
+}
+
+.report-item:hover {
+  background-color: #f0f0f0;
+}
+
+.report-item strong {
+  font-size: 1.1em;
+}
+
+.report-item small {
+  color: #777;
+  font-size: 0.9em;
+}
+
+
+/* Style for the button */
+#showFollowUpsButton {
+  margin-top: 10px;
+  background-color: #007bff;  /* Blue background */
+  color: white;  /* White text */
+  border: none;  /* No border */
+  padding: 10px 20px;  /* Padding around the text */
+  font-size: 16px;  /* Text size */
+  border-radius: 5px;  /* Rounded corners */
+  cursor: pointer;  /* Cursor pointer on hover */
+  display: inline-flex;  /* Align text and icon horizontally */
+  align-items: center;  /* Vertically align items (icon and text) */
+  gap: 10px;  /* Space between the icon and text */
+  transition: background-color 0.3s ease;  /* Smooth background color change on hover */
+}
+
+/* Style for the icon inside the button */
+#showFollowUpsButton i {
+  font-size: 20px;  /* Icon size */
+}
+
+/* Hover effect */
+#showFollowUpsButton:hover {
+  background-color: #0056b3;  /* Darker blue when hovered */
+}
+
+/* Focus effect for accessibility */
+#showFollowUpsButton:focus {
+  outline: none;  /* Remove default outline */
+  box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);  /* Blue glow on focus */
+}
+
+
+
+.follow-up-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+.follow-up-table th, .follow-up-table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  border-radius: 5px;
+  text-align: center;
+}
+
+.follow-up-table th {
+  background: #3E5367;
+color: white;
+gap: 10px;
+}
+
+
+.follow-up-table tr:nth-child(even) {
+  background-color: #f9f9f9;
+  
+}
+
+.follow-up-table tr:hover {
+  background-color: #f1f1f1;
+  cursor: pointer;
+}
+
+.follow-up-row {
+  transition: background-color 0.3s ease;
+}
+
+.follow-up-row:hover {
+  background-color: #e0e0e0;
+}
+
+.dental-department-title {
+  font-size: 32px;
+  font-weight: bold;
+  text-align: center;
+  color: #2c3e50;
+  background: linear-gradient(45deg, #f0f0f0, #ffffff);
+  padding: 20px 30px;
+  border: 2px solid #3498db;
+  border-radius: 10px;
+  margin: 20px auto;
+  width: fit-content;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dental-department-title i {
+  font-size: 40px;
+  color: #3498db;
 }
