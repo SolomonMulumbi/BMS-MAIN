@@ -52,8 +52,9 @@
             <img src="" alt="..." class="img-circle profile_img">
           </div>
           <div class="profile_info">
-            <span>Welcome,</span>
-            <h2></h2>
+            
+  <span>Welcome,</span>
+  <h2 id="profileName"></h2>
           </div>
         </div>
         <!-- /menu profile quick info -->
@@ -78,6 +79,10 @@
                   <li><a href="patients.html">Patients Reception</a></li>
                   <li><a href="odp.html">Patient's on Treatment</a></li>
                  <li><a href="doctors.html">Doctor's Room</a></li>
+                 <li><a href="dental.html">Dental Department</a></li>
+                 <li><a href="scan.html">Scan Department</a></li>
+                 <li><a href="babies.html">Babies Department</a></li>
+
 
                 </ul>
               </li>
@@ -569,8 +574,12 @@ bloodPressureInput.addEventListener('input', (event) => {
               <label for="name">Full Name:</label>
               <input type="text" id="name" required>
               
-              <label for="dob">Date of Birth:</label>
-              <input type="date" id="dob" required>
+              <label for="age">Age:</label>
+<input type="number" id="age" min="0" max="120" placeholder="Enter age">
+
+<label for="dob">Date of Birth:</label>
+<input type="date" id="dob" required>
+
               
               <label for="parents">Telephone Contact or Email:</label>
               <input type="tel" id="parents" required>

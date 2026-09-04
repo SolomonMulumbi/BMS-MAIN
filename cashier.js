@@ -3,7 +3,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.2/firebase-app.js";
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.0.2/firebase-storage.js";
 import { getDatabase, ref, remove, push, get, update, onValue, child, set } from "https://www.gstatic.com/firebasejs/9.0.2/firebase-database.js";
-import { getAuth,updateProfile, onAuthStateChanged,sendPasswordResetEmail , signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/9.0.2/firebase-auth.js";
+import { getAuth, onAuthStateChanged,sendPasswordResetEmail , signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/9.0.2/firebase-auth.js";
 const firebaseConfig = {
   apiKey: "AIzaSyCi_hufIZTzsYtdPGQtvtmKmAkkrydmn_A",
 authDomain: "abbah-83a7b.firebaseapp.com",
@@ -115,27 +115,24 @@ function showMessage(message) {
 showMessage('');
 
 function fetchPatientCount() {
-  const patientsRef = ref(database, 'patients');
-  
-  return get(patientsRef)
+  const countRef = ref(database, 'meta/patientCount');
+
+  return get(countRef)
     .then((snapshot) => {
       if (snapshot.exists()) {
-        const patientData = snapshot.val();
-        const patientIds = Object.keys(patientData); // Get the patient IDs (unique node names)
-        const numericPatientIds = patientIds.map((patientId) => parseInt(patientId));
-        patientCount = Math.max(...numericPatientIds, 0) + 1;
-
-        showMessage(`Next Patient Count: ${patientCount}`);
+        patientCount = snapshot.val(); // Use current value
+        showMessage(`Current Patient ID: ${patientCount}`);
       } else {
-        patientCount = 1; // If no patient data exists, start from 1
-        showMessage(`No patients found. Starting from Patient ID: ${patientCount}`);
+        patientCount = 1; // Default start if none exists
+        showMessage('Starting from Patient ID: 1');
       }
     })
     .catch((error) => {
-      console.error('Error retrieving patient count:', error);
-      showMessage('Error retrieving patient count. Please try again.');
+      console.error('Error retrieving patient count from meta:', error);
+      showMessage('Failed to load patient count.');
     });
 }
+
 
 
 // Add event listener to the fetch patient count button
@@ -333,144 +330,25 @@ function displayMessage(title, message, isSuccess = false) {
     messageDiv.remove();
   }, 1500);
 }
-// DOM Elements
-const profileSidebar = document.getElementById('profileSidebar');
-const sidebarOverlay = document.getElementById('sidebarOverlay');
-const openProfileBtn = document.getElementById('openProfileBtn');
-const closeSidebarBtn = document.getElementById('closeProfileSidebar');
-
-const profileForm = document.getElementById('profileForm');
-const profileDisplay = document.getElementById('profileDisplay');
-
-const displayNameInput = document.getElementById('displayNameInput');
-const displayEmailInput = document.getElementById('displayEmailInput');
-const profilePhotoInput = document.getElementById('profilePhotoInput');
-const profilePreview = document.getElementById('profilePreview');
-
-const displayNameEl = document.getElementById('displayName');
-const displayEmailEl = document.getElementById('displayEmail');
-const lastLoginSpan = document.getElementById('lastLogin');
-
-const editProfileBtn = document.getElementById('editProfileBtn');
-
-// -----------------
-// Sidebar open/close
-// -----------------
-openProfileBtn.addEventListener('click', () => {
-  profileSidebar.style.right = '0';
-  sidebarOverlay.style.display = 'block';
-  loadUserProfile();
-});
-
-closeSidebarBtn.addEventListener('click', closeSidebar);
-sidebarOverlay.addEventListener('click', closeSidebar);
-
-function closeSidebar() {
-  profileSidebar.style.right = '-350px';
-  sidebarOverlay.style.display = 'none';
-  profileForm.style.display = 'none';
-  profileDisplay.style.display = 'block';
-}
-
-// -----------------
-// Edit profile toggle
-// -----------------
-editProfileBtn.addEventListener('click', () => {
-  profileDisplay.style.display = 'none';
-  profileForm.style.display = 'block';
-
-  displayNameInput.value = displayNameEl.textContent;
-  displayEmailInput.value = displayEmailEl.textContent;
-});
-
-// -----------------
-// Profile photo preview
-// -----------------
-profilePhotoInput.addEventListener('change', (e) => {
-  const file = e.target.files[0];
-  if (file) {
-    profilePreview.src = URL.createObjectURL(file);
-  }
-});
-
-// -----------------
-// Load user info
-// -----------------
-function loadUserProfile() {
-  const user = auth.currentUser;
-  if (!user) return;
-
-  displayNameEl.textContent = user.displayName || "User";
-  displayEmailEl.textContent = user.email || "N/A";
-  displayNameInput.value = user.displayName || "";
-  displayEmailInput.value = user.email || "";
-
-  if (user.photoURL) {
-    profilePreview.src = user.photoURL;
-  }
-
-  if (user.metadata.lastSignInTime) {
-    const d = new Date(user.metadata.lastSignInTime);
-    const hours = d.getHours();
-    const minutes = d.getMinutes();
-    const ampm = hours >= 12 ? 'PM' : 'AM';
-    const formattedHours = hours % 12 || 12;
-    const formattedMinutes = minutes.toString().padStart(2, '0');
-    lastLoginSpan.textContent = `${d.toDateString()} at ${formattedHours}:${formattedMinutes} ${ampm}`;
-  }
-}
-
-// -----------------
-// Save profile
-// -----------------
-profileForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const user = auth.currentUser;
-  if (!user) return alert("No user logged in");
-
-  try {
-    let photoURL = user.photoURL;
-
-    if (profilePhotoInput.files.length > 0) {
-      const file = profilePhotoInput.files[0];
-      const storageReference = storageRef(storage, `profilePhotos/${user.uid}/${file.name}`);
-      await uploadBytes(storageReference, file);
-      photoURL = await getDownloadURL(storageReference);
-    }
-
-    await updateProfile(user, { displayName: displayNameInput.value, photoURL });
-
-    const userRef = ref(database, `users/${user.uid}/profile`);
-    await set(userRef, {
-      displayName: displayNameInput.value,
-      email: user.email,
-      photoURL: photoURL || "",
-      lastLogin: user.metadata.lastSignInTime
-    });
-
-    alert("Profile updated successfully!");
-    loadUserProfile();
-    profileForm.style.display = 'none';
-    profileDisplay.style.display = 'block';
-  } catch (err) {
-    console.error(err);
-    alert("Error updating profile");
-  }
-});
-
-// -----------------
-// Update on auth change
-// -----------------
-onAuthStateChanged(auth, (user) => {
-  if (user) loadUserProfile();
-});
-
+// Function to display user information
 function displayUserInformation(user) {
-  const displayName = user.displayName || "User";
-  const profileName = document.getElementById('profileName');
-  if (profileName) profileName.textContent = displayName;
-}
+  // Set the h2 element text to the user's display name
+  const profileName = document.querySelector('.profile_info h2');
+  profileName.textContent = user.displayName;
 
+  // Set the profile image source to the user's profile photo URL
+  const profileImage = document.querySelector('.profile_pic img');
+  profileImage.src = user.photoURL;
+
+  // Set the profile image in the dropdown menu
+  const dropdownProfileImage = document.querySelector('.user-profile img');
+  dropdownProfileImage.src = user.photoURL;
+
+  // Display success message
+  displayMessage('', `Welcome, ${user.displayName}.`, true); // Pass true for success message
+
+  // Reload the page content or perform any necessary actions for an authenticated user
+}
 
 // Function to handle sign-in success
 function handleSignInSuccess(user) {
@@ -649,7 +527,6 @@ const validateAndSanitizeData = (data, defaultValue = 'No data') => {
   return data;
 };
 
-
 const loadPatientCount = () => {
   const countRef = ref(database, 'meta/patientCount');
   onValue(countRef, (snapshot) => {
@@ -664,7 +541,6 @@ const loadPatientCount = () => {
 loadPatientCount(); // Call this early when the page loads
 
 const savePatientData = (name, dob, parents, residence, payment, sex, nok) => {
-  // Ensure a valid patient ID is assigned
   const patientId = patientCount.toString();
 
   if (!patientId || patientId.trim() === '') {
@@ -674,52 +550,46 @@ const savePatientData = (name, dob, parents, residence, payment, sex, nok) => {
   }
 
   const registrationDate = new Date().toISOString();
-
   const parentsCountryCode = document.getElementById('parentsCountryCode').value.trim();
   const nokCountryCode = document.getElementById('NOKCountryCode').value.trim();
-
-  const parentsWithCountryCode = `${parentsCountryCode}${parents}`;
-  const nokWithCountryCode = `${nokCountryCode}${nok}`;
 
   const patientData = {
     name,
     dob,
-    parents: parentsWithCountryCode,
+    parents: `${parentsCountryCode}${parents}`,
     residence,
     payment,
     sex,
-    nok: nokWithCountryCode,
+    nok: `${nokCountryCode}${nok}`,
     patientId,
     registrationDate,
   };
 
   const sanitizedPatientData = validateAndSanitizeData(patientData);
   const newPatientRef = ref(database, `patients/${patientId}`);
-  const countRef = ref(database, 'meta/patientCount');
+  const metaCountRef = ref(database, 'meta/patientCount');
 
   loader.style.display = 'block';
 
-  // Save the patient and then increment the count
   set(newPatientRef, sanitizedPatientData)
     .then(() => {
-      // Increment patientCount in the database
-      set(countRef, patientCount + 1)
-        .then(() => {
-          showMessage('Patient details uploaded successfully!');
-          form.reset();
-          loader.style.display = 'none';
-          closePopup();
-        })
-        .catch((error) => {
-          console.error('Error updating patient count:', error);
-          showMessage('Error updating patient count. Please refresh the page.');
-        });
+      // ✅ Increment patientCount in database
+      return set(metaCountRef, patientCount + 1);
+    })
+    .then(() => {
+      patientCount++; // Update locally
+      showMessage('Patient details uploaded successfully!');
+      form.reset();
+      loader.style.display = 'none';
+      closePopup();
     })
     .catch((error) => {
-      console.error('Error uploading patient details:', error);
+      console.error('Error saving patient:', error);
       showMessage('Error uploading patient details. Please try again.');
+      loader.style.display = 'none';
     });
 };
+
 
 
 
@@ -832,7 +702,7 @@ searchInput.addEventListener('input', () => {
   renderPatients();
 });
 
-// Fetch patient data from Firebase// Fetch patient data from Firebase
+// Fetch patient data from Firebase
 onValue(patientsRef, (snapshot) => {
   patientsData = snapshot.val() ? Object.values(snapshot.val()).reverse() : [];
   // Update the pagination and render the patients
@@ -1074,8 +944,6 @@ function hideLoadingSpinner() {
     spinner.remove();
   }
 }
-
-
 // ====================== PLACEHOLDERS ======================
 function renderPlaceholders(rows = 5) {
   patientsContainer.innerHTML = '';
@@ -1380,7 +1248,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
-
 // Function to format the timestamp
 function formatDate(timestamp) {
   const date = new Date(timestamp);
@@ -1406,19 +1273,54 @@ const balanceInput = document.getElementById('balanceInput');
 
 // Add event listener to the amount input field
 amountInput.addEventListener('input', () => {
-    // Get the total amount and the tendered amount
-    const totalAmount = parseFloat(totalAmountSpan.textContent);
-    const tenderedAmount = parseFloat(amountInput.value);
+    // Extract numeric value from the totalAmountSpan
+    let totalText = totalAmountSpan.textContent; // e.g., "Total: UGX 1,250,000"
+    let totalNumber = parseFloat(totalText.replace(/[^0-9.-]+/g, '')); // remove everything except digits and dot
 
-    // Calculate the change
-    const change = tenderedAmount - totalAmount;
+    // Parse tendered amount
+    let tenderedAmount = parseFloat(amountInput.value) || 0;
 
-    // Display the change in the balance input field
-    balanceInput.value = change.toFixed(2); // Display change with two decimal places
+    // Calculate change
+    let change = tenderedAmount - totalNumber;
+
+    // Display change in balance input
+    balanceInput.value = change.toFixed(2);
 });
 
 
+function updateTotal() {
+  const allItems = window.allItems || []; // reference your items array
+  let total = 0;
 
+  allItems.forEach((item, index) => {
+    const checkbox = document.getElementById(`${item.type}-${index}`);
+    if (checkbox && checkbox.checked) {
+      total += item.amount;
+    }
+  });
+
+  const totalAmountSpan = document.getElementById('totalAmount');
+  if (totalAmountSpan) {
+    totalAmountSpan.textContent = `UGX ${total.toLocaleString()}`;
+  }
+}
+
+
+
+// Function to calculate total when button is clicked
+function calculateTotalOnClick() {
+  updateTotal(); // Calculate and update total
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const testsTakenSelect = document.getElementById('testsTakenSelect');
+  if (testsTakenSelect) {
+    testsTakenSelect.addEventListener('change', updateTotal);
+  }
+});
+
+// Event listener for button click
+calculateTotalButton.addEventListener('click', calculateTotalOnClick);
 
 
 
@@ -1745,125 +1647,111 @@ const saveEditedDetailsButton = document.getElementById('saveEditedDetails');
 saveEditedDetailsButton.addEventListener('click', saveEditedDetails);
 
 
+
 // Function to handle saving the visit
 function handleSaveVisit() {
   if (currentPatientName) {
+  // Get the values of the input fields
+  const clinicianName = clinicianNameSelect.value;
+  const temperature = document.getElementById('temperature').value;
+  const bp = document.getElementById('bp').value;
+  const rr = document.getElementById('rr').value;
+  const hr = document.getElementById('hr').value;
+  const sp02 = document.getElementById('sp02').value;
+  const wt = document.getElementById('wt').value;
+  const ht = document.getElementById('ht').value;
+  const bmi = document.getElementById('bmi').value;
+  const muac = document.getElementById('muac').value;
+  const weightForAgeZScore = document.getElementById('weightForAgeZScore').value;
+  const disability = document.getElementById('disability').value;
+  const chronicIllness = document.getElementById('chronicIllness').value;
+  const drugAbuse = document.getElementById('drugAbuse').value;
+  const selectedAllergies = [...testsTakenSelect.selectedOptions].map(option => option.value);
 
-    // Disable button and show "Saving..."
-    saveVisitButton.disabled = true;
-    const originalText = saveVisitButton.textContent;
-    saveVisitButton.textContent = 'Saving...';
+  // Construct the visit object
+  const visit = {
+    clinicianName,
+    temperature,
+    bp,
+    rr,
+    hr,
+    sp02,
+    wt,
+    ht,
+    bmi,
+    muac,
+    weightForAgeZScore,
+    disability,
+    chronicIllness,
+    drugAbuse,
+    allergies: selectedAllergies,
+    timestamp: Date.now()
+  };
 
-    // Get the values of the input fields
-    const clinicianName = clinicianNameSelect.value;
-    const temperature = document.getElementById('temperature').value;
-    const bp = document.getElementById('bp').value;
-    const rr = document.getElementById('rr').value;
-    const hr = document.getElementById('hr').value;
-    const sp02 = document.getElementById('sp02').value;
-    const wt = document.getElementById('wt').value;
-    const ht = document.getElementById('ht').value;
-    const bmi = document.getElementById('bmi').value;
-    const muac = document.getElementById('muac').value;
-    const weightForAgeZScore = document.getElementById('weightForAgeZScore').value;
-    const disability = document.getElementById('disability').value;
-    const chronicIllness = document.getElementById('chronicIllness').value;
-    const drugAbuse = document.getElementById('drugAbuse').value;
-    const selectedAllergies = [...testsTakenSelect.selectedOptions].map(option => option.value);
+  // Push the visit to the "visits" node under the specific patient
+  const visitsRef = ref(database, `patients/${currentPatientName}/visits`);
+  push(visitsRef, visit)
+    .then(() => {
+      showMessage('Visit saved successfully!');
+      
+      // Reset the patient name and close the popup
+      currentPatientName = ''; // Ensure you reset it when the visit is saved
+      visitPopupTitle.textContent = ''; // Clear the patient name from the popup title
+      visitPopupOverlay.style.display = 'none'; // Hide the popup
+      isPopupOpen = false; // Update the isPopupOpen variable
 
-    // Construct the visit object
-    const visit = {
-      clinicianName,
-      temperature,
-      bp,
-      rr,
-      hr,
-      sp02,
-      wt,
-      ht,
-      bmi,
-      muac,
-      weightForAgeZScore,
-      disability,
-      chronicIllness,
-      drugAbuse,
-      allergies: selectedAllergies,
-      timestamp: Date.now()
-    };
+      // Reset the form fields after saving the visit
+      clinicianNameSelect.value = '';
+      document.getElementById('temperature').value = '';
+      document.getElementById('bp').value = '';
+      document.getElementById('rr').value = '';
+      document.getElementById('hr').value = '';
+      document.getElementById('sp02').value = '';
+      document.getElementById('wt').value = '';
+      document.getElementById('ht').value = '';
+      document.getElementById('bmi').value = '';
+      document.getElementById('muac').value = '';
+      document.getElementById('weightForAgeZScore').value = '';
+      document.getElementById('disability').value = '';
+      document.getElementById('chronicIllness').value = '';
+      document.getElementById('drugAbuse').value = '';
+      $('#allergies').val(null).trigger('change'); // Reset the Select2 multiple select
+   // Remove the event listener to avoid duplicates
+   saveVisitButton.removeEventListener('click', handleSaveVisit);
+  })
+  .catch((error) => {
+    console.error('Error saving visit:', error);
+    showMessage('Error saving visit. Please try again.');
+  });
+} else {
+showMessage('Invalid patient data.');
 
-    // Push the visit to the "visits" node under the specific patient
-    const visitsRef = ref(database, `patients/${currentPatientName}/visits`);
-    push(visitsRef, visit)
-      .then(() => {
-        showMessage('Visit saved successfully!');
+// Reset the patient name and close the popup
+currentPatientName = ''; // Ensure you reset it when the visit is saved
+visitPopupTitle.textContent = ''; // Clear the patient name from the popup title
+visitPopupOverlay.style.display = 'none'; // Hide the popup
+isPopupOpen = false; // Update the isPopupOpen variable
 
-        // Reset the patient name and close the popup
-        currentPatientName = '';
-        visitPopupTitle.textContent = '';
-        visitPopupOverlay.style.display = 'none';
-        isPopupOpen = false;
-
-        // Reset the form fields after saving the visit
-        clinicianNameSelect.value = '';
-        document.getElementById('temperature').value = '';
-        document.getElementById('bp').value = '';
-        document.getElementById('rr').value = '';
-        document.getElementById('hr').value = '';
-        document.getElementById('sp02').value = '';
-        document.getElementById('wt').value = '';
-        document.getElementById('ht').value = '';
-        document.getElementById('bmi').value = '';
-        document.getElementById('muac').value = '';
-        document.getElementById('weightForAgeZScore').value = '';
-        document.getElementById('disability').value = '';
-        document.getElementById('chronicIllness').value = '';
-        document.getElementById('drugAbuse').value = '';
-        $('#allergies').val(null).trigger('change');
-
-        // Remove the event listener to avoid duplicates
-        saveVisitButton.removeEventListener('click', handleSaveVisit);
-      })
-      .catch((error) => {
-        console.error('Error saving visit:', error);
-        showMessage('Error saving visit. Please try again.');
-      })
-      .finally(() => {
-        // Re-enable button and revert text
-        saveVisitButton.disabled = false;
-        saveVisitButton.textContent = originalText;
-      });
-
-  } else {
-    showMessage('Invalid patient data.');
-
-    // Reset the patient name and close the popup
-    currentPatientName = '';
-    visitPopupTitle.textContent = '';
-    visitPopupOverlay.style.display = 'none';
-    isPopupOpen = false;
-
-    // Reset the form fields after saving the visit
-    clinicianNameSelect.value = '';
-    document.getElementById('temperature').value = '';
-    document.getElementById('bp').value = '';
-    document.getElementById('rr').value = '';
-    document.getElementById('hr').value = '';
-    document.getElementById('sp02').value = '';
-    document.getElementById('wt').value = '';
-    document.getElementById('ht').value = '';
-    document.getElementById('bmi').value = '';
-    document.getElementById('muac').value = '';
-    document.getElementById('weightForAgeZScore').value = '';
-    document.getElementById('disability').value = '';
-    document.getElementById('chronicIllness').value = '';
-    document.getElementById('drugAbuse').value = '';
-    $('#allergies').val(null).trigger('change');
-
-    // Remove the event listener to avoid duplicates
-    saveVisitButton.removeEventListener('click', handleSaveVisit);
-  }
+// Reset the form fields after saving the visit
+clinicianNameSelect.value = '';
+document.getElementById('temperature').value = '';
+document.getElementById('bp').value = '';
+document.getElementById('rr').value = '';
+document.getElementById('hr').value = '';
+document.getElementById('sp02').value = '';
+document.getElementById('wt').value = '';
+document.getElementById('ht').value = '';
+document.getElementById('bmi').value = '';
+document.getElementById('muac').value = '';
+document.getElementById('weightForAgeZScore').value = '';
+document.getElementById('disability').value = '';
+document.getElementById('chronicIllness').value = '';
+document.getElementById('drugAbuse').value = '';
+$('#allergies').val(null).trigger('change'); // Reset the Select2 multiple select
+// Remove the event listener to avoid duplicates
+saveVisitButton.removeEventListener('click', handleSaveVisit);
 }
-
+}
 // Get the "Save Visit" button element
 const saveVisitButton = document.getElementById('saveVisitBtn');
 
@@ -2949,70 +2837,110 @@ if (record.paymentstatus !== 'payment received') {
   approveButton.appendChild(checkIcon);
   approveButton.innerHTML += ' Approve Service payment';
 
-// Add click event listener to the approve button
 approveButton.addEventListener('click', () => {
-  // Show confirmation dialog
-  const confirmPayment = confirm("Are you sure you want to approve the Service Payment?");
-  
-  // Proceed with updating payment status if user confirms
+  const confirmPayment = confirm("Are you sure you want to approve the Service payment?");
   if (confirmPayment) {
-    // Call the function to handle payment action
-    handlePaymentAction();
+    handlePaymentAction(patient, record); // <-- pass patient and record here
   }
 });
-function handlePaymentAction() {
-  // --- Capture Investigations ---
-  let investigationsText = '';
-  if (record.investigationsTaken && record.investigationsTaken.length > 0) {
-    investigationsText = record.investigationsTaken
-      .map(i => `${i.category}: ${i.name} - UGX ${i.amount.toLocaleString()}`)
-      .join('<br>');
-  }
 
-  // --- Capture Procedures ---
-  let proceduresText = '';
-  if (record.proceduresTaken && record.proceduresTaken.length > 0) {
-    proceduresText = record.proceduresTaken
-      .map(p => `${p.category}: ${p.name} - UGX ${p.amount.toLocaleString()}`)
-      .join('<br>');
-  }
 
-  // --- Capture Services ---
-  let servicesText = '';
-  if (record.servicesTaken && record.servicesTaken.length > 0) {
-    servicesText = record.servicesTaken
-      .map(s => `${s.category}: ${s.name} - UGX ${s.amount.toLocaleString()}`)
-      .join('<br>');
-  }
 
-  // --- Combine all ---
-  const testsTakenData = [investigationsText, proceduresText, servicesText]
-    .filter(Boolean)
-    .join('<br>');
-  console.log('Services Offered:', testsTakenData);
-
-  // Set value to the input
-  const testsTakenInput = document.getElementById('testsTaken');
-  testsTakenInput.value = testsTakenData.replace(/<br>/g, ', '); // optional formatting
-
-  // Show payment popup
+function handlePaymentAction(patient, record) {
   const confirmationPopup = document.getElementById('confirmationPopup');
-  confirmationPopup.style.display = 'block';
+  const testsTakenContainer = document.getElementById('testsTakenContainer');
+  const patientIdInput = document.getElementById('patientIdInput');
+  const totalAmountSpan = document.getElementById('totalAmount');
 
-  calculateTotalOnClick(); // update total if needed
+  testsTakenContainer.innerHTML = ''; // clear previous entries
+  const allItems = [];
 
-  // Close popup logic
-  const closePopupBtn = document.getElementById('closePopupBtn');
-  closePopupBtn.addEventListener('click', closePopup);
-
-  const confirmPaymentBtn = document.getElementById('confirmPaymentBtn');
-  confirmPaymentBtn.addEventListener('click', confirmPaymentAction);
-
-  function closePopup() {
-    confirmationPopup.style.display = 'none';
-    closePopupBtn.removeEventListener('click', closePopup);
-    confirmPaymentBtn.removeEventListener('click', confirmPaymentAction);
+  // Set reason for payment as "Patient Name - Patient ID"
+  if (patientIdInput) {
+    patientIdInput.value = `${patient.name} - PI${patient.patientId}`;
   }
+
+  function createCheckbox(item, index, type) {
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = true;
+    checkbox.id = `${type}-${index}`;
+    item.checkboxId = checkbox.id;
+
+    const label = document.createElement('label');
+    label.htmlFor = checkbox.id;
+    label.innerText = `${item.category || type}: ${item.name} - UGX ${item.amount.toLocaleString()}`;
+
+    const div = document.createElement('div');
+    div.appendChild(checkbox);
+    div.appendChild(label);
+    testsTakenContainer.appendChild(div);
+
+    checkbox.addEventListener('change', calculateTotal);
+
+    allItems.push(item);
+  }
+
+  // Add Investigations
+  if (record.investigationsTaken) {
+    record.investigationsTaken.forEach((i, index) => createCheckbox(i, index, 'investigation'));
+  }
+
+  // Add Procedures
+  if (record.proceduresTaken) {
+    record.proceduresTaken.forEach((p, index) => createCheckbox(p, index, 'procedure'));
+  }
+
+  // Add Services
+  if (record.servicesTaken) {
+    record.servicesTaken.forEach((s, index) => createCheckbox(s, index, 'service'));
+  }
+
+  function calculateTotal() {
+    let total = 0;
+    allItems.forEach(item => {
+      const checkbox = document.getElementById(item.checkboxId);
+      if (checkbox && checkbox.checked) total += item.amount;
+    });
+    if (totalAmountSpan) totalAmountSpan.innerText = `Total: UGX ${total.toLocaleString()}`;
+  }
+
+  // Show popup
+  confirmationPopup.style.display = 'block';
+  calculateTotal(); // initial total
+
+  // Close popup
+  const closePopupBtn = document.getElementById('closePopupBtn');
+  closePopupBtn.addEventListener('click', () => {
+    confirmationPopup.style.display = 'none';
+  });
+
+  // Confirm payment
+  const confirmPaymentBtn = document.getElementById('confirmPaymentBtn');
+  confirmPaymentBtn.onclick = async () => {
+    const selectedItems = allItems.filter(item => {
+      const checkbox = document.getElementById(item.checkboxId);
+      return checkbox && checkbox.checked;
+    });
+
+    if (selectedItems.length === 0) {
+      alert('Please select at least one item to pay for.');
+      return;
+    }
+
+    // --- Combine selected items into string ---
+    const testsTakenData = selectedItems
+      .map(item => `${item.category || item.type}: ${item.name}${item.amount ? ` - UGX ${item.amount.toLocaleString()}` : ''}`)
+      .join(', ');
+
+    if (patientIdInput) patientIdInput.value = `${patient.name} - ${patient.patientId}`;
+
+    const totalAmount = selectedItems.reduce((sum, item) => sum + (item.amount || 0), 0);
+    totalAmountSpan.innerText = `Total: UGX ${totalAmount.toLocaleString()}`;
+
+    // Call confirmPaymentAction with selected items and patient info
+    await confirmPaymentAction(selectedItems, patient);
+  };
 }
 
 
@@ -3027,96 +2955,149 @@ function closeConfirmationPopup() {
   const confirmPaymentBtn = document.getElementById('confirmPaymentBtn');
   confirmPaymentBtn.removeEventListener('click', confirmPaymentAction);
 }
+// Updated confirmPaymentAction to accept selected items
+async function confirmPaymentAction(selectedItems, patient) {
+  document.getElementById('overlayLoader').style.display = 'flex';
 
-function confirmPaymentAction() {
-  const confirmPaymentBtn = document.getElementById('confirmPaymentBtn');
   const patientIdInput = document.getElementById('patientIdInput');
   const departmentSelect = document.getElementById('department');
   const paymentModeSelect = document.getElementById('paymentMode');
-
-  const testsTakenInput = document.getElementById('testsTaken');
-  const totalAmountSpan = document.getElementById('totalAmount');
   const amountInput = document.getElementById('amountInput');
   const balanceInput = document.getElementById('balanceInput');
+  const totalAmountSpan = document.getElementById('totalAmount');
   const confirmationPopup = document.getElementById('confirmationPopup');
 
-  // --- Combine investigations and procedures into one string ---
-  let investigationsText = '';
-  if (record.investigationsTaken && record.investigationsTaken.length > 0) {
-    investigationsText = record.investigationsTaken
-      .map(i => i.name + (i.amount ? ` - UGX ${i.amount.toLocaleString()}` : ''))
+  try {
+    const testsTakenData = selectedItems
+      .map(item => `${item.category || item.type}: ${item.name}${item.amount ? ` - UGX ${item.amount.toLocaleString()}` : ''}`)
       .join(', ');
-  }
 
-  let proceduresText = '';
-  if (record.proceduresTaken && record.proceduresTaken.length > 0) {
-    proceduresText = record.proceduresTaken
-      .map(p => `${p.category}: ${p.name}${p.amount ? ` - UGX ${p.amount.toLocaleString()}` : ''}`)
-      .join(', ');
-  }
+    const totalAmount = selectedItems.reduce((sum, item) => sum + (item.amount || 0), 0);
+    const amountTendered = parseFloat(amountInput.value) || totalAmount;
+    const balance = amountTendered - totalAmount;
 
-  const testsTakenData = [investigationsText, proceduresText].filter(Boolean).join(', ');
-  console.log('Services Offered now:', testsTakenData);
+    // Build receipt object
+    const salesReceipt = {
+      patientId: patientIdInput.value,
+      department: departmentSelect.value,
+      paymentMode: paymentModeSelect.value,
+      testsTaken: testsTakenData,
+      totalAmount,
+      amountTendered,
+      balance,
+      timestamp: Date.now(),
+    };
 
-  // Set the value of the input
-  testsTakenInput.value = testsTakenData;
+    // Generate receipt number
+    const counterRef = ref(database, 'receiptCounter');
+    const counterSnap = await get(counterRef);
+    let receiptNumber = counterSnap.exists() ? counterSnap.val() + 1 : 1;
+    await set(counterRef, receiptNumber);
 
-  // --- Capture amounts ---
-  const testsTaken = testsTakenInput.value;
-  const totalAmount = parseFloat(totalAmountSpan.textContent.replace(/,/g, '')) || 0;
-  const amountTendered = parseFloat(amountInput.value) || 0;
-  const balance = parseFloat(balanceInput.value) || 0;
-  const patientId = patientIdInput.value;
-  const department = departmentSelect.value;
-  const paymentMode = paymentModeSelect.value;
+    const now = new Date();
+    const dateString = now.toISOString().split('T')[0].replace(/-/g, '');
+    const formattedReceiptNo = `R-${dateString}-${String(receiptNumber).padStart(3, '0')}`;
 
-  // --- Construct sales receipt ---
-  const salesReceipt = {
-    testsTaken,
-    totalAmount,
-    amountTendered,
-    balance,
-    patientId,
-    department,
-    paymentMode,
-    timestamp: Date.now(),
-  };
+    // Upload receipt
+    const salesReceiptsRef = ref(database, 'salesReceipts');
+    await push(salesReceiptsRef, salesReceipt);
 
-  // --- Upload to database ---
-  const salesReceiptsRef = ref(database, 'salesReceipts');
-  push(salesReceiptsRef, salesReceipt)
-    .then(() => {
-      showMessage('Sales receipt uploaded successfully');
+    showMessage('Sales receipt uploaded successfully');
 
-      // Close popup and reset fields
-      confirmationPopup.style.display = 'none';
-      testsTakenInput.value = '';
-      totalAmountSpan.textContent = '0.00';
-      amountInput.value = '';
-      balanceInput.value = '';
-      patientIdInput.value = '';
-      departmentSelect.value = '';
-      paymentModeSelect.value = '';
+   // Print receipt
+const shouldPrint = confirm('Payment successful. Do you want to print the receipt?');
+if (shouldPrint) {
+  const receiptWindow = window.open('', '_blank');
 
-      // Update the total if needed
-      updateTotal();
+  // Create a table for services
+  let servicesTableRows = selectedItems.map(item => {
+    return `<tr>
+      <td>${item.category || item.type}</td>
+      <td>${item.name}</td>
+      <td>UGX ${item.amount.toLocaleString()}</td>
+    </tr>`;
+  }).join('');
 
-      // Update payment status in Firebase
-      const paymentStatusRef = ref(database, `patients/${patient.patientId}/testsTaken/${recordKey}/paymentstatus`);
-      return set(paymentStatusRef, 'payment received')
-        .then(() => {
-          showMessage('Payment status updated successfully!');
-          console.log('Payment status updated successfully.');
-        });
-    })
-    .catch((error) => {
-      showMessage('Error uploading sales receipt:', error);
-    });
+  receiptWindow.document.write(`
+    <html>
+      <head>
+        <title>Payment Receipt</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 20px; text-align: center; background: #fff; }
+          .hospital-logo img { width: 80px; height: auto; margin-bottom: 10px; }
+          .hospital-details h1 { margin: 5px 0; font-size: 22px; }
+          .hospital-details p { margin: 2px 0; font-size: 14px; }
+          .receipt { border:1px solid #ccc; display:inline-block; padding:20px; max-width:500px; text-align:left; }
+          .receipt h2 { text-align:center; margin-top:0; margin-bottom:15px; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
+          th, td { border:1px solid #ccc; padding: 5px; text-align:left; font-size: 14px; }
+          th { background-color: #f2f2f2; }
+          hr { margin: 15px 0; }
+        </style>
+      </head>
+      <body>
+        <div class="hospital-logo">
+          <img src="sanyu.png" alt="KEAH Logo">
+        </div>
+        <div class="hospital-details">
+          <h1>SANYU HOSPITAL </h1>
+          <p>Plot 294 Kevina Road, Nsambya-Kampala</p>
+          <p>Phone: +256 782 477 517</p>
+          <p>Email: info@keahmedicals.com</p>
+        </div>
+        <div class="receipt">
+          <h2>Payment Receipt</h2>
+          <p><strong>Receipt No:</strong> ${formattedReceiptNo}</p>
+          <p><strong>Patient/Reason:</strong> ${patientIdInput.value}</p>
+          <p><strong>Department:</strong> ${departmentSelect.value}</p>
+          <p><strong>Payment Mode:</strong> ${paymentModeSelect.value}</p>
+          <h3>Services Paid</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Service</th>
+                <th>Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${servicesTableRows}
+            </tbody>
+          </table>
+          <p><strong>Total:</strong> UGX ${totalAmount.toFixed(2)}</p>
+          <p><strong>Amount Paid:</strong> UGX ${amountTendered.toFixed(2)}</p>
+          <p><strong>Balance:</strong> UGX ${balance.toFixed(2)}</p>
+          <p><strong>Date:</strong> ${now.toLocaleString()}</p>
+          <hr>
+          <p style="text-align:center;">Thank you for your payment!</p>
+        </div>
+        <script>
+          window.onload = function() { window.print(); }
+        </script>
+      </body>
+    </html>
+  `);
+
+  receiptWindow.document.close();
 }
 
 
+    // Close popup & reset
+    confirmationPopup.style.display = 'none';
+    amountInput.value = '';
+    balanceInput.value = '';
+    totalAmountSpan.innerText = '0.00';
 
+const paymentStatusRef = ref(database, `patients/${patient.patientId}/testsTaken/${recordKey}/paymentstatus`);
+await set(paymentStatusRef, 'payment received');
 
+  } catch (error) {
+    console.error('Payment error:', error);
+    showMessage('Error uploading sales receipt:', error);
+  } finally {
+    document.getElementById('overlayLoader').style.display = 'none';
+  }
+}
 
   // Append the approve button to a container element on your webpage
   recordElement.appendChild(approveButton);
@@ -3125,23 +3106,31 @@ function confirmPaymentAction() {
 }
 
 
-// --- Complaints Row ---
+
+
+
+
+// Create complaints row
 const complaintsRow = document.createElement('tr');
 recordElement.appendChild(complaintsRow);
 
+// Create table header for 'Complaints'
 const complaintsHeader = document.createElement('th');
 complaintsHeader.textContent = 'Patient Complaints';
 complaintsRow.appendChild(complaintsHeader);
 
+// Create table cell for 'Complaints'
 const complaintsElement = document.createElement('td');
 complaintsElement.textContent = record.additionalNotes || 'No complaints';
 complaintsRow.appendChild(complaintsElement);
 
+// Optionally, style the complaints element based on the content (if required)
 if (!record.additionalNotes) {
   complaintsElement.style.color = 'gray';
 } else {
   complaintsElement.style.color = 'black';
 }
+
 
 // --- Investigations Row ---
 const invRow = document.createElement('tr');
@@ -3266,6 +3255,7 @@ grandTotalRow.appendChild(grandTotalElement);
 
 
 
+
 function updateTotal() {
   // Get the grand total text from the grand total element
   let grandTotalText = grandTotalElement.textContent; // e.g., "UGX 1,250,000"
@@ -3283,7 +3273,6 @@ function updateTotal() {
 function calculateTotalOnClick() {
   updateTotal(); // Calculate and update total
 }
-
 
 
 // Create results obtained element
@@ -3372,7 +3361,6 @@ recordElement.appendChild(consumablesRow);
   }
 
   let totalDataCell;
-  let totalCostCell;
 // Create a row for the treatment total
 const treatmentTotalRow = document.createElement('tr');
   recordElement.appendChild(treatmentTotalRow);
@@ -3463,9 +3451,9 @@ emptyCell.setAttribute('colspan', '3');
 totalRow.appendChild(emptyCell);
 
 // Create total cost cell
-totalCostCell = document.createElement('td');
+let totalCostCell = document.createElement('td');
 totalCostCell.textContent = 'Total Cost: UGX ' + totalCost.toFixed(2);
-totalCostCell.classList.add('total-cell'); // Add the CSS class\
+totalCostCell.classList.add('total-cell'); // Add the CSS class
 totalRow.appendChild(totalCostCell);
 
 // Create payment status element
@@ -3473,7 +3461,6 @@ const medicineStatusElement = document.createElement('p');
 medicineStatusElement.textContent = 'Medicine Payment: ' + (record.medicinestatus || 'Not Paid');
 medicineStatusElement.classList.add('payment-status'); // Add the CSS class
 recordElement.appendChild(medicineStatusElement);
-
 // ==========================================================
 // CALCULATE OVERALL TOTAL
 // ==========================================================
@@ -3550,8 +3537,8 @@ medicationTable.appendChild(
 
 // Create approve button only if payment is not received
 if (record.medicinestatus !== 'payment received') {
-
   medicineStatusElement.style.color = 'red';
+  
   // Create approve button
   const approve2Button = document.createElement('button');
   approve2Button.classList.add('approve-button');
@@ -3563,30 +3550,615 @@ if (record.medicinestatus !== 'payment received') {
   // Set the inner HTML of the approve button
   approve2Button.innerHTML = '';
   approve2Button.appendChild(checkIcon);
-  approve2Button.innerHTML += ' Approve medicine payment';
+  approve2Button.innerHTML += ' Approve Medicine Payment';
 
-  // Add click event listener to the approve button
-  approve2Button.addEventListener('click', () => {
-    // Update the payment status in Firebase
-    const medicineStatusRef = ref(database, `patients/${patientName}/testsTaken/${recordKey}/medicinestatus`);
+ // Add click event listener to the approve button
+approve2Button.addEventListener('click', () => {
+    // Clone and show the approval popup
+    const medicinePaymentPopupClone = document.getElementById('medicinePaymentPopup');
+    medicinePaymentPopupClone.style.display = 'block';
+  
+    // Set the values for the popup
+    const totalAmount = overallTotal; // Use the overall total here
+    const paidAmount = 0; // Initialize with a value or leave blank
+    let balance = totalAmount - paidAmount;
+  
+    // Set the total amount, amount paid, balance, department, and payment mode
+    document.getElementById('totalAmountValue').textContent = `UGX ${totalAmount.toFixed(2)}`;
+    document.getElementById('amountReceivedInput').value = paidAmount.toFixed(2);
+    document.getElementById('remainingBalanceInput').value = balance.toFixed(2);
+  
+    // Set the department and payment mode dropdowns
+    document.getElementById('paymentDepartmentSelect').value = "general";  // Set default department, change if necessary
+    document.getElementById('paymentMethodSelect').value = "Cash";  // Set default payment mode, change if necessary
+  
+    // Event listener for closing the popup
+    const closeMedicinePopupBtn = document.getElementById('closeMedicinePopupBtn');
+    closeMedicinePopupBtn.addEventListener('click', () => {
+      medicinePaymentPopupClone.style.display = 'none'; // Close the popup
+    });
+  
+    // Handle dynamic balance update as amountReceivedInput changes
+    const amountReceivedInput = document.getElementById('amountReceivedInput');
+    const remainingBalanceInput = document.getElementById('remainingBalanceInput');
+    
+    amountReceivedInput.addEventListener('input', () => {
+      const amountReceived = parseFloat(amountReceivedInput.value);
+      if (!isNaN(amountReceived)) {
+        balance = totalAmount - amountReceived;
+        remainingBalanceInput.value = balance.toFixed(2);
+  
+        // Change color of balance field based on the amount received
+        if (balance > 0) {
+          remainingBalanceInput.style.color = 'red'; // Color it red if there's still a balance
+        } else if (balance === 0) {
+          remainingBalanceInput.style.color = 'green'; // Green when fully paid
+        } else {
+          remainingBalanceInput.style.color = 'blue'; // Optional: Blue if overpaid, handle this as you see fit
+        }
+      } else {
+        remainingBalanceInput.value = totalAmount.toFixed(2); // In case of invalid input
+        remainingBalanceInput.style.color = 'black'; // Default color if input is invalid
+      }
+    });
+  
+// Handle confirming the medicine payment
+const confirmMedicinePaymentButton = document.getElementById('confirmMedicinePaymentButton');
+confirmMedicinePaymentButton.addEventListener('click', async () => {
 
-    set(medicineStatusRef, 'payment received')
-      .then(() => {
-        showMessage('Payment status updated successfully!');
-        console.log('Payment status updated successfully.');
-      })
-      .catch((error) => {
-        console.error('Error updating payment status:', error);
-        showMessage('Error updating payment status:', error);
-      });
+  document.getElementById('overlayLoader').style.display = 'flex';
+
+  // Get the patient ID and test record key
+  const patientId = patient.patientId; // Replace with actual patient ID
+  const testKey = recordKey; // Replace with the actual key for the test (use the correct reference)
+  const amountReceived = parseFloat(document.getElementById('amountReceivedInput').value);
+  const balanceValue = parseFloat(document.getElementById('remainingBalanceInput').value);
+  const totalAmount = overallTotal; // Use the overall total here
+  const department = document.getElementById('paymentDepartmentSelect').value;
+  const paymentMode = document.getElementById('paymentMethodSelect').value;
+  const testsTaken = recordKey; // Get Services Offered information if needed
+
+  const salesReceipt = {
+    testsTaken,
+    totalAmount,
+    amountReceived,
+    balance: balanceValue, // Update with actual balance after payment
+    patientId,
+    department,
+    paymentMode,
+    timestamp: Date.now(),
+  };
+
+  try {
+    // Get and increment receipt counter
+    const counterRef = ref(database, 'receiptCounter');
+    const counterSnap = await get(counterRef);
+    let receiptNumber = 1;
+    if (counterSnap.exists()) {
+      receiptNumber = counterSnap.val() + 1;
+    }
+    await set(counterRef, receiptNumber);
+
+    const now = new Date();
+    const dateString = now.toISOString().split('T')[0].replace(/-/g, '');
+    const formattedReceiptNo = `R-${dateString}-${String(receiptNumber).padStart(3, '0')}`;
+
+    // Push receipt to database
+    const salesReceiptsRef = ref(database, 'salesReceipts');
+    await push(salesReceiptsRef, salesReceipt);
+
+    showMessage('Sales receipt uploaded successfully');
+
+    // Ask the user if they want to print the receipt
+    const shouldPrint = confirm("Payment successful. Do you want to print the receipt?");
+
+    if (shouldPrint) {
+      const receiptWindow = window.open('', '_blank');
+      receiptWindow.document.write(`
+        <html>
+        <head>
+          <title>Payment Receipt</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              padding: 10px;
+              background: #fff;
+              margin: 0;
+              color: #000; /* Ensure text is black */
+            }
+            .hospital-logo img {
+              width: 120px;
+              height: auto;
+              margin: 10px auto;
+              display: block; /* Center the logo */
+            }
+            .hospital-details {
+              text-align: center;
+              margin-bottom: 20px;
+            }
+            .hospital-details h1 {
+              margin: 0;
+              font-size: 28px;
+              color: #000;
+            }
+            .hospital-details p {
+              margin: 4px 0;
+              font-size: 14px;
+              color: #000;
+            }
+            .receipt {
+              background: #fff;
+              border: 1px solid #000;
+              padding: 15px;
+              max-width: 450px;
+              margin: 20px auto;
+              box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            }
+            .receipt h2 {
+              text-align: center;
+              margin-top: 0;
+              font-size: 22px;
+              color: #000;
+            }
+            .receipt p {
+              margin: 10px 0;
+              font-size: 15px;
+              color: #000;
+            }
+            .receipt p strong {
+              color: #000;
+            }
+            hr {
+              margin: 15px 0;
+              border: 1px solid #000;
+            }
+            .thank-you {
+              text-align: center;
+              font-size: 16px;
+              color: #000;
+              margin-top: 20px;
+            }
+            .date-time {
+              text-align: center;
+              font-size: 14px;
+              color: #000;
+              margin-top: 20px;
+              padding: 10px;
+              border: 1px solid #000;
+              width: 200px;
+              margin: 20px auto;
+            }
+            .date-time p {
+              margin: 5px 0;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="hospital-logo">
+            <img src="sanyu.png" alt="Hospital Logo">
+          </div>
+          <div class="hospital-details">
+            <h1>SANYU HOSPITAL  </h1>
+            <p>Address: Located at Katooke-Wakiso District</p>
+            <p>Phone: +256 782 477 517</p>
+            <p>Email: info@keahmedicals.com</p>
+          </div>
+          <div class="date-time">
+            <p><strong>Date:</strong> ${now.toLocaleDateString()}</p>
+            <p><strong>Time:</strong> ${now.toLocaleTimeString()}</p>
+          </div>
+
+          <div class="receipt">
+            <h2>Payment Receipt</h2>
+            <p><strong>Receipt No:</strong> ${formattedReceiptNo}</p>
+            <p><strong>Patient ID:</strong> ${patientId}</p>
+            <p><strong>Department:</strong> ${department}</p>
+            <p><strong>Payment Mode:</strong> ${paymentMode}</p>
+            <p><strong>Services Offered:</strong> ${testsTaken}</p>
+            <p><strong>Total Amount:</strong> UGX ${totalAmount.toFixed(2)}</p>
+            <p><strong>Amount Tendered:</strong> UGX ${amountReceived.toFixed(2)}</p>
+            <p><strong>Balance:</strong> UGX ${balanceValue.toFixed(2)}</p>
+            <hr>
+            <p class="thank-you">Thank you for your payment!</p>
+          </div>
+
+          <script>
+            window.onload = function() {
+              window.print();
+            };
+          </script>
+        </body>
+        </html>
+      `);
+      receiptWindow.document.close();
+    }
+
+    // Update payment status in the database
+    const paymentStatusRef = ref(database, `patients/${patientId}/testsTaken/${testKey}/medicinestatus`);
+    await set(paymentStatusRef, 'payment received');
+    showMessage('Payment status updated successfully!');
+    console.log('Payment status updated successfully.');
+
+    // Store balance details under the test in Firebase
+    const balanceRef = ref(database, `patients/${patientId}/testsTaken/${testKey}/paymentDetails`);
+    await set(balanceRef, {
+      totalAmount,
+      amountReceived,
+      balance: balanceValue,
+      department,
+      paymentMode,
+      timestamp: Date.now(),
+    });
+
+    // Close the popup after successful processing
+    medicinePaymentPopupClone.style.display = 'none';
+
+  } catch (error) {
+    showMessage('Error uploading sales receipt:', error);
+    console.error('Receipt error:', error);
+
+    // Restore button state in case of error
+    confirmMedicinePaymentButton.disabled = false;
+    confirmMedicinePaymentButton.innerHTML = 'Confirm Payment';
+  }
+  finally {
+    // Hide loader after all is done
+    document.getElementById('overlayLoader').style.display = 'none';
+  }
+
+});
+
   });
+  
 
-  // Append the approve button to a container element on your webpage
-  recordElement.appendChild(approve2Button);
+
+// Append the approve button to a container element on your webpage
+recordElement.appendChild(approve2Button);
+
 }else {
   medicineStatusElement.style.color = 'blue';
 }
+// Create payment details row
+const paymentDetailsRow = document.createElement('tr');
 
+// Create table header for 'Payment Details'
+const paymentHeader = document.createElement('th');
+paymentHeader.textContent = 'Payment Details';
+paymentDetailsRow.appendChild(paymentHeader);
+
+// Create table cell for 'Payment Details'
+const paymentDetailsCell = document.createElement('td');
+paymentDetailsCell.classList.add('payment-details-cell'); // Add CSS class
+
+// Get payment details from the record
+const paymentDetails = record.paymentDetails;
+
+if (paymentDetails) {
+  const { totalAmount, amountReceived, balance, department, paymentMode } = paymentDetails;
+
+  paymentDetailsCell.innerHTML = `
+    <div class="payment-line"><strong>Total:</strong> UGX ${totalAmount?.toFixed(2) || 0}</div>
+    <div class="payment-line"><strong>Paid:</strong> UGX ${amountReceived?.toFixed(2) || 0}</div>
+    <div class="payment-line balance-line"><strong>Balance:</strong> UGX ${balance?.toFixed(2) || 0}</div>
+    <div class="payment-line"><strong>Department:</strong> ${department || 'N/A'}</div>
+    <div class="payment-line"><strong>Payment Mode:</strong> ${paymentMode || 'N/A'}</div>
+  `;
+
+  if (balance > 0) {
+    paymentDetailsCell.classList.add('unpaid');
+  } else {
+    paymentDetailsCell.classList.add('paid');
+  }
+} else {
+  paymentDetailsCell.textContent = 'No payment recorded';
+  paymentDetailsCell.classList.add('no-payment');
+}
+
+paymentDetailsRow.appendChild(paymentDetailsCell);
+recordElement.appendChild(paymentDetailsRow);
+if (!record.paymentDetails || record.paymentDetails.balance > 0) {
+    const completePaymentBtn = document.createElement('button');
+    completePaymentBtn.textContent = '💳 Complete Payment';
+    completePaymentBtn.classList.add('complete-payment-btn');
+    
+    completePaymentBtn.addEventListener('click', () => {
+      // Clone and show the medicine payment popup
+      const medicinePaymentPopupClone = document.getElementById('medicinePaymentPopup');
+      medicinePaymentPopupClone.style.display = 'block';
+  
+      // Extract payment details
+      const paymentDetails = record.paymentDetails || {};
+      const previousBalance = paymentDetails.balance || 0;
+  
+      // Set the total amount to the previous balance (for completing the payment)
+      document.getElementById('totalAmountValue').textContent = `UGX ${previousBalance.toFixed(2)}`;
+      document.getElementById('amountReceivedInput').value = '0.00'; // Start from 0 for the new input
+      document.getElementById('remainingBalanceInput').value = previousBalance.toFixed(2);
+  
+      // Set the department and payment mode dropdowns
+      document.getElementById('paymentDepartmentSelect').value = paymentDetails.department || "general";  // Set default department
+      document.getElementById('paymentMethodSelect').value = paymentDetails.paymentMode || "Cash";  // Set default payment mode
+  
+      // Handle dynamic balance update as amountReceivedInput changes
+      const amountReceivedInput = document.getElementById('amountReceivedInput');
+      const remainingBalanceInput = document.getElementById('remainingBalanceInput');
+  
+      amountReceivedInput.addEventListener('input', () => {
+        const amountReceived = parseFloat(amountReceivedInput.value);
+        if (!isNaN(amountReceived)) {
+          const remainingBalance = previousBalance - amountReceived; // Calculate the remaining balance
+          remainingBalanceInput.value = remainingBalance.toFixed(2);
+  
+          // Change color of balance field based on the amount received
+          if (remainingBalance > 0) {
+            remainingBalanceInput.style.color = 'red'; // Red if there's still a balance
+          } else if (remainingBalance === 0) {
+            remainingBalanceInput.style.color = 'green'; // Green if fully paid
+          } else {
+            remainingBalanceInput.style.color = 'blue'; // Blue if overpaid
+          }
+        }
+      });
+  
+      // Event listener for closing the popup
+      const closeMedicinePopupBtn = document.getElementById('closeMedicinePopupBtn');
+      closeMedicinePopupBtn.addEventListener('click', () => {
+        medicinePaymentPopupClone.style.display = 'none'; // Close the popup
+      });
+  
+      // Handle confirming the payment
+      const confirmMedicinePaymentButton = document.getElementById('confirmMedicinePaymentButton');
+      confirmMedicinePaymentButton.addEventListener('click', async () => {
+
+        document.getElementById('overlayLoader').style.display = 'flex';
+
+        const amountReceived = parseFloat(document.getElementById('amountReceivedInput').value);
+        const remainingBalanceValue = parseFloat(document.getElementById('remainingBalanceInput').value);
+  
+        // Get patient ID and test record key
+        const patientId = patient.patientId; // Replace with actual patient ID
+        const testKey = recordKey; // Replace with the actual key for the test (use the correct reference)
+  
+        const totalAmount = previousBalance; // Set the total amount to the previous balance
+        const department = document.getElementById('paymentDepartmentSelect').value;
+        const paymentMode = document.getElementById('paymentMethodSelect').value;
+        const testsTaken = recordKey; // Get Services Offered information if needed
+  
+        const salesReceipt = {
+          testsTaken,
+          totalAmount,
+          amountReceived,
+          balance: remainingBalanceValue, // Update balance after payment
+          patientId,
+          department,
+          paymentMode,
+          timestamp: Date.now(),
+        };
+  
+        try {
+          // Get and increment receipt counter
+          const counterRef = ref(database, 'receiptCounter');
+          const counterSnap = await get(counterRef);
+          let receiptNumber = 1;
+          if (counterSnap.exists()) {
+            receiptNumber = counterSnap.val() + 1;
+          }
+          await set(counterRef, receiptNumber);
+  
+          const now = new Date();
+          const dateString = now.toISOString().split('T')[0].replace(/-/g, '');
+          const formattedReceiptNo = `R-${dateString}-${String(receiptNumber).padStart(3, '0')}`;
+  
+          // Push receipt to the database
+          const salesReceiptsRef = ref(database, 'salesReceipts');
+          await push(salesReceiptsRef, salesReceipt);
+  
+          showMessage('Sales receipt uploaded successfully');
+  
+// Ask the user if they want to print the receipt
+const shouldPrint = confirm("Payment successful. Do you want to print the receipt?");
+
+if (shouldPrint) {
+  const receiptWindow = window.open('', '_blank');
+  receiptWindow.document.write(`
+    <html>
+    <head>
+      <title>Payment Receipt</title>
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          padding: 10px;
+          background: #fff;
+          margin: 0;
+          color: #000;
+        }
+        .hospital-logo img {
+          width: 120px;
+          height: auto;
+          margin: 10px auto;
+          display: block;
+        }
+        .hospital-details {
+          text-align: center;
+          margin-bottom: 20px;
+        }
+        .hospital-details h1 {
+          margin: 0;
+          font-size: 28px;
+          color: #000;
+        }
+        .hospital-details p {
+          margin: 4px 0;
+          font-size: 14px;
+          color: #000;
+        }
+        .receipt {
+          background: #fff;
+          border: 1px solid #000;
+          padding: 15px;
+          max-width: 450px;
+          margin: 20px auto;
+          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .receipt h2 {
+          text-align: center;
+          margin-top: 0;
+          font-size: 22px;
+          color: #000;
+        }
+        .receipt p {
+          margin: 10px 0;
+          font-size: 15px;
+          color: #000;
+        }
+        .receipt p strong {
+          color: #000;
+        }
+        hr {
+          margin: 15px 0;
+          border: 1px solid #000;
+        }
+        .thank-you {
+          text-align: center;
+          font-size: 16px;
+          color: #000;
+          margin-top: 20px;
+        }
+        .date-time {
+          text-align: center;
+          font-size: 14px;
+          color: #000;
+          margin-top: 20px;
+          padding: 10px;
+          border: 1px solid #000;
+          width: 200px;
+          margin: 20px auto;
+        }
+        .date-time p {
+          margin: 5px 0;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="hospital-logo">
+        <img src="sanyu.png" alt="Hospital Logo">
+      </div>
+      <div class="hospital-details">
+        <h1>SANYU HOSPITAL  </h1>
+        <p>Address: Located at Katooke-Wakiso District</p>
+        <p>Phone: +256 782 477 517</p>
+        <p>Email: info@keahmedicals.com</p>
+      </div>
+      <div class="date-time">
+        <p><strong>Date:</strong> ${now.toLocaleDateString()}</p>
+        <p><strong>Time:</strong> ${now.toLocaleTimeString()}</p>
+      </div>
+
+      <div class="receipt">
+        <h2>Payment Receipt</h2>
+        <p><strong>Receipt No:</strong> ${formattedReceiptNo}</p>
+        <p><strong>Patient ID:</strong> ${patientId}</p>
+        <p><strong>Department:</strong> ${department}</p>
+        <p><strong>Payment Mode:</strong> ${paymentMode}</p>
+        <p><strong>Services Offered:</strong> ${testsTaken}</p>
+        <p><strong>Total Amount:</strong> UGX ${totalAmount.toFixed(2)}</p>
+        <p><strong>Amount Tendered:</strong> UGX ${amountReceived.toFixed(2)}</p>
+        <p><strong>Balance:</strong> UGX ${remainingBalanceValue.toFixed(2)}</p>
+        <hr>
+        <p class="thank-you">Thank you for your payment!</p>
+      </div>
+
+      <script>
+        // Automatically trigger print dialog
+        window.onload = function () {
+          window.print();
+          window.onafterprint = function () {
+            window.close(); // Close the window after printing
+          };
+        };
+      </script>
+    </body>
+    </html>
+  `);
+  receiptWindow.document.close();
+}
+
+          // Update payment status in the database
+          const paymentStatusRef = ref(database, `patients/${patientId}/testsTaken/${testKey}/medicinestatus`);
+          await set(paymentStatusRef, 'payment received');
+          showMessage('Payment status updated successfully!');
+  
+          // Store balance details under the test in Firebase
+          const balanceRef = ref(database, `patients/${patientId}/testsTaken/${testKey}/paymentDetails`);
+          await set(balanceRef, {
+            totalAmount,
+            amountReceived,
+            balance: remainingBalanceValue,
+            department,
+            paymentMode,
+            timestamp: Date.now(),
+          });
+  
+          // Close the popup after successful processing
+          medicinePaymentPopupClone.style.display = 'none';
+  
+        } catch (error) {
+          showMessage('Error uploading sales receipt:', error);
+          console.error('Receipt error:', error);
+        }
+        finally {
+          // Hide loader after all is done
+          document.getElementById('overlayLoader').style.display = 'none';
+        }
+      });
+    });
+  
+    // Append the complete payment button after payment details
+    const paymentActionRow = document.createElement('tr');
+    const emptyCell = document.createElement('td');
+    const buttonCell = document.createElement('td');
+  
+    buttonCell.appendChild(completePaymentBtn);
+    paymentActionRow.appendChild(emptyCell);
+    paymentActionRow.appendChild(buttonCell);
+  
+    recordElement.appendChild(paymentActionRow);
+  }
+  
+  
+  
+
+// Function to handle payment action
+function handlePaymentAction() {
+  // Capture the Services Offered
+  const testsTakenData = testsTakenCell.textContent.trim();
+  console.log('Services Offered:', testsTakenData);
+
+  // Get the input element where you want to display the Services Offered data
+  const testsTakenInput = document.getElementById('testsTaken');
+
+  // Set the value of the input element to the captured Services Offered data
+  testsTakenInput.value = testsTakenData;
+
+  // Show custom payment details popup
+  const confirmationPopup = document.getElementById('confirmationPopup');
+  confirmationPopup.style.display = 'block';
+  calculateTotalOnClick()
+  // Close popup when close button is clicked
+  const closePopupBtn = document.getElementById('closePopupBtn');
+  closePopupBtn.addEventListener('click', closePopup);
+
+  // Add event listener to the confirm payment button
+  const confirmPaymentBtn = document.getElementById('confirmPaymentBtn');
+  confirmPaymentBtn.addEventListener('click', confirmPaymentAction);
+
+  // Function to close the popup
+  function closePopup() {
+    confirmationPopup.style.display = 'none';
+    closePopupBtn.removeEventListener('click', closePopup);
+    confirmPaymentBtn.removeEventListener('click', confirmPaymentAction);
+  }
+}
 
 
 const additionalNotesElement = document.createElement('p');
@@ -3865,28 +4437,33 @@ getPatientVisitDetails(patientName);
     overlay2.style.display = 'none';
   });
 
-  // Add event listener to the print button
-  printButton.addEventListener('click', async () => {
-    // Get the patient details and latest visit data
-    const patient = await getPatientDetails(patientName);
-    const latestVisitData = await getLatestVisitData(patientName);
+printButton.addEventListener('click', async () => {
+  // Get the patient details and latest visit data
+  const patient = await getPatientDetails(patientName);
+  const latestVisitData = await getLatestVisitData(patientName);
+
+  // Check if a signature is already saved
+  if (signatureData) {
+    const useSaved = confirm("A saved signature exists. Do you want to use it? Click Cancel to create a new signature.");
     
-    // Display the signature popup when the print button is clicked
+    if (!useSaved) {
+      // User wants to create a new signature
+      signaturePad.clear(); // clear old signature
+      overlay2.style.display = 'block';
+      signaturePopup.style.display = 'block';
+      return; // wait for user to save new signature
+    }
+    // If useSaved === true, proceed with printing
+  } else {
+    // No saved signature, show signature popup
     overlay2.style.display = 'block';
     signaturePopup.style.display = 'block';
+    return; // wait for user to save signature
+  }
 
-// Inside your printButton click event listener
-if (signatureData) {
-  console.log('Latest Visit Data for Printing:', latestVisitData); // Log the latestVisitData
-// If testsTaken is an object with keys
-const recordKey = Object.keys(patient.testsTaken)[0]; // "test1"
-printRecord(patient, record, recordKey, visitDetails, latestVisitData);
-
-}
- else {
-      alert('Please provide a signature before printing.');
-    }
-  });
+  // Proceed to print with the current signatureData
+  printRecord(patient, record, recordKey, visitDetails, latestVisitData, signatureData);
+});
 
   // Append the print button to the record element
   recordElement.appendChild(printButton);
@@ -4017,7 +4594,7 @@ function generateLatestVisitDetailsFromDisplay() {
 }
 
 
-async function printRecord(patient, record, recordKey, visitDetails, latestVisitData) {
+async function printRecord(patient, record, recordKey, visitDetails, latestVisitData, signatureData) {
   window.jsPDF = window.jspdf.jsPDF;
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -4522,16 +5099,31 @@ if (record.servicesTaken && record.servicesTaken.length > 0) {
   rightStartY += lineHeight - 2;
 }
 
+// ---------------- Signature ----------------
+const signatureWidth = 60;  // adjust width of the signature
+const signatureHeight = 30; // adjust height
+const signatureX = boxX + 5; // left margin inside your box
+const signatureY = boxY + boxHeight - signatureHeight - 5; // leave small margin from bottom
 
-  // ---------------- Signature ----------------
-  const signatureY = boxY + boxHeight - 15;
-  doc.setFont('helvetica', 'bold');
-  doc.text("Doctor's Signature: ____________________", boxX + 5, signatureY);
+// Label
+doc.setFont('helvetica', 'bold');
+doc.setFontSize(10);
+doc.text("Doctor's Signature:", signatureX, signatureY - 2);
+
+// Draw the actual signature image if available
+if (signatureData) {
+  doc.addImage(signatureData, 'PNG', signatureX, signatureY, signatureWidth, signatureHeight);
+} else {
+  // fallback line if no signature provided
+  doc.setFont('helvetica', 'normal');
+  doc.text("____________________", signatureX, signatureY + 10);
+}
 
   // ---------------- Print ----------------
   doc.autoPrint();
   doc.output('dataurlnewwindow');
 }
+
 
 // Create a button for printing the test invoice
 const printInvoiceButton = document.createElement('button');
@@ -4561,7 +5153,8 @@ const invoiceContent = `
   <div class="invoice">
     <div class="invoice-header">
       <h2>SANYU HOSPITAL  </h2>
-      <p>Located at Katooke-Wakiso District</p>
+      <p>Katooke</p>
+      <p>Wakiso District (Uganda)</p>
       <p>Phone: +256 782 477 517</p>
       <p>Email: info@keahmedicals.com</p>
     </div>
@@ -5247,18 +5840,14 @@ const loaderElement = document.getElementById('loader');
 // Show the loader
 loaderElement.classList.remove('hidden');
 
+// Fetch patient data from Firebase
 onValue(patientsRef, (snapshot) => {
-  const patientsData = snapshot.val();
-
-  if (patientsData) {
-    patients = Object.values(patientsData); // Update the patients variable
-    renderPatients(patients);
-  }
-
-  // Hide the loader
+  patientsData = snapshot.val() ? Object.values(snapshot.val()).reverse() : [];
+  // Update the pagination and render the patients
+  renderPatients();
   loaderElement.classList.add('hidden');
-});
 
+});
 
 // Function to calculate the total based on inputs
 const calculateTotal = () => {
@@ -5707,7 +6296,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
 });
 
 // Assuming currentPageSender is defined elsewhere in your code
- const currentPageSender = 'Patients Reception'; // Example
+ const currentPageSender = 'Cashier'; // Example
 
 // Function to parse timestamp in the format "6/13/2024 6:53 PM"
 function parseTimestamp(timestampStr) {
@@ -5761,7 +6350,7 @@ function displayChatMessage(message) {
     messageDiv.appendChild(timestampSpan);
 
     // Add different classes based on the sender
-    if (message.sender === 'Patients Reception') {
+    if (message.sender === 'Cashier') {
       messageDiv.classList.add('patients-reception');
     } else {
       messageDiv.classList.add('other-sender');
@@ -5789,7 +6378,7 @@ function displayChatMessage(message) {
 
 // Function to play message sound and update span count
 function playMessageSound(sender) {
-  if (sender === 'Patients Reception') {
+  if (sender === 'Cashier') {
     messageSentAudio.play();
   } else {
     newMessageAudio.play();
@@ -5816,7 +6405,7 @@ messageInput.addEventListener('keydown', (event) => {
 function sendMessage() {
   const messageText = messageInput.value.trim();
   if (messageText !== '') {
-    const sender = 'Patients Reception'; // You can replace 'User' with the actual username or user ID
+    const sender = 'Cashier'; // You can replace 'User' with the actual username or user ID
     const timestamp = new Date().toISOString();
     const message = { text: messageText, sender: sender, timestamp: timestamp };
 
@@ -5851,7 +6440,8 @@ function sendMessage() {
       function confirmPaymentAction2(event) {
         //console.log('Button clicked'); // Debugging line
         event.preventDefault();
-        
+        document.getElementById('overlayLoader').style.display = 'flex';
+
         const patientIdInputClone = document.getElementById('patientIdInputClone');
         const departmentSelectClone = document.getElementById('departmentClone');
         const paymentModeSelectClone = document.getElementById('paymentModeClone');
@@ -5863,6 +6453,7 @@ function sendMessage() {
         // Construct the sales receipt object
         const salesReceipt = {
           totalAmount: totalCostClone,
+          amountTendered: totalCostClone,
           patientId: patientIdClone,
           department: departmentSelectClone.value,
           paymentMode: paymentModeSelectClone.value,
@@ -5895,92 +6486,134 @@ function sendMessage() {
         
             } catch (error) {
               console.error('Error accessing receipt counter:', error);
-            }
+            } 
         
             const formattedReceiptNo = `R-${dateString}-${String(receiptNumber).padStart(3, '0')}`;
         
-            // Step 3: Generate receipt
-            const receiptWindow = window.open('', '_blank');
-            receiptWindow.document.write(`
-              <html>
-                <head>
-                  <title>Payment Receipt</title>
-                  <style>
-                    body {
-                      font-family: Arial, sans-serif;
-                      padding: 20px;
-                      text-align: center;
-                      background: #fff;
-                    }
-                    .hospital-logo img {
-                      width: 100px;
-                      height: auto;
-                      margin-bottom: 10px;
-                    }
-                    .hospital-details h1 {
-                      margin: 5px 0;
-                      font-size: 24px;
-                      color: #2c3e50;
-                    }
-                    .hospital-details p {
-                      margin: 2px 0;
-                      font-size: 14px;
-                    }
-                    .receipt {
-                      border: 1px solid #ccc;
-                      display: inline-block;
-                      text-align: left;
-                      padding: 20px;
-                      max-width: 400px;
-                      margin-top: 20px;
-                    }
-                    .receipt h2 {
-                      text-align: center;
-                      margin-top: 0;
-                      margin-bottom: 15px;
-                      font-size: 20px;
-                      color: #333;
-                    }
-                    .receipt p {
-                      margin: 8px 0;
-                      font-size: 14px;
-                    }
-                    hr {
-                      margin: 15px 0;
-                    }
-                  </style>
-                </head>
-                <body>
-                  <div class="hospital-logo">
-                    <img src="sanyu.png" alt="Hospital Logo">
-                  </div>
-                  <div class="hospital-details">
-                    <h1>SANYU HOSPITAL  </h1>
-                    <p>Address: Located at Katooke-Wakiso District</p>
-                    <p>Phone: +256 782 477 517</p>
-                    <p>Email: info@keahmedicals.com</p>
-                  </div>
-        
-                  <div class="receipt">
-                    <h2>Payment Receipt</h2>
-                    <p><strong>Receipt No:</strong> ${formattedReceiptNo}</p>
-                    <p><strong>Patient ID / Reason:</strong> ${salesReceipt.patientId}</p>
-                    <p><strong>Department:</strong> ${salesReceipt.department}</p>
-                    <p><strong>Payment Mode:</strong> ${salesReceipt.paymentMode}</p>
-                    <p><strong>Total Amount:</strong> UGX ${salesReceipt.totalAmount.toFixed(2)}</p>
-                    <p><strong>Date:</strong> ${new Date(salesReceipt.timestamp).toLocaleString()}</p>
-                    <hr>
-                    <p style="text-align:center;">Thank you for your payment!</p>
-                  </div>
-        
-                  <script>
-                    window.onload = function() {
-                      window.print();
-                    };
-                  </script>
-                </body>
-              </html>
-            `);
+// Step 3: Ask if the user wants to print the receipt
+const shouldPrint = confirm("Payment successful. Do you want to print the receipt?");
+
+if (shouldPrint) {
+  const receiptWindow = window.open('', '_blank');
+  receiptWindow.document.write(`
+           <html>
+  <head>
+    <title>Payment Receipt</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        padding: 10px;
+        background: #fff;
+        margin: 0;
+        color: #000; /* Ensure text is black */
+      }
+      .hospital-logo img {
+        width: 120px;
+        height: auto;
+        margin: 10px auto;
+        display: block; /* Center the logo */
+      }
+      .hospital-details {
+        text-align: center;
+        margin-bottom: 20px;
+      }
+      .hospital-details h1 {
+        margin: 0;
+        font-size: 28px;
+        color: #000;
+      }
+      .hospital-details p {
+        margin: 4px 0;
+        font-size: 14px;
+        color: #000;
+      }
+      .receipt {
+        background: #fff;
+        border: 1px solid #000;
+        padding: 20px;
+        max-width: 450px;
+        margin: 20px auto;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+      .receipt h2 {
+        text-align: center;
+        margin-top: 0;
+        font-size: 22px;
+        color: #000;
+      }
+      .receipt p {
+        margin: 10px 0;
+        font-size: 15px;
+        color: #000;
+      }
+      .receipt p strong {
+        color: #000;
+      }
+      hr {
+        margin: 15px 0;
+        border: 1px solid #000;
+      }
+      .thank-you {
+        text-align: center;
+        font-size: 16px;
+        color: #000;
+        margin-top: 20px;
+      }
+      .date-time {
+        text-align: center;
+        font-size: 14px;
+        color: #000;
+        margin-top: 20px;
+        padding: 10px;
+        border: 1px solid #000;
+        width: 200px;
+        margin: 20px auto;
+      }
+      .date-time p {
+        margin: 5px 0;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="hospital-logo">
+      <img src="sanyu.png" alt="Hospital Logo">
+    </div>
+
+    <div class="hospital-details">
+      <h1>SANYU HOSPITAL  </h1>
+      <p>Address: Located at Katooke-Wakiso District</p>
+      <p>Phone: +256 782 477 517</p>
+      <p>Email: info@keahmedicals.com</p>
+    </div>
+
+    <div class="date-time">
+      <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
+      <p><strong>Time:</strong> ${new Date().toLocaleTimeString()}</p>
+    </div>
+
+    <div class="receipt">
+      <h2>Payment Receipt</h2>
+      <p><strong>Receipt No:</strong> ${formattedReceiptNo}</p>
+      <p><strong>Patient ID / Reason:</strong> ${salesReceipt.patientId}</p>
+      <p><strong>Department:</strong> ${salesReceipt.department}</p>
+      <p><strong>Payment Mode:</strong> ${salesReceipt.paymentMode}</p>
+      <p><strong>Total Amount:</strong> UGX ${salesReceipt.totalAmount.toFixed(2)}</p>
+      <p><strong>Date:</strong> ${new Date(salesReceipt.timestamp).toLocaleString()}</p>
+      <hr>
+      <p class="thank-you">Thank you for your payment!</p>
+    </div>
+
+     <script>
+        window.onload = function() {
+          window.print();
+        };
+      </script>
+    </body>
+    </html>
+  `);
+  receiptWindow.document.close();
+}
         
             // Reset form
             consumablesInputClone.value = '';
@@ -5991,6 +6624,9 @@ function sendMessage() {
           })
           .catch((error) => {
             showMessage('Error uploading sales receipt:', error);
+          })
+          .finally(() => {
+            document.getElementById('overlayLoader').style.display = 'none';
           });
         
       }
@@ -6163,3 +6799,1478 @@ reportForm.addEventListener("submit", (e) => {
   reportPopup.style.display = "none";
   popupOverlay2.style.display = "none";
 });
+function loadSalesReceipts() {
+  const receiptsRef = ref(database, 'salesReceipts');
+  const tableBody = document.querySelector('#salesReceiptsTable tbody');
+  
+  // Select the elements where totals will be displayed
+  const availableCashElement = document.querySelector('#cashTotal'); // Available Cash
+  const mobileMoneyElement = document.querySelector('#mobileMoneyTotal'); // Mobile Money
+  const insuranceElement = document.querySelector('#insuranceTotal'); // Insurance
+  const creditCardElement = document.querySelector('#creditCardTotal'); // Credit Card
+  const merchantElement = document.querySelector('#merchantTotal'); // Merchant
+  const grandTotalElement = document.querySelector('#grandTotal'); // Grand Total
+
+  // Update today's date in the title
+  const today = new Date();
+  const formattedDate = today.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+  document.getElementById('receipt-date').textContent = ` - ${formattedDate}`;
+
+  tableBody.innerHTML = ''; // Clear table
+
+  // Initialize totals for each payment mode
+  let cashTotal = 0;
+  let mobileMoneyTotal = 0;
+  let insuranceTotal = 0;
+  let creditCardTotal = 0;
+  let merchantTotal = 0;
+
+  onValue(receiptsRef, (snapshot) => {
+    tableBody.innerHTML = ''; // Clear on update
+
+    // Reset totals every time data is updated
+    cashTotal = 0;
+    mobileMoneyTotal = 0;
+    insuranceTotal = 0;
+    creditCardTotal = 0;
+    merchantTotal = 0;
+function getCurrentShift() {
+  const now = new Date();
+
+  let shiftStart, shiftEnd, shiftName, nextShiftStart;
+
+  // Morning shift: 08:00 AM - 06:00 PM
+  const morningStart = new Date(now);
+  morningStart.setHours(8, 0, 0, 0);
+
+  const morningEnd = new Date(now);
+  morningEnd.setHours(18, 0, 0, 0);
+
+  if (now >= morningStart && now < morningEnd) {
+    // Morning Shift
+    shiftStart = morningStart;
+    shiftEnd = morningEnd;
+    shiftName = "Morning Shift";
+    nextShiftStart = shiftEnd; // next shift = night
+  } else {
+    // Night Shift: 06:00 PM - 08:00 AM
+    if (now >= morningEnd) {
+      shiftStart = morningEnd;
+      shiftEnd = new Date(morningStart);
+      shiftEnd.setDate(shiftEnd.getDate() + 1); // next morning
+    } else {
+      // before morningStart → night shift started yesterday
+      shiftEnd = morningStart;
+      shiftStart = new Date(morningEnd);
+      shiftStart.setDate(shiftStart.getDate() - 1);
+    }
+    shiftName = "Night Shift";
+    nextShiftStart = shiftEnd; // next shift = morning
+  }
+
+  // Format date like: Thu, 28th Aug 2025
+  const options = { weekday: "short", day: "numeric", month: "short", year: "numeric" };
+  let dateStr = shiftStart.toLocaleDateString("en-GB", options);
+
+  // Add ordinal suffix (st, nd, rd, th)
+  const day = shiftStart.getDate();
+  const suffix = (day % 10 === 1 && day !== 11) ? "st"
+               : (day % 10 === 2 && day !== 12) ? "nd"
+               : (day % 10 === 3 && day !== 13) ? "rd"
+               : "th";
+  dateStr = dateStr.replace(/\d+/, day + suffix);
+
+  const shiftLabel = `${dateStr} - ${shiftName}`;
+
+  return { shiftName, shiftStart, shiftEnd, shiftLabel, nextShiftStart };
+}
+
+
+// Show on receipt
+const { shiftLabel, nextShiftStart } = getCurrentShift();
+document.getElementById('receipt-date').textContent = shiftLabel;
+
+function updateCountdown() {
+  const now = new Date();
+  const diff = nextShiftStart - now;
+
+  if (diff <= 0) {
+    document.getElementById('shift-countdown').textContent = "Shift change now!";
+    return;
+  }
+
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+  // Format next shift start time (hh:mm AM/PM)
+  const options = { hour: "numeric", minute: "2-digit", hour12: true };
+  const nextShiftTime = nextShiftStart.toLocaleTimeString("en-US", options);
+
+  document.getElementById('shift-countdown').textContent =
+    `Next shift begins in ${hours}h ${minutes}m ${seconds}s (at ${nextShiftTime})`;
+}
+
+
+// Run countdown every second
+setInterval(updateCountdown, 1000);
+updateCountdown();
+
+    // Collect and sort receipts by timestamp descending (latest first)
+    const receipts = [];
+    snapshot.forEach(childSnapshot => {
+      receipts.push({
+        id: childSnapshot.key,
+        data: childSnapshot.val()
+      });
+    });
+
+// Get shift window
+const { shiftStart, shiftEnd } = getCurrentShift();
+
+// Filter receipts for the current shift
+const todayReceipts = receipts.filter(({ data: receipt }) => {
+  const receiptDate = new Date(receipt.timestamp);
+  return receiptDate >= shiftStart && receiptDate <= shiftEnd;
+});
+
+todayReceipts.sort((a, b) => b.data.timestamp - a.data.timestamp); // Latest first
+const totalReceipts = todayReceipts.length;
+
+
+    todayReceipts.forEach(({id, data: receipt}, index) => {
+      const row = document.createElement('tr');
+      const formattedReceiptDate = new Date(receipt.timestamp).toLocaleString();
+
+      const totalAmount = parseFloat(receipt.totalAmount) || 0;
+      const balance = parseFloat(receipt.balance) || 0;
+
+      let amountTendered = (balance > 0 && balance < totalAmount)
+        ? totalAmount - balance
+        : totalAmount;
+
+      // Track totals for each payment mode
+      if (receipt.paymentMode?.toLowerCase() === 'cash') {
+        cashTotal += amountTendered;
+      } else if (receipt.paymentMode?.toLowerCase() === 'mobile money') {
+        mobileMoneyTotal += amountTendered;
+      } else if (receipt.paymentMode?.toLowerCase() === 'insurance') {
+        insuranceTotal += amountTendered;
+      } else if (receipt.paymentMode?.toLowerCase() === 'credit card') {
+        creditCardTotal += amountTendered;
+      } else if (receipt.paymentMode?.toLowerCase() === 'merchant') {
+        merchantTotal += amountTendered;
+      }
+
+      const receiptNumber = String(totalReceipts - index).padStart(3, '0');
+      const rowHTML = `
+      <td>${receiptNumber}</td>
+      <td>${receipt.patientId || ''}</td>
+      <td>${receipt.department || ''}</td>
+      <td>${receipt.paymentMode || ''}</td>
+      <td>${receipt.testsTaken || ''}</td>
+      <td>${receipt.totalAmount.toFixed(2)}</td>
+      <td>${receipt.amountTendered.toFixed(2)}</td>
+      <td>${receipt.balance.toFixed(2)}</td>
+      <td>${formattedReceiptDate}</td>
+      <td>
+        <button class="print-btn" data-receipt-no="${receiptNumber}">Print</button>
+<button class="delete-btn" data-receipt-id="${id}" style="background-color: red; color: white;">🗑 Delete</button>
+      </td>
+    `;
+    
+      row.innerHTML = rowHTML;
+      tableBody.appendChild(row);
+    });
+  // Global variable to store last deleted receipt data
+let lastDeletedReceipt = null;
+let undoTimeoutId = null;
+
+// Function to show Undo Snackbar
+function showUndoSnackbar() {
+  const snackbar = document.createElement('div');
+  snackbar.id = 'undo-snackbar';
+  snackbar.style = `
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #333;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 5px;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+  `;
+  snackbar.textContent = 'Receipt deleted. ';
+  
+  const undoBtn = document.createElement('button');
+  undoBtn.textContent = 'Undo';
+  undoBtn.style = `
+    margin-left: 10px;
+    background: #4CAF50;
+    border: none;
+    color: white;
+    padding: 5px 10px;
+    cursor: pointer;
+    border-radius: 3px;
+  `;
+
+  undoBtn.addEventListener('click', () => {
+    if (!lastDeletedReceipt) return;
+    const { id, data } = lastDeletedReceipt;
+
+    // Restore to Firebase
+    const receiptRef = ref(database, `salesReceipts/${id}`);
+    set(receiptRef, data)
+      .then(() => {
+        alert('Receipt restored.');
+        lastDeletedReceipt = null;
+        clearTimeout(undoTimeoutId);
+        snackbar.remove();
+      })
+      .catch(err => {
+        alert('Failed to restore receipt.');
+        console.error(err);
+      });
+  });
+
+  snackbar.appendChild(undoBtn);
+  document.body.appendChild(snackbar);
+
+  // Remove snackbar after 5 seconds if no undo
+  undoTimeoutId = setTimeout(() => {
+    snackbar.remove();
+    lastDeletedReceipt = null;
+  }, 5000);
+}
+let isAuthenticated = false;
+let authTimeoutId = null;
+
+tableBody.addEventListener('click', function (e) {
+  if (!e.target.classList.contains('delete-btn')) return;
+
+  e.preventDefault();
+  e.stopPropagation();
+
+  const receiptId = e.target.dataset.receiptId;
+  if (!receiptId) {
+    alert('Receipt ID not found.');
+    return;
+  }
+
+  const row = e.target.closest('tr');
+
+  // 1. Confirm deletion first
+  if (!confirm(`Are you sure you want to delete receipt #${receiptId}?`)) return;
+
+  // 2. Then ask for password, but only if not authenticated recently
+  if (!isAuthenticated) {
+    const password = prompt('Enter admin password to confirm deletion:');
+    if (password !== "sanyu44") {
+      alert('Incorrect password. Deletion cancelled.');
+      return;
+    }
+    isAuthenticated = true;
+
+    // Reset auth after 5 minutes
+    if (authTimeoutId) clearTimeout(authTimeoutId);
+    authTimeoutId = setTimeout(() => {
+      isAuthenticated = false;
+    }, 300000);
+  }
+
+  // 3. Proceed with deletion
+  const receiptRef = ref(database, `salesReceipts/${receiptId}`);
+
+  get(receiptRef).then(snapshot => {
+    if (!snapshot.exists()) {
+      alert('Receipt not found.');
+      return;
+    }
+
+    lastDeletedReceipt = {
+      id: receiptId,
+      data: snapshot.val()
+    };
+
+    // Fade out animation
+    row.style.transition = 'opacity 0.5s ease';
+    row.style.opacity = '0';
+
+    setTimeout(() => {
+      row.remove();
+
+      remove(receiptRef).then(() => {
+        console.log(`Receipt ${receiptId} deleted`);
+        showUndoSnackbar();
+      }).catch(err => {
+        alert('Failed to delete receipt.');
+        console.error(err);
+      });
+    }, 500);
+  }).catch(err => {
+    alert('Failed to retrieve receipt data.');
+    console.error(err);
+  });
+});
+
+    // Format the totals with commas and update the UI
+    const formatNumber = (num) => {
+      return new Intl.NumberFormat('en-US').format(num); // Format number with commas
+    };
+
+    // Update the totals on the dashboard
+    if (availableCashElement) {
+      availableCashElement.textContent = `UGX. ${formatNumber(cashTotal.toFixed(2))}`;
+    }
+    if (mobileMoneyElement) {
+      mobileMoneyElement.textContent = `UGX. ${formatNumber(mobileMoneyTotal.toFixed(2))}`;
+    }
+    if (insuranceElement) {
+      insuranceElement.textContent = `UGX. ${formatNumber(insuranceTotal.toFixed(2))}`;
+    }
+    if (creditCardElement) {
+      creditCardElement.textContent = `UGX. ${formatNumber(creditCardTotal.toFixed(2))}`;
+    }
+    if (merchantElement) {
+      merchantElement.textContent = `UGX. ${formatNumber(merchantTotal.toFixed(2))}`;
+    }
+    if (grandTotalElement) {
+      const grandTotal = cashTotal + mobileMoneyTotal + insuranceTotal + creditCardTotal + merchantTotal;
+      grandTotalElement.textContent = `UGX. ${formatNumber(grandTotal.toFixed(2))}`;
+    }
+ 
+
+    // Hook up print buttons
+    document.querySelectorAll('.print-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const row = e.target.closest('tr');
+        const receiptDetails = {
+          receiptNumber: row.cells[0].textContent,
+          patientId: row.cells[1].textContent,
+          department: row.cells[2].textContent,
+          paymentMode: row.cells[3].textContent,
+          testsTaken: row.cells[4].textContent,
+          totalAmount: row.cells[5].textContent,
+          amountTendered: row.cells[6].textContent,
+          balance: row.cells[7].textContent,
+          date: row.cells[8].textContent
+        };
+        printReceipt(receiptDetails);
+      });
+    });
+  });
+}
+
+function printReceipt(receipt) {
+  const receiptWindow = window.open('', '_blank');
+
+  receiptWindow.document.write(`
+<html>
+  <head>
+    <title>Payment Receipt</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        padding: 10px;
+        background: #fff;
+        margin: 0;
+        color: #000;
+      }
+
+      .hospital-logo img {
+        width: 120px;
+        height: auto;
+        margin: 10px auto;
+        display: block;
+      }
+
+      .hospital-details {
+        text-align: center;
+        margin-bottom: 20px;
+      }
+
+      .hospital-details h1 {
+        margin: 0;
+        font-size: 28px;
+        color: #000;
+      }
+
+      .hospital-details p {
+        margin: 4px 0;
+        font-size: 14px;
+        color: #000;
+      }
+
+      .receipt {
+        background: #fff;
+        border: 1px solid #000;
+        padding: 20px;
+        max-width: 450px;
+        margin: 20px auto;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      .receipt h2 {
+        text-align: center;
+        margin-top: 0;
+        font-size: 22px;
+        color: #000;
+      }
+
+      .receipt p {
+        margin: 10px 0;
+        font-size: 15px;
+        color: #000;
+      }
+
+      .receipt p strong {
+        color: #000;
+      }
+
+      hr {
+        margin: 15px 0;
+        border: 1px solid #000;
+      }
+
+      .thank-you {
+        text-align: center;
+        font-size: 16px;
+        color: #000;
+        margin-top: 20px;
+      }
+
+      .date-time {
+        text-align: center;
+        font-size: 14px;
+        color: #000;
+        margin-top: 20px;
+        padding: 10px;
+        border: 1px solid #000;
+        width: 200px;
+        margin: 20px auto;
+      }
+
+      .date-time p {
+        margin: 5px 0;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="hospital-logo">
+      <img src="sanyu.png" alt="Hospital Logo" />
+    </div>
+
+    <div class="hospital-details">
+      <h1>SANYU HOSPITAL  </h1>
+      <p>Address: Located at Katooke-Wakiso District</p>
+      <p>Phone: +256 782 477 517</p>
+      <p>Email: info@keahmedicals.com</p>
+    </div>
+
+    <div class="date-time">
+      <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
+      <p><strong>Time:</strong> ${new Date().toLocaleTimeString()}</p>
+    </div>
+
+    <div class="receipt">
+  <h2>Payment Receipt</h2>
+  <p><strong>Receipt No:</strong> ${receipt.receiptNumber}</p>
+  <p><strong>Patient ID / Reason:</strong> ${receipt.patientId}</p>
+  <p><strong>Department:</strong> ${receipt.department}</p>
+  <p><strong>Payment Mode:</strong> ${receipt.paymentMode}</p>
+  
+  <!-- Only display "Services Offered" if it's not empty -->
+  ${receipt.testsTaken ? `<p><strong>Services Offered:</strong> ${receipt.testsTaken}</p>` : ''}
+  
+  <p><strong>Total Amount:</strong> UGX ${parseFloat(receipt.totalAmount).toFixed(2)}</p>
+  <p><strong>Amount Tendered:</strong> UGX ${parseFloat(receipt.amountTendered).toFixed(2)}</p>
+  <p><strong>Balance:</strong> UGX ${parseFloat(receipt.balance).toFixed(2)}</p>
+  <p><strong>Issued On:</strong> ${receipt.date}</p>
+  <hr />
+  <p class="thank-you">Thank you for your payment!</p>
+</div>
+
+
+    <script>
+      window.onload = function () {
+        window.print();
+      };
+    </script>
+  </body>
+</html>
+
+  `);
+
+  receiptWindow.document.close();
+}
+
+
+loadSalesReceipts()
+
+document.getElementById('receiptSearchBar').addEventListener('input', function(e) {
+  const searchTerm = e.target.value.toLowerCase();
+  const tableRows = document.querySelectorAll('#salesReceiptsTable tbody tr');
+
+  tableRows.forEach(row => {
+    const receiptNoCell = row.querySelector('td:first-child');
+    const receiptNo = receiptNoCell ? receiptNoCell.textContent.toLowerCase() : '';
+
+    if (receiptNo.includes(searchTerm)) {
+      row.style.display = ''; // Show the row
+    } else {
+      row.style.display = 'none'; // Hide the row
+    }
+  });
+});
+
+// Get elements
+const openPopupButton = document.getElementById('openPopupButton');
+const popupModal = document.getElementById('popupModal');
+const closePopupButton = document.getElementById('closePopupButton');
+const dateFilter = document.getElementById('dateFilter');
+const receiptsTableBody = document.querySelector('#receiptsTable tbody');
+const totalCashElement = document.getElementById('totalCash');
+const totalMobileMoneyElement = document.getElementById('totalMobileMoney');
+const totalInsuranceElement = document.getElementById('totalInsurance');
+const totalCreditCardElement = document.getElementById('totalCreditCard');
+const totalMerchantElement = document.getElementById('totalMerchant');  // Add element for merchant total
+const grandTotalElement = document.getElementById('grandTotal2');
+
+// Function to open popup
+openPopupButton.addEventListener('click', () => {
+    popupModal.style.display = 'flex'; // Show popup
+});
+
+// Function to close popup
+closePopupButton.addEventListener('click', () => {
+    popupModal.style.display = 'none'; // Hide popup
+});
+
+// Function to load daily receipts and total money
+function loadDailySales() {
+    const selectedDate = dateFilter.value;
+
+    if (!selectedDate) {
+        alert('Please select a date');
+        return;
+    }
+
+    const receiptsRef = ref(database, 'salesReceipts');
+    const selectedDateStart = new Date(selectedDate);
+    selectedDateStart.setHours(0, 0, 0, 0);
+    const selectedDateEnd = new Date(selectedDate);
+    selectedDateEnd.setHours(23, 59, 59, 999);
+
+    // Initialize totals for each payment mode
+    let cashTotal = 0;
+    let mobileMoneyTotal = 0;
+    let insuranceTotal = 0;
+    let creditCardTotal = 0;
+    let merchantTotal = 0; // Add merchant total
+
+    onValue(receiptsRef, (snapshot) => {
+        receiptsTableBody.innerHTML = ''; // Clear table
+
+        snapshot.forEach(childSnapshot => {
+            const receipt = childSnapshot.val();
+            const receiptDate = new Date(receipt.timestamp);
+
+            if (receiptDate >= selectedDateStart && receiptDate <= selectedDateEnd) {
+                const row = document.createElement('tr');
+
+                const totalAmount = parseFloat(receipt.totalAmount) || 0;
+                const balance = parseFloat(receipt.balance) || 0;
+                let amountTendered = totalAmount - balance;
+
+                // Add the amounts based on payment method
+                if (receipt.paymentMode?.toLowerCase() === 'cash') {
+                    cashTotal += amountTendered;
+                } else if (receipt.paymentMode?.toLowerCase() === 'mobile money') {
+                    mobileMoneyTotal += amountTendered;
+                } else if (receipt.paymentMode?.toLowerCase() === 'insurance') {
+                    insuranceTotal += amountTendered;
+                } else if (receipt.paymentMode?.toLowerCase() === 'credit card') {
+                    creditCardTotal += amountTendered;
+                } else if (receipt.paymentMode?.toLowerCase() === 'merchant') { // Add merchant total handling
+                    merchantTotal += amountTendered;
+                }
+
+                row.innerHTML = `
+                    <td>${receipt.receiptNumber || ''}</td>
+                    <td>${receipt.patientId || ''}</td>
+                    <td>${receipt.department || ''}</td>
+                    <td>${receipt.paymentMode || ''}</td>
+                    <td>${totalAmount.toFixed(2)}</td>
+                    <td>${amountTendered.toFixed(2)}</td>
+                    <td>${balance.toFixed(2)}</td>
+                `;
+                receiptsTableBody.appendChild(row);
+            }
+        });
+
+        // Calculate and display totals
+        const formatNumber = (num) => new Intl.NumberFormat('en-US').format(num);
+
+        // Update the total elements
+        totalCashElement.textContent = `UGX. ${formatNumber(cashTotal.toFixed(2))}`;
+        totalMobileMoneyElement.textContent = `UGX. ${formatNumber(mobileMoneyTotal.toFixed(2))}`;
+        totalInsuranceElement.textContent = `UGX. ${formatNumber(insuranceTotal.toFixed(2))}`;
+        totalCreditCardElement.textContent = `UGX. ${formatNumber(creditCardTotal.toFixed(2))}`;
+        totalMerchantElement.textContent = `UGX. ${formatNumber(merchantTotal.toFixed(2))}`; // Update merchant total
+
+        // Calculate and display Grand Total
+        const grandTotal = cashTotal + mobileMoneyTotal + insuranceTotal + creditCardTotal + merchantTotal;
+        grandTotalElement.textContent = `UGX. ${formatNumber(grandTotal.toFixed(2))}`;
+    });
+}
+
+// Trigger the load function when a date is selected
+dateFilter.addEventListener('change', loadDailySales);
+
+  // ✅ UI references
+  const expensePanel = document.getElementById('expensePanel');
+  const screenDimmer = document.getElementById('screenDimmer');
+  const launchBtn = document.getElementById('launchExpensePanel');
+  const saveButton = document.getElementById('saveExpenseBtn');
+
+  // ✅ Open panel
+  launchBtn.addEventListener('click', () => {
+    expensePanel.style.display = 'block';
+    screenDimmer.style.display = 'block';
+  });
+saveButton.addEventListener('click', () => {
+  const expenseNotes = document.querySelector('#expensePanel input[type="text"]').value;
+  const amount = document.querySelector('#expensePanel input[type="number"]').value;
+  const category = document.querySelector('#expensePanel select').value;
+
+  if (!expenseNotes || !amount || !category) {
+    alert("Please fill out all required fields.");
+    return;
+  }
+
+  const today = new Date().toISOString().split("T")[0]; // e.g. 2024-06-09
+
+  const newExpense = {
+    expense: expenseNotes,
+    amount: parseFloat(amount),
+    category: category,
+    date: today,
+    timestamp: new Date().toISOString() // store as ISO string for readability
+  };
+
+  const expensesRef = ref(database, `daily_expenses/${today}`);
+  const newExpenseRef = push(expensesRef); // create unique ID
+
+  set(newExpenseRef, newExpense)
+    .then(() => {
+      alert("Expense saved with timestamp!");
+
+      // Close and clear form
+      expensePanel.style.display = 'none';
+      screenDimmer.style.display = 'none';
+
+      document.querySelector('#expensePanel input[type="text"]').value = '';
+      document.querySelector('#expensePanel input[type="number"]').value = '';
+      document.querySelector('#expensePanel select').value = '';
+    })
+    .catch((error) => {
+      alert("Error saving data: " + error.message);
+    });
+});
+
+  // ✅ Click outside to close
+  screenDimmer.addEventListener('click', () => {
+    expensePanel.style.display = 'none';
+    screenDimmer.style.display = 'none';
+  });
+
+// Add this HTML snippet somewhere inside your #summaryPopup (e.g., top)
+// HTML:
+// <div id="dateFilter" style="margin-bottom: 15px;">
+//   <label for="startDate">From:</label>
+//   <input type="date" id="startDate" />
+//   <label for="endDate">To:</label>
+//   <input type="date" id="endDate" />
+//   <button id="applyDateFilter">Apply Filter</button>
+// </div>
+const summaryBtn = document.getElementById('showPopupButton');
+const summaryPopup = document.getElementById('summaryPopup');
+const summaryContent = document.getElementById('summaryContent');
+const summaryDimmer = document.getElementById('summaryDimmer');
+const closeSummaryBtn = document.getElementById('closeSummaryBtn');
+const printRangeSummaryBtn = document.getElementById('printRangeSummaryBtn');
+const resetFilterBtn = document.getElementById('resetFilterBtn');
+const filterError = document.getElementById('filterError');
+
+let globalExpenseSnap = null;
+let globalDailyTotals = {};
+let globalSortedDates = [];
+async function renderSummaries(startDate = null, endDate = null) {
+  summaryContent.innerHTML = '';
+
+  const formatUGX = (value) => new Intl.NumberFormat('en-UG', {
+    style: 'currency',
+    currency: 'UGX',
+    minimumFractionDigits: 0
+  }).format(value);
+
+  const now = new Date();
+
+  // Helper: calculate business date (7:30AM → 7:30AM next day)
+  function getBusinessDate(timestamp) {
+    const d = new Date(timestamp);
+    if (d.getHours() < 7 || (d.getHours() === 7 && d.getMinutes() < 30)) {
+      d.setDate(d.getDate() - 1);
+    }
+    return d.toISOString().split("T")[0];
+  }
+
+  // --- Add sales amount to correct shift ---
+  function addShiftAmount(ts, amount, dailyTotals) {
+    const minutes = ts.getHours() * 60 + ts.getMinutes();
+    const startDay = 7 * 60 + 30;
+    const endDay = 19 * 60 + 30;
+
+    if (minutes >= startDay && minutes < endDay) {
+      dailyTotals.dayGross += amount;
+    } else {
+      dailyTotals.nightGross += amount;
+    }
+  }
+
+  // --- Add expense to correct shift, default to Day if no timestamp ---
+  function addShiftExpense(ts, amount, dailyTotals) {
+    if (!ts) {
+      dailyTotals.dayExpenses += amount;
+      return;
+    }
+
+    const minutes = ts.getHours() * 60 + ts.getMinutes();
+    const startDay = 7 * 60 + 30;
+    const endDay = 19 * 60 + 30;
+
+    if (minutes >= startDay && minutes < endDay) {
+      dailyTotals.dayExpenses += amount;
+    } else {
+      dailyTotals.nightExpenses += amount;
+    }
+  }
+
+  try {
+    const dbRef = ref(database);
+    const [salesSnap, expenseSnap] = await Promise.all([
+      get(child(dbRef, 'salesReceipts')),
+      get(child(dbRef, 'daily_expenses'))
+    ]);
+
+    globalExpenseSnap = expenseSnap;
+    const dailyTotals = {};
+
+    // --- Process sales ---
+    if (salesSnap.exists()) {
+      const sales = salesSnap.val();
+      for (const key in sales) {
+        const sale = sales[key];
+        const ts = new Date(sale.timestamp);
+
+        if (ts.getTime() > now.getTime()) continue; // skip future sales
+
+        const date = getBusinessDate(ts);
+
+        if (!dailyTotals[date]) {
+          dailyTotals[date] = {
+            gross: 0, expenses: 0,
+            dayGross: 0, nightGross: 0,
+            dayExpenses: 0, nightExpenses: 0
+          };
+        }
+
+        const amount = parseFloat(sale.amountTendered || 0);
+        dailyTotals[date].gross += amount;
+        addShiftAmount(ts, amount, dailyTotals[date]);
+      }
+    }
+
+    // --- Process expenses ---
+    if (expenseSnap.exists()) {
+      const allExpenses = expenseSnap.val();
+      for (const dateKey in allExpenses) {
+        const entries = allExpenses[dateKey];
+        for (const id in entries) {
+          const item = entries[id];
+          const ts = item.timestamp ? new Date(item.timestamp) : null;
+
+          if (ts && ts.getTime() > now.getTime()) continue; // skip future expenses
+
+          const businessDate = ts ? getBusinessDate(ts) : dateKey;
+
+          if (!dailyTotals[businessDate]) {
+            dailyTotals[businessDate] = {
+              gross: 0, expenses: 0,
+              dayGross: 0, nightGross: 0,
+              dayExpenses: 0, nightExpenses: 0
+            };
+          }
+
+          const amount = parseFloat(item.amount || 0);
+          dailyTotals[businessDate].expenses += amount;
+          addShiftExpense(ts, amount, dailyTotals[businessDate]);
+        }
+      }
+    }
+
+    const sortedDates = Object.keys(dailyTotals).sort().reverse();
+    globalSortedDates = sortedDates;
+    globalDailyTotals = dailyTotals;
+
+    const filteredDates = sortedDates.filter(date => {
+      if (!startDate || !endDate) return true;
+      return date >= startDate && date <= endDate;
+    });
+
+    if (filteredDates.length === 0) {
+      summaryContent.innerHTML = "<p>No data available for selected dates.</p>";
+      return;
+    }
+
+    // --- Render each day's summary ---
+    filteredDates.forEach(date => {
+      const { gross, expenses, dayGross, nightGross, dayExpenses, nightExpenses } = dailyTotals[date];
+
+      const dayNet = dayGross - dayExpenses;
+      const nightNet = nightGross - nightExpenses;
+      const net = gross - expenses;
+
+      const section = document.createElement('div');
+      section.innerHTML = `
+        <h4>${date}</h4>
+        <p><strong>Total Gross (7:30AM → 7:30AM next day):</strong> ${formatUGX(gross)}</p>
+
+        <div class="shift-container">
+          <div class="shift-box day">
+            <p>🌞 <strong>Day Shift (7:30AM - 7:30PM)</strong></p>
+            <ul>
+              <li>Gross: ${formatUGX(dayGross)}</li>
+              <li>Expenses: ${formatUGX(dayExpenses)}</li>
+              <li class="${dayNet < 0 ? 'net-negative' : 'net-positive'}">Net: ${formatUGX(dayNet)}</li>
+            </ul>
+          </div>
+
+          <div class="shift-box night">
+            <p>🌙 <strong>Night Shift (7:30PM - 7:30AM)</strong></p>
+            <ul>
+              <li>Gross: ${formatUGX(nightGross)}</li>
+              <li>Expenses: ${formatUGX(nightExpenses)}</li>
+              <li class="${nightNet < 0 ? 'net-negative' : 'net-positive'}">Net: ${formatUGX(nightNet)}</li>
+            </ul>
+          </div>
+        </div>
+
+        <p><strong>Total Expenses:</strong> ${formatUGX(expenses)}</p>
+        <p class="${net < 0 ? 'net-negative' : 'net-positive'}">
+          <strong>Overall Net Income:</strong> ${formatUGX(net)}</p>
+
+        <button class="toggleExpensesBtn">Show Expenses</button>
+        <ul class="expenseList" style="display: none; margin-top: 10px;"></ul>
+        <button class="printSummaryBtn">🖨️ Print This Day</button>
+        <hr>
+      `;
+
+      summaryContent.appendChild(section);
+
+      const toggleBtn = section.querySelector('.toggleExpensesBtn');
+      const expenseList = section.querySelector('.expenseList');
+
+      toggleBtn.addEventListener('click', () => {
+        if (expenseList.style.display === 'none') {
+          const entries = Object.entries(globalExpenseSnap.val()?.[date] || {});
+
+          if (entries.length === 0) {
+            expenseList.innerHTML = '<p>No expenses recorded.</p>';
+          } else {
+            const table = document.createElement('table');
+            table.className = 'expense-table';
+
+            table.innerHTML = `
+              <thead>
+                <tr>
+                  <th>Expense Notes</th>
+                  <th>Amount</th>
+                  <th>Category</th>
+                  <th>Shift</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${entries.map(([id, e]) => {
+                  // Determine shift: default to Day if timestamp is missing
+                  let shift = "🌞 Day";
+                  if (e.timestamp) {
+                    const ts = new Date(e.timestamp);
+                    const minutes = ts.getHours() * 60 + ts.getMinutes();
+                    const startDay = 7 * 60 + 30;
+                    const endDay = 19 * 60 + 30;
+                    shift = (minutes >= startDay && minutes < endDay) ? "🌞 Day" : "🌙 Night";
+                  }
+
+                  return `
+                    <tr data-id="${id}">
+                      <td>${e.expense || '-'}</td>
+                      <td>${formatUGX(e.amount || 0)}</td>
+                      <td>${e.category || '-'}</td>
+                      <td>${shift}</td>
+                      <td>
+                        <button style="background-color: red; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer;" 
+                                class="delete-btn" data-id="${id}">
+                          🗑 Delete
+                        </button>
+                      </td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            `;
+
+expenseList.innerHTML = '';
+expenseList.appendChild(table);
+expenseList.style.display = 'block'; // show the list
+
+            // Define your password (ideally this should be securely managed)
+const DELETE_PASSWORD = 'sanyu44';
+// Attach event listeners to delete buttons
+table.querySelectorAll('.delete-btn').forEach(button => {
+  button.addEventListener('click', function () {
+    const id = this.dataset.id;
+    const row = this.closest('tr');
+
+    if (!confirm('Are you sure you want to delete this expense?')) return;
+
+    // Ask for password
+    const password = prompt('Enter admin password to confirm deletion:');
+    if (password !== DELETE_PASSWORD) {
+      alert('Incorrect password. Deletion cancelled.');
+      return;
+    }
+
+    // Backup the deleted data
+    const expenseData = {
+      ...Object(globalExpenseSnap.val()?.[date]?.[id]),
+      id,
+      date
+    };
+
+    // Add fade-out animation
+    row.style.transition = 'opacity 0.5s ease';
+    row.style.opacity = '0';
+
+    setTimeout(() => {
+      // Remove row from DOM
+      row.remove();
+
+      // Remove from Firebase
+      const expenseRef = ref(database, `daily_expenses/${date}/${id}`);
+      remove(expenseRef).then(() => {
+        console.log(`Deleted expense with ID: ${id}`);
+        renderSummaries(startDate = null, endDate = null)
+        // Show Undo Snackbar
+        showUndoSnackbar(expenseData);
+      }).catch(err => {
+        alert('Failed to delete expense.');
+        console.error(err);
+      });
+    }, 500); // Match animation duration
+  });
+});
+
+
+          }
+
+          expenseList.style.display = 'block';
+          toggleBtn.textContent = 'Hide Expenses';
+        } else {
+          expenseList.style.display = 'none';
+          toggleBtn.textContent = 'Show Expenses';
+        }
+      });
+
+const printBtn = section.querySelector('.printSummaryBtn');
+printBtn.addEventListener('click', () => {
+  const printWindow = window.open('', '_blank');
+
+  const summaryHTML = `
+<html>
+<head>
+  <title>Summary for ${date}</title>
+  <style>
+    body {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      padding: 40px;
+      color: #333;
+      background-color: #fff;
+    }
+
+    .header { text-align: center; margin-bottom: 40px; }
+    .header img { max-height: 150px; margin-bottom: 10px; }
+    .header h1 { margin: 10px 0 5px; font-size: 24px; color: #2c3e50; }
+    .header p { margin: 0; font-size: 14px; color: #555; }
+
+    h2 { color: #2c3e50; margin-bottom: 10px; font-size: 22px; border-bottom: 2px solid #eee; padding-bottom: 5px; }
+    h3 { margin-top: 30px; color: #2c3e50; }
+
+    .net-positive { color: #27ae60; font-weight: bold; }
+    .net-negative { color: #c0392b; font-weight: bold; }
+    .info-block p { font-size: 16px; margin: 6px 0; }
+    .printed-on { font-size: 12px; color: #777; margin-bottom: 20px; }
+
+    .expense-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 15px; }
+    .expense-table th, .expense-table td { border: 1px solid #ccc; padding: 10px; text-align: left; }
+    .expense-table th { background-color: #ecf0f1; color: #2c3e50; }
+    .expense-table tr:nth-child(even) { background-color: #f9f9f9; }
+    .expense-table tr:hover { background-color: #f1f1f1; }
+
+    .shift-container { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 20px; }
+    .shift-box { flex: 1 1 45%; border-left: 6px solid; padding: 15px; border-radius: 8px; }
+    .shift-box.day { border-color: #f1c40f; background-color: #fffdf5; color: #2c3e50; }
+    .shift-box.night { border-color: #1f2a38; background-color: #1a1f2b; color: #ecf0f1; }
+    .shift-box.night ul li, .shift-box.night p { color: #ecf0f1; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <img src="sanyu.png" alt="Hospital Logo" />
+    <h1>SANYU HOSPITAL   KATOOKE - (UGANDA)</h1>
+    <p>P.O. Box 12345, Kampala, Uganda</p>
+    <p>Tel: +256 708 657717 | Email: info@keahmedicals.com</p>
+  </div>
+
+  <h2>Daily Financial Summary - ${new Date(date).toLocaleDateString('en-UG', { weekday:'long', year:'numeric', month:'long', day:'numeric' })}</h2>
+  <p class="printed-on">Report Generated On: ${new Date().toLocaleString('en-UG')}</p>
+
+  <div class="info-block">
+    <p><strong>Total Gross Income (7:30AM → 7:30AM next day):</strong> ${formatUGX(gross)}</p>
+    <p><strong>Total Expenses:</strong> ${formatUGX(expenses)}</p>
+    <p class="${net < 0 ? 'net-negative' : 'net-positive'}">
+      <strong>Overall Net Income:</strong> ${formatUGX(net)}</p>
+  </div>
+
+  <h3>Shift Breakdown</h3>
+  <div class="shift-container">
+    <div class="shift-box day">
+      <p>🌞 <strong>Day Shift (7:30AM - 7:30PM)</strong></p>
+      <ul>
+        <li>Gross: ${formatUGX(dayGross)}</li>
+        <li>Expenses: ${formatUGX(dayExpenses)}</li>
+        <li class="${dayNet < 0 ? 'net-negative' : 'net-positive'}">Net: ${formatUGX(dayNet)}</li>
+      </ul>
+    </div>
+    <div class="shift-box night">
+      <p>🌙 <strong>Night Shift (7:30PM - 7:30AM)</strong></p>
+      <ul>
+        <li>Gross: ${formatUGX(nightGross)}</li>
+        <li>Expenses: ${formatUGX(nightExpenses)}</li>
+        <li class="${nightNet < 0 ? 'net-negative' : 'net-positive'}">Net: ${formatUGX(nightNet)}</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Expenses:</h3>
+  <table class="expense-table">
+    <thead>
+      <tr>
+        <th>Expense Notes</th>
+        <th>Amount</th>
+        <th>Category</th>
+        <th>Shift</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${Object.values(globalExpenseSnap.val()?.[date] || {}).map(e => {
+        let shift = "-";
+        if (e.timestamp) {
+          const ts = new Date(e.timestamp);
+          const minutes = ts.getHours() * 60 + ts.getMinutes();
+          const startDay = 7 * 60 + 30;
+          const endDay = 19 * 60 + 30;
+          shift = (minutes >= startDay && minutes < endDay) ? "🌞 Day" : "🌙 Night";
+        }
+        return `
+          <tr>
+            <td>${e.expense}</td>
+            <td>${formatUGX(e.amount)}</td>
+            <td>${e.category}</td>
+            <td>${shift}</td>
+          </tr>
+        `;
+      }).join('')}
+    </tbody>
+  </table>
+</body>
+</html>
+  `;
+
+  printWindow.document.write(summaryHTML);
+  printWindow.document.close();
+  printWindow.print();
+});
+   });
+
+  } catch (error) {
+    alert("Error loading summary: " + error.message);
+  }
+}
+function showUndoSnackbar(deletedExpense) {
+  const snackbar = document.getElementById('undoSnackbar');
+  const undoBtn = document.getElementById('undoBtn');
+  snackbar.style.display = 'block';
+
+  // Timeout to auto-hide snackbar after 5s
+  const timeout = setTimeout(() => {
+    snackbar.style.display = 'none';
+  }, 7000);
+
+  // Handle undo click
+  undoBtn.onclick = async () => {
+    clearTimeout(timeout);
+    snackbar.style.display = 'none';
+
+    // Restore in Firebase
+    const restoreRef = ref(database, `daily_expenses/${deletedExpense.date}/${deletedExpense.id}`);
+    await set(restoreRef, {
+      expense: deletedExpense.expense,
+      amount: deletedExpense.amount,
+      category: deletedExpense.category
+    });
+
+    alert('Expense restored!');
+    renderSummaries()
+
+    // Optional: re-render the list
+  };
+}
+
+summaryBtn.addEventListener('click', () => {
+  summaryPopup.style.display = 'block';
+  summaryDimmer.style.display = 'block';
+  renderSummaries();
+});
+
+document.getElementById('applyDateFilter').addEventListener('click', () => {
+  const startDate = document.getElementById('startDate').value;
+  const endDate = document.getElementById('endDate').value;
+  if (!startDate || !endDate) {
+    filterError.style.display = 'block';
+    return;
+  }
+  filterError.style.display = 'none';
+  renderSummaries(startDate, endDate);
+});
+
+resetFilterBtn.addEventListener('click', () => {
+  document.getElementById('startDate').value = '';
+  document.getElementById('endDate').value = '';
+  filterError.style.display = 'none';
+  renderSummaries();
+});
+
+printRangeSummaryBtn.addEventListener('click', () => {
+  const startDate = document.getElementById('startDate').value;
+  const endDate = document.getElementById('endDate').value;
+
+  if (!startDate || !endDate) {
+    filterError.style.display = 'block';
+    return;
+  }
+
+  filterError.style.display = 'none';
+  const formatUGX = (value) => new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', minimumFractionDigits: 0 }).format(value);
+
+  const filtered = globalSortedDates.filter(d => d >= startDate && d <= endDate);
+  if (filtered.length === 0) {
+    alert("No data found for the selected date range.");
+    return;
+  }
+
+  let totalGross = 0;
+  let totalExpenses = 0;
+  const combinedExpenses = [];
+
+ // Compute category totals along with the expenses
+const categoryTotals = {};
+
+filtered.forEach(date => {
+  const { gross, expenses } = globalDailyTotals[date];
+  totalGross += gross;
+  totalExpenses += expenses;
+  const entries = Object.values(globalExpenseSnap.val()?.[date] || {});
+  
+  entries.forEach(e => {
+    combinedExpenses.push({ date, expense: e.expense, amount: e.amount, category: e.category });
+    
+    // Calculate total for each category
+    if (categoryTotals[e.category]) {
+      categoryTotals[e.category] += e.amount;
+    } else {
+      categoryTotals[e.category] = e.amount;
+    }
+  });
+});
+
+
+  const totalNet = totalGross - totalExpenses;
+  // Initialize the printWindow here to avoid scope issues
+  const printWindow = window.open('', '_blank');
+
+// Create a table for category totals
+const categorySummaryHTML = `
+  <h3>Category Totals</h3>
+  <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+    <thead>
+      <tr>
+        <th style="border: 1px solid #dfe6e9; padding: 10px; text-align: left; background-color: #ecf0f1;">Category</th>
+        <th style="border: 1px solid #dfe6e9; padding: 10px; text-align: right; background-color: #ecf0f1;">Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${Object.keys(categoryTotals).map(category => `
+        <tr>
+          <td style="border: 1px solid #dfe6e9; padding: 10px; color: #2c3e50;">${category}</td>
+          <td style="border: 1px solid #dfe6e9; padding: 10px; text-align: right; color: #2c3e50;">${formatUGX(categoryTotals[category])}</td>
+        </tr>
+      `).join('')}
+    </tbody>
+  </table>
+`;
+const reportHTML = `
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Summary Report (${startDate} to ${endDate})</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: #2c3e50;
+      background-color: #fff;
+      padding: 40px;
+      line-height: 1.6;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+      border-bottom: 2px solid #e0e0e0;
+      padding-bottom: 15px;
+    }
+
+    .header img {
+      max-height: 150px;
+      margin-bottom: 10px;
+    }
+
+    .header h1 {
+      margin: 5px 0;
+      font-size: 24px;
+      color: #34495e;
+    }
+
+    .header p {
+      margin: 2px 0;
+      font-size: 14px;
+      color: #555;
+    }
+
+    h2 {
+      text-align: center;
+      color: #2c3e50;
+      font-size: 22px;
+      margin-bottom: 10px;
+    }
+
+    h3 {
+      margin-top: 30px;
+      font-size: 18px;
+      color: #2c3e50;
+    }
+
+    .net-positive {
+      color: #27ae60;
+      font-weight: bold;
+    }
+
+    .net-negative {
+      color: #c0392b;
+      font-weight: bold;
+    }
+
+    p {
+      font-size: 15px;
+      margin: 6px 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      font-size: 14px;
+    }
+
+    th, td {
+      border: 1px solid #dfe6e9;
+      padding: 10px;
+      text-align: left;
+    }
+
+    th {
+      background-color: #ecf0f1;
+      font-weight: bold;
+      color: #2c3e50;
+    }
+
+    tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+
+    tr:hover {
+      background-color: #f1f1f1;
+    }
+
+    .footer-note {
+      margin-top: 40px;
+      font-size: 12px;
+      color: #888;
+      text-align: right;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <img src="sanyu.png" alt="Logo" />
+    <h1>SANYU HOSPITAL   KATOOKE - (UGANDA)</h1>
+    <p>P.O. Box 12345, Kampala, Uganda</p>
+    <p>Tel: +256 708 657717 | Email: info@keahmedicals.com</p>
+  </div>
+
+  <h2>Financial Summary Report</h2>
+  <p><strong>From:</strong> ${startDate} &nbsp;&nbsp; <strong>To:</strong> ${endDate}</p>
+  <p><strong>Total Gross Income:</strong> ${formatUGX(totalGross)}</p>
+  <p><strong>Total Expenses:</strong> ${formatUGX(totalExpenses)}</p>
+  <p class="${totalNet < 0 ? 'net-negative' : 'net-positive'}">
+    <strong>Total Net Income:</strong> ${formatUGX(totalNet)}
+  </p>
+
+  ${categorySummaryHTML}
+
+  <h3>Combined Expenses (${combinedExpenses.length} entries)</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Expense Notes</th>
+        <th>Amount</th>
+        <th>Category</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${combinedExpenses.map(e => `
+        <tr>
+          <td>${e.date}</td>
+          <td>${e.expense}</td>
+          <td>${formatUGX(e.amount)}</td>
+          <td>${e.category}</td>
+        </tr>`).join('')}
+    </tbody>
+  </table>
+
+  <p class="footer-note">
+    Report generated on: ${new Date().toLocaleString('en-UG')}
+  </p>
+</body>
+</html>
+`;
+
+printWindow.document.write(reportHTML);
+printWindow.document.close();
+printWindow.print();
+});
+
+closeSummaryBtn.addEventListener('click', () => {
+  summaryPopup.style.display = 'none';
+  summaryDimmer.style.display = 'none';
+});
+
+
+async function computeAndStoreDailySummary() {
+  const dbRef = ref(database);
+  const [salesSnap, expenseSnap] = await Promise.all([
+    get(child(dbRef, 'salesReceipts')),
+    get(child(dbRef, 'daily_expenses'))
+  ]);
+
+  const today = new Date().toISOString().split("T")[0];
+  let gross = 0, expenses = 0;
+
+  if (salesSnap.exists()) {
+    const sales = salesSnap.val();
+    for (const key in sales) {
+      const sale = sales[key];
+      const date = new Date(sale.timestamp).toISOString().split("T")[0];
+      if (date === today) {
+        gross += parseFloat(sale.amountTendered || 0);
+      }
+    }
+  }
+
+  if (expenseSnap.exists()) {
+    const allExpenses = expenseSnap.val()[today] || {};
+    for (const id in allExpenses) {
+      expenses += parseFloat(allExpenses[id].amount || 0);
+    }
+  }
+
+  const net = gross - expenses;
+
+  // Save to Firebase
+  await set(ref(database, `daily_summaries/${today}`), {
+    gross,
+    expenses,
+    net,
+    savedAt: new Date().toISOString()
+  });
+}
+
+
+window.addEventListener("load", async () => {
+  const today = new Date().toISOString().split("T")[0];
+  const summaryRef = ref(database, `daily_summaries/${today}`);
+  const snap = await get(summaryRef);
+
+  if (!snap.exists()) {
+    try {
+      await computeAndStoreDailySummary();
+      console.log("Daily summary saved.");
+    } catch (err) {
+      console.error("Failed to store summary:", err);
+    }
+  }
+});
+const saveSummaryBtn = document.getElementById("saveDailySummaryBtn");
+
+saveSummaryBtn.addEventListener("click", async () => {
+  try {
+    await computeAndStoreDailySummary();
+    alert("✅ Daily summary saved successfully!");
+  } catch (err) {
+    console.error("Failed to save summary:", err);
+    alert("⚠️ Error saving summary: " + err.message);
+  }
+});
+
+
+

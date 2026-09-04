@@ -1,7 +1,7 @@
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.2/firebase-app.js";
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.0.2/firebase-storage.js";
-import { getDatabase,query,limitToFirst,orderByKey, ref, remove, push, get, update, onValue, child, set } from "https://www.gstatic.com/firebasejs/9.0.2/firebase-database.js";
+import { getDatabase,query,limitToFirst, ref, remove, push, get, update, onValue, child, set } from "https://www.gstatic.com/firebasejs/9.0.2/firebase-database.js";
 import { getAuth, onAuthStateChanged,sendPasswordResetEmail , signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/9.0.2/firebase-auth.js";
 const firebaseConfig = {
   apiKey: "AIzaSyCi_hufIZTzsYtdPGQtvtmKmAkkrydmn_A",
@@ -19,15 +19,91 @@ const database = getDatabase(app);
 const auth = getAuth(app);
 const storage = getStorage(app);
 
-let currentPatientName = '';
+
+
+document.addEventListener('DOMContentLoaded', () => {
+  const nameInput = document.getElementById('name');
+  const nameFeedback = document.createElement('div');
+  nameFeedback.id = 'nameFeedback';
+  nameInput.insertAdjacentElement('afterend', nameFeedback);
+
+  const existingPatientsPopup = document.getElementById('existingPatientsPopup');
+  const existingPatientsContent = document.getElementById('existingPatientsContent');
+  const closePopup = document.getElementById('closePopup');
+
+  nameInput.addEventListener('input', async () => {
+    const name = nameInput.value.trim();
+    if (name) {
+      const snapshot = await get(child(ref(database), 'babies'));
+      if (snapshot.exists()) {
+        const patients = snapshot.val();
+        const matchingPatients = Object.values(patients).filter(patient =>
+          patient.name.toLowerCase().includes(name.toLowerCase())
+        );
+        if (matchingPatients.length > 0) {
+          nameFeedback.textContent = `Patient(s) with the name "${name}" already exist(s).`;
+          nameFeedback.style.color = 'red';
+
+          existingPatientsContent.innerHTML = ''; // Clear previous content
+          const heading = document.createElement('h3');
+          heading.textContent = `Existing Patients with the name "${name}":`;
+          existingPatientsContent.appendChild(heading);
+
+          matchingPatients.forEach(patient => {
+            const patientDiv = document.createElement('div');
+            patientDiv.classList.add('patient');
+            patientDiv.innerHTML = `
+              <p><strong>Name:</strong> ${patient.name}</p>
+              <p><strong>Date of Birth:</strong> ${patient.dob}</p>
+              <p><strong>Telephone Contact:</strong> ${patient.parents}</p>
+              <p><strong>Next of Kin's Telephone Contact:</strong> ${patient.nok || 'Not Found'}</p>
+              <p><strong>Place of Residence:</strong> ${patient.residence}</p>
+              <p><strong>Payment Terms:</strong> ${patient.payment}</p>
+              <p><strong>Sex:</strong> ${patient.sex}</p>
+            `;
+            existingPatientsContent.appendChild(patientDiv);
+          });
+
+          openPopup();
+        } else {
+          nameFeedback.textContent = '';
+          closePopup.click(); // Close the popup if no matching patients
+        }
+      } else {
+        nameFeedback.textContent = '';
+        closePopup.click(); // Close the popup if no patients exist
+      }
+    } else {
+      nameFeedback.textContent = '';
+      closePopup.click(); // Close the popup if name input is empty
+    }
+  });
+
+  // Close popup functionality
+  closePopup.addEventListener('click', closePopupHandler);
+
+  function openPopup() {
+    existingPatientsPopup.style.display = 'block';
+  }
+
+  function closePopupHandler() {
+    existingPatientsPopup.style.display = 'none';
+  }
+});
+
+
+
+
+
+
+
 
 const fetchPatientCountBtn = document.getElementById('fetchPatientCountBtn');
 
-// Function to fetch the latest patient count using unique patient IDs as node names
 function fetchPatientCount() {
-  const patientsRef = ref(database, 'patients');
-
-  get(patientsRef)
+  const patientsRef = ref(database, 'babies');
+  
+  return get(patientsRef)
     .then((snapshot) => {
       if (snapshot.exists()) {
         const patientData = snapshot.val();
@@ -47,6 +123,7 @@ function fetchPatientCount() {
     });
 }
 
+
 // Add event listener to the fetch patient count button
 fetchPatientCountBtn.addEventListener('click', fetchPatientCount);
 
@@ -63,7 +140,7 @@ fetchPatientCountBtn.addEventListener('click', fetchPatientCount);
       popupOverlay.style.visibility = 'hidden';
       popupOverlay.style.opacity = '0';
       });
-   
+
       
 // Ensure that authToken is defined in the global scope
 let authToken;
@@ -419,90 +496,103 @@ onValue(medicinesRef, (snapshot) => {
     });
   }
 });*/
+
+
+
 const form = document.querySelector('.popup-form');
 const submitButton = document.querySelector('.popup-form button');
 const patientsContainer = document.getElementById('patients');
-const loader = document.getElementById('loader'); // Add the loader element
-let patients = []; // Declare patients variable outside the event listener
-let patientCount = 1; // Initialize patient count
+const loader = document.getElementById('loader');
+let patients = [];
+let patientCount = 1;
+const patientsRef = ref(database, 'babies');
 
-// Retrieve the maximum patient count from the database
-const patientsRef = ref(database, 'patients');
-get(patientsRef)
-  .then((snapshot) => {
-    if (snapshot.exists()) {
-      const patientData = snapshot.val();
-      const patientIds = Object.values(patientData).map((patient) => parseInt(patient.patientId));
-      patientCount = Math.max(...patientIds, 0) + 1;
-    } else {
-      patientCount = 1; // If no patient data exists, start from 1
+const validateAndSanitizeData = (data, defaultValue = 'No data') => {
+  for (const key in data) {
+    if (data.hasOwnProperty(key) && (data[key] === undefined || data[key] === '')) {
+      data[key] = defaultValue;
     }
+  }
+  return data;
+};
 
-    form.addEventListener('submit', function(e) {
-      e.preventDefault();
+const savePatientData = (name, dob, parents, residence, payment, sex, nok) => {
+  const patientId = patientCount.toString();
+  const registrationDate = new Date().toISOString(); // Capture the current date and time
 
-      const name = document.getElementById('name').value.trim(); // Remove leading and trailing spaces
-      const dob = document.getElementById('dob').value;
-      const parents = document.getElementById('parents').value;
-      const residence = document.getElementById('residence').value;
-      const payment = document.getElementById('payment').value;
-      const sex = document.getElementById('sex').value;
-      const patientId = patientCount.toString(); // Generate patient ID as plain number
+  // Retrieve country codes from inputs
+  const parentsCountryCode = document.getElementById('parentsCountryCode').value.trim();
+  const nokCountryCode = document.getElementById('NOKCountryCode').value.trim();
 
-      const patientData = {
-        name: name,
-        dob: dob,
-        parents: parents,
-        residence: residence,
-        payment: payment,
-        sex: sex,
-        patientId: patientId
-      };
+  // Concatenate country code with telephone numbers
+  const parentsWithCountryCode = `${parentsCountryCode}${parents}`;
+  const nokWithCountryCode = `${nokCountryCode}${nok}`;
 
-      const newPatientRef = ref(database, `patients/${name}`); // Use patient name as the key
+  // Create patient data object including country codes and registration date
+  const patientData = {
+    name: name,
+    dob: dob,
+    parents: parentsWithCountryCode, // Include country code
+    residence: residence,
+    payment: payment,
+    sex: sex,
+    nok: nokWithCountryCode, // Include country code
+    patientId: patientId,
+    registrationDate: registrationDate, // Store registration date
+  };
 
-      // Check if patient with the same name already exists
-      get(newPatientRef)
-        .then((snapshot) => {
-          if (snapshot.exists()) {
-            // Display an alert if patient with the same name already exists
-            alert('Patient with the same name already exists.');
-          } else {
-            // Show the loader
-            loader.style.display = 'block';
+  // Validate and sanitize patient data
+  const sanitizedPatientData = validateAndSanitizeData(patientData);
 
-            // Save the new patient data
-            set(newPatientRef, patientData)
-              .then(() => {
-                form.reset();
-                showMessage('Patient details uploaded successfully!');
-                patientCount++; // Increment patient count
+  const newPatientRef = ref(database, `babies/${patientId}`);
+  
+  loader.style.display = 'block';
 
-                // Hide the loader
-                loader.style.display = 'none';
-              })
-              .catch((error) => {
-                console.error('Error uploading patient details:', error);
-                showMessage('Error uploading patient details. Please try again.');
+  set(newPatientRef, sanitizedPatientData)
+    .then(() => {
+      showMessage('Patient details uploaded successfully!');
+      patientCount++; // Increment patient count after successful save
+      form.reset(); // Reset the form only after success
+      loader.style.display = 'none';
 
-                // Hide the loader
-                loader.style.display = 'none';
-              });
-          }
-        })
-        .catch((error) => {
-          console.error('Error checking if patient exists:', error);
-          showMessage('Error checking if patient exists. Please try again.');
-
-          // Hide the loader
-          loader.style.display = 'none';
-        });
+      // Close the popup after saving
+      closePopup();
+    })
+    .catch((error) => {
+      console.error('Error uploading patient details:', error);
+      showMessage('Error uploading patient details. Please try again.');
+      loader.style.display = 'none';
     });
-  })
-  .catch((error) => {
-    console.error('Error retrieving patient count:', error);
-    showMessage('Error retrieving patient count. Please try again.');
+};
+
+
+
+// Function to close the popup
+function closePopup() {
+  const popupOverlay = document.getElementById('popupOverlay');
+  popupOverlay.style.visibility = 'hidden';
+  popupOverlay.style.opacity = '0';
+}
+
+
+form.addEventListener('submit', (e) => {
+  e.preventDefault();
+
+  // Ensure you fetch the latest patient count before saving
+  fetchPatientCount().then(() => {
+    const name = document.getElementById('name').value.trim();
+    const dob = document.getElementById('dob').value;
+    const parents = document.getElementById('parents').value;
+    const residence = document.getElementById('residence').value;
+    const payment = document.getElementById('payment').value;
+    const sex = document.getElementById('sex').value;
+    const nok = document.getElementById('NOK').value;
+
+    // Save patient data after fetching the latest patient count
+    savePatientData(name, dob, parents, residence, payment, sex, nok);
   });
+});
+
 
 
 // Add event listener to search button
@@ -516,7 +606,7 @@ searchButton.addEventListener('click', () => {
   patientsContainer.innerHTML = '';
 
   // Search through Firebase for patient names and IDs
-  const patientsRef = ref(database, 'patients');
+  const patientsRef = ref(database, 'babies');
   onValue(patientsRef, (snapshot) => {
     const patientsData = snapshot.val();
     const searchResults = [];
@@ -587,7 +677,7 @@ searchInput.addEventListener('input', () => {
 });
 
 // Fetch a limited number of patients from Firebase (e.g., 50 patients at a time)
-const patientsRef2 = query(ref(database, 'patients'), limitToFirst(5000)); // Adjust the limit as needed
+const patientsRef2 = query(ref(database, 'babies'), limitToFirst(5000)); // Adjust the limit as needed
 
 onValue(patientsRef2, (snapshot) => {
   patientsData = snapshot.val() ? Object.values(snapshot.val()) : [];
@@ -595,6 +685,8 @@ onValue(patientsRef2, (snapshot) => {
   // Update pagination and render the patients
   renderPatients();
 });
+
+
 
 
 
@@ -903,10 +995,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
-
-
-
-
 function openPatientHistoryPopup(patient) {
   const popupOverlay = document.getElementById('popupOverlay1');
   const popupClose = document.getElementById('popupClose1');
@@ -1006,8 +1094,10 @@ function openPatientHistoryPopup(patient) {
     <!-- The container for patient visit details -->
 <div id="patientVisitDetails" ></div>
 
-
-
+  
+<button id="editButton" class="button save-button">
+  <i style="margin-right: 5px;" class="fa fa-edit"></i>Edit Details
+</button>
           <button  style="background: darkblue; " id="triageButton"  class="button save-button"><i style="margin-right: 5px;" class="fas fa-chart-line"></i>Triage History</button>
 <!--
 <button id="saveButton"  class="button save-button" disabled><i style="margin-right: 5px;" class="fa fa-save"></i>Save Image</button>
@@ -1018,10 +1108,105 @@ function openPatientHistoryPopup(patient) {
 
   patientDetails.innerHTML = patientDetailsHTML;
 
+
+
+  let currentPatientId; // Store the current patient's ID
+  
+  const editButton = document.getElementById('editButton');
+  editButton.addEventListener('click', () => openEditPopup(patient.patientId));
+  
+  let saveEditedDetailsHandler; // Variable to store the event listener
+  
+  function openEditPopup(patientId) {
+    const editPopupOverlay = document.getElementById('editPopupOverlay');
+    const editPopup = document.getElementById('editPopup');
+    editPopup.style.display = 'block';
+    editPopupOverlay.style.visibility = 'visible';
+    editPopupOverlay.style.opacity = '1';
+    overlay.style.display = 'block'
+  // Add the event listener for saving edited details
+  saveEditedDetailsHandler = saveEditedDetails;
+  
+    // Store the current patient's ID
+    currentPatientId = patientId;
+    // Fill input fields with current patient details
+    document.getElementById('editedName').value = patient.name;
+    document.getElementById('editedDOB').value = patient.dob;
+    document.getElementById('editedTel').value = patient.parents;
+    // Display the patient ID in the popup
+    document.getElementById('patientIdDisplay').innerText = `Patient ID: ${patientId}`;
+  
+  }
+  
+  // Event listener for closing the edit popup
+  const closeEditPopupButton = document.getElementById('closeEditPopup');
+  closeEditPopupButton.addEventListener('click', closeEditPopup);
+  
+  function closeEditPopup() {
+    const editPopup = document.getElementById('editPopup');
+    const editPopupOverlay = document.getElementById('editPopupOverlay');
+    editPopup.style.display = 'none';
+    editPopupOverlay.style.visibility = 'hidden';
+    editPopupOverlay.style.opacity = '0';
+    overlay.style.display = 'none';
+    // Remove the event listener for saving edited details
+    saveEditedDetailsButton.removeEventListener('click', saveEditedDetailsHandler);
+  
+    // Clear the patient ID display when closing the popup
+    document.getElementById('patientIdDisplay').innerText = '';
+  }
+  
+  function saveEditedDetails() {
+    const editedName = document.getElementById('editedName').value;
+    const editedDOB = document.getElementById('editedDOB').value;
+    const editedTel = document.getElementById('editedTel').value;
+  
+    // Ensure none of the fields is empty
+    if (editedName.trim() === '' || editedDOB.trim() === '' || editedTel.trim() === '') {
+      showMessage('Please fill in all fields.');
+      return;
+    }
+  
+    // Ensure the current patient's ID is available
+    if (currentPatientId) {
+      const editedPatient = {
+        name: editedName,
+        dob: editedDOB,
+        parents: editedTel,
+      };
+  
+      // Save updated details to Firebase under the specific patient
+      const patientRef = ref(database, `babies/${currentPatientId}`);
+      update(patientRef, editedPatient)
+        .then(() => {
+          showMessage('Patient details updated successfully!');
+          closeEditPopup(); // Close the popup on success
+        })
+        .catch(error => {
+          showMessage('Error updating patient details:', error);
+        });
+  
+      // Remove the event listener to avoid duplicates
+      saveEditedDetailsButton.removeEventListener('click', saveEditedDetails);
+    } else {
+      showMessage('Invalid patient data.');
+    }
+  }
+  
+  
+  // Event listener for saving edited details
+  const saveEditedDetailsButton = document.getElementById('saveEditedDetails');
+  saveEditedDetailsButton.addEventListener('click', saveEditedDetails);
+  
+  
+
+
+
+
 // Function to display the patient's visit details in the popup
 function displayVisitsPopup(patientName) {
   // Get the reference to the patient's visits node in Firebase
-  const visitsRef = ref(database, `patients/${patientName}/visits`);
+  const visitsRef = ref(database, `babies/${patientName}/visits`);
 
   // Clear the existing content of the table body and canvas
   const tableBody = document.getElementById('tableBody');
@@ -1283,31 +1468,11 @@ function dataURItoBlob(dataURI) {
 
 
 
-// Retrieve and display the patient's history
-const patientName = patient.patientId;
-currentPatientName = patientName;
 
-console.log('Patient node ID:', patientName);
-console.log('Patient object:', patient);
-console.log('Firebase path:', `patients/${patientName}`);
+ // Retrieve and display the patient's history
+const patientName = patient.patientId; // Replace this with the patient's name
+const patientHistoryRef = ref(database, `babies/${patientName}/testsTaken`);
 
-// Assign the exact patient ID to the Add Test button
-const addMedicationBtn = document.getElementById('addMedicationBtn');
-
-if (addMedicationBtn) {
-    addMedicationBtn.dataset.patientId = patient.patientId;
-
-    console.log(
-        'Add Test button assigned patient ID:',
-        addMedicationBtn.dataset.patientId
-    );
-}
-
-// Retrieve patient's test history
-const patientHistoryRef = ref(
-    database,
-    `patients/${patientName}/testsTaken`
-);
 // Function to get the latest test status
 function getLatestTestStatus(records) {
   if (records.length === 0) return 'Unknown';
@@ -1346,7 +1511,7 @@ onValue(patientHistoryRef, (snapshot) => {
       patientHistoryElement.appendChild(recordElement);
 
       // Reference the test result node in Firebase
-      const testResultRef = ref(database, `patients/${patientName}/testsTaken/${recordKey}/resultsObtained`);
+      const testResultRef = ref(database, `babies/${patientName}/testsTaken/${recordKey}/resultsObtained`);
 
       // Listen for changes in the test result status
       onValue(testResultRef, (resultSnapshot) => {
@@ -1656,6 +1821,7 @@ function createVisitTrendChart(visitKeys, visitDetails) {
 
 
 // Variable to store the current patient's name
+let currentPatientName = patient.name;
 /*
 // Get the button element and add the click event listener
 const visitButton = document.getElementById('visit');
@@ -1875,7 +2041,7 @@ function saveConsumablesAndSundriesData(recordKey, consumablesPrice, sundriesPri
   };
 
   // Save the data to Firebase under the exact test record
-  const testRecordRef = ref(database, `patients/${patient.patientId}/testsTaken/${recordKey}`);
+  const testRecordRef = ref(database, `babies/${patient.patientId}/testsTaken/${recordKey}`);
   update(testRecordRef, { consumablesAndSundries: data })
     .then(() => {
       showMessage('Consumables and Sundries data saved successfully!');
@@ -1885,7 +2051,8 @@ function saveConsumablesAndSundriesData(recordKey, consumablesPrice, sundriesPri
       showMessage('Error saving consumables and sundries data. Please try again.');
     });
 }
-// --- Date Taken Row ---
+
+// Create date taken row
 const dateTakenRow = document.createElement('tr');
 table.appendChild(dateTakenRow);
 
@@ -1894,210 +2061,25 @@ dateTakenHeader.textContent = 'Date Taken';
 dateTakenRow.appendChild(dateTakenHeader);
 
 const dateTakenElement = document.createElement('td');
-const dateTaken = record.dateTaken ? new Date(parseInt(record.dateTaken)) : null;
-dateTakenElement.textContent = dateTaken && !isNaN(dateTaken.getTime())
-  ? dateTaken.toLocaleString()
-  : 'Invalid Date';
+const dateTaken = new Date(parseInt(record.dateTaken));
+if (!isNaN(dateTaken.getTime())) {
+  dateTakenElement.textContent = dateTaken.toLocaleString();
+} else {
+  dateTakenElement.textContent = 'Invalid Date';
+}
 dateTakenRow.appendChild(dateTakenElement);
 
-// --- Selected Items Row (optional) ---
-if (record.selectedItems && Array.isArray(record.selectedItems) && record.selectedItems.length > 0) {
-  const itemsRow = document.createElement('tr');
-  table.appendChild(itemsRow);
+// Create Services Offered row
+const testsTakenRow = document.createElement('tr');
+table.appendChild(testsTakenRow);
 
-  const itemsHeader = document.createElement('th');
-  itemsHeader.textContent = 'Selected Services';
-  itemsRow.appendChild(itemsHeader);
+const testsTakenHeader = document.createElement('th');
+testsTakenHeader.textContent = 'Services Offered';
+testsTakenRow.appendChild(testsTakenHeader);
 
-  const itemsElement = document.createElement('td');
-  itemsElement.textContent = record.selectedItems.join(', ');
-  itemsRow.appendChild(itemsElement);
-}
-const adminPassword = 'sanyu44'; // 🔒 change this to your actual password
-const recordRef = ref(database, `patients/${patientName}/testsTaken/${recordKey}`);
-// --- CREATE REMOVABLE ITEM LIST ---
-function createRemovableList(items, category, type) {
-  return items
-    .map((item, index) => {
-      const id = `${type}-${category}-${index}`;
-      return `
-        <div class="removable-item" id="${id}" 
-          style="margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 2px;">
-          <span>${item.name} - <strong>UGX ${item.amount.toLocaleString()}</strong></span>
-          <button class="remove-btn" 
-            data-type="${type}" 
-            data-category="${category}" 
-            data-index="${index}"
-            data-name="${item.name}"  
-            style="
-              background-color: #e63946;
-              color: white;
-              border: none;
-              padding: 2px 6px;
-              border-radius: 4px;
-              cursor: pointer;
-              font-size: 12px;
-              transition: 0.2s;
-            "
-            onmouseover="this.style.backgroundColor='#d62828'"
-            onmouseout="this.style.backgroundColor='#e63946'">
-            ✖
-          </button>
-        </div>`;
-    })
-    .join('');
-}
-
-// --- INVESTIGATIONS ---
-const invRow = document.createElement('tr');
-table.appendChild(invRow);
-
-const invHeader = document.createElement('th');
-invHeader.textContent = 'Investigations';
-invRow.appendChild(invHeader);
-
-const invElement = document.createElement('td');
-
-if (record.investigationsTaken && record.investigationsTaken.length > 0) {
-  const grouped = {};
-  record.investigationsTaken.forEach(i => {
-    if (!grouped[i.category]) grouped[i.category] = [];
-    grouped[i.category].push(i);
-  });
-
-  invElement.innerHTML = Object.entries(grouped)
-    .map(([cat, items]) => `<strong>${cat}</strong><br>${createRemovableList(items, cat, 'investigation')}`)
-    .join('<br><br>');
-} else {
-  invElement.textContent = '-- Select Investigation --';
-}
-invRow.appendChild(invElement);
-
-// --- PROCEDURES ---
-const procRow = document.createElement('tr');
-table.appendChild(procRow);
-
-const procHeader = document.createElement('th');
-procHeader.textContent = 'Procedures';
-procRow.appendChild(procHeader);
-
-const procElement = document.createElement('td');
-
-if (record.proceduresTaken && record.proceduresTaken.length > 0) {
-  const grouped = {};
-  record.proceduresTaken.forEach(p => {
-    if (!grouped[p.category]) grouped[p.category] = [];
-    grouped[p.category].push(p);
-  });
-
-  procElement.innerHTML = Object.entries(grouped)
-    .map(([cat, items]) => `<strong>${cat}</strong><br>${createRemovableList(items, cat, 'procedure')}`)
-    .join('<br><br>');
-} else {
-  procElement.textContent = '-- Select Procedure --';
-}
-procRow.appendChild(procElement);
-
-// --- SERVICES ---
-const servicesRow = document.createElement('tr');
-table.appendChild(servicesRow);
-
-const servicesHeader = document.createElement('th');
-servicesHeader.textContent = 'Services';
-servicesRow.appendChild(servicesHeader);
-
-const servicesElement = document.createElement('td');
-
-if (record.servicesTaken && record.servicesTaken.length > 0) {
-  const grouped = {};
-  record.servicesTaken.forEach(s => {
-    if (!grouped[s.category]) grouped[s.category] = [];
-    grouped[s.category].push(s);
-  });
-
-  servicesElement.innerHTML = Object.entries(grouped)
-    .map(([cat, items]) => `<strong>${cat}</strong><br>${createRemovableList(items, cat, 'service')}`)
-    .join('<br><br>');
-} else {
-  servicesElement.textContent = '-- None --';
-}
-servicesRow.appendChild(servicesElement);
-
-// --- TOTAL AMOUNT ROW ---
-const amountRow = document.createElement('tr');
-table.appendChild(amountRow);
-
-const amountHeader = document.createElement('th');
-amountHeader.textContent = 'Total Amount';
-amountRow.appendChild(amountHeader);
-
-const amountElement = document.createElement('td');
-const total = record.totalAmount != null ? record.totalAmount : 0;
-amountElement.textContent = `UGX ${total.toLocaleString()}`;
-amountElement.id = `amount-${recordKey}`; // unique id for later updates
-amountRow.appendChild(amountElement);
-
-
-// --- PASSWORD-PROTECTED REMOVAL + TOTAL UPDATE ---
-table.addEventListener('click', async (e) => {
-  if (!e.target.classList.contains('remove-btn')) return;
-
-  const entered = prompt('Enter admin password to confirm removal:');
-  if (entered !== adminPassword) {
-    alert('❌ Incorrect password. Removal cancelled.');
-    return;
-  }
-
-  const type = e.target.dataset.type; // investigation | procedure | service
-  const category = e.target.dataset.category;
-  const itemName = e.target.dataset.name; // name of the item
-  const recordRef = ref(database, `patients/${patientName}/testsTaken/${recordKey}`);
-
-  try {
-    // 1️⃣ Remove from type array (investigationsTaken / proceduresTaken / servicesTaken)
-    const typePath = `${type}sTaken`;
-    const itemRef = child(recordRef, typePath);
-    const snapshot = await get(itemRef);
-    let items = snapshot.val() || [];
-
-    const filteredItems = items.filter(item => !(item.category === category && item.name === itemName));
-    await set(itemRef, filteredItems);
-
-    // 2️⃣ Remove from selectedItems
-    const selectedRef = child(recordRef, 'selectedItems');
-    const selSnap = await get(selectedRef);
-    let selectedItems = selSnap.val() || [];
-    selectedItems = selectedItems.filter(i => i !== itemName);
-    await set(selectedRef, selectedItems);
-
-    // 3️⃣ Recalculate total
-    const [invSnap, procSnap, servSnap] = await Promise.all([
-      get(child(recordRef, 'investigationsTaken')),
-      get(child(recordRef, 'proceduresTaken')),
-      get(child(recordRef, 'servicesTaken'))
-    ]);
-
-    const totalNew =
-      (Object.values(invSnap.val() || {}).reduce((sum, i) => sum + (i.amount || 0), 0)) +
-      (Object.values(procSnap.val() || {}).reduce((sum, i) => sum + (i.amount || 0), 0)) +
-      (Object.values(servSnap.val() || {}).reduce((sum, i) => sum + (i.amount || 0), 0));
-
-    await update(recordRef, { totalAmount: totalNew });
-
-    // 4️⃣ Update total in UI
-    const totalEl = document.getElementById(`amount-${recordKey}`);
-    if (totalEl) totalEl.textContent = `UGX ${totalNew.toLocaleString()}`;
-
-    // 5️⃣ Remove visually
-    e.target.closest('.removable-item').remove();
-    showMessage(`✅ ${itemName} removed successfully!`);
-  } catch (error) {
-    console.error('Error removing item:', error);
-    showMessage('⚠️ Failed to remove item from database.');
-  }
-});
-
-
+const testsTakenElement = document.createElement('td');
+testsTakenElement.textContent = record.testsTaken;
+testsTakenRow.appendChild(testsTakenElement);
 
 
 // Create complaints row
@@ -2180,7 +2162,7 @@ const paymentStatusRow = document.createElement('tr');
 table.appendChild(paymentStatusRow);
 
 const paymentStatusHeader = document.createElement('th');
-paymentStatusHeader.textContent = 'Services Payment';
+paymentStatusHeader.textContent = 'Service Payment';
 paymentStatusRow.appendChild(paymentStatusHeader);
 
 const paymentStatusElement = document.createElement('td');
@@ -2279,7 +2261,7 @@ editButton.addEventListener('click', function() {
       record.results.additionalNotes = newDiagnosis;
 
       // Reference to the additional notes in Firebase
-      const additionalNotesRef = ref(database, `patients/${patient.patientId}/testsTaken/${recordKey}/results/additionalNotes`);
+      const additionalNotesRef = ref(database, `babies/${patient.patientId}/testsTaken/${recordKey}/results/additionalNotes`);
 
       // Update the additional notes in Firebase
       set(additionalNotesRef, newDiagnosis)
@@ -2396,7 +2378,7 @@ if (record.hasOwnProperty('consumablesAndSundries')) {
     // Update treatmentTotal1
     // Get the treatment total from the first element
     const treatmentTotal1 = parseFloat(totalDataCell.textContent.replace('UGX', ''));
-    console.log(treatmentTotal1)
+    //console.log(treatmentTotal1)
 } else {
     // If consumables and sundries price data not found, display "Not Found" in the table cell
     const noTotalDataCell = document.createElement('td');
@@ -2442,10 +2424,11 @@ finnishButton.addEventListener('click', () => {
   }
 });
 
-
 // Create a div element for medication taken
 const medicationTakenElement = document.createElement('div');
 medicationTakenElement.classList.add('medication-taken');
+
+// Create the medication table
 const medicationTable = document.createElement('table');
 medicationTable.classList.add('medication-table');
 
@@ -2464,16 +2447,8 @@ let totalCost = 0; // Initialize totalCost variable
 // Check if medication data exists and create rows
 if (record.results && record.results.medication) {
     const medicationNodes = record.results.medication;
-
-    // Log medication nodes for debugging
-    console.log('Medication Data:', medicationNodes);
-
     Object.keys(medicationNodes).forEach((medicationKey) => {
         const medicationData = medicationNodes[medicationKey];
-
-        // Log each medication data for debugging
-        console.log('Medication Data for Key:', medicationKey, medicationData);
-
         const tableRow = document.createElement('tr');
 
         // Medication data cells
@@ -2489,33 +2464,34 @@ if (record.results && record.results.medication) {
         // Create "Actions" cell
         const actionsCell = document.createElement('td');
 
-        // Create "Edit" button
-        const editButton = document.createElement('button');
-        editButton.classList.add('edit-button'); // Optional: Add a CSS class for styling
+// Create "Edit" button
+const editButton = document.createElement('button');
+editButton.classList.add('edit-button'); // Optional: Add a CSS class for styling
 
-        // Create a span for the Font Awesome edit icon
-        const editIcon = document.createElement('span');
-        editIcon.classList.add('fas', 'fa-edit'); // Add the Font Awesome classes for the edit icon
+// Create a span for the Font Awesome edit icon
+const editIcon = document.createElement('span');
+editIcon.classList.add('fas', 'fa-edit'); // Add the Font Awesome classes for the edit icon
 
-        // Append the icon to the button
-        editButton.appendChild(editIcon);
-        editButton.addEventListener('click', () => {
-          handleEditMedication(medicationData, recordKey, medicationKey);
-        });
+// Append the icon to the button
+editButton.appendChild(editIcon);
+editButton.addEventListener('click', () => {
+  handleEditMedication(medicationData, recordKey, medicationKey);
+});
 
-        // Create "Delete" button
-        const deleteButton = document.createElement('button');
-        deleteButton.classList.add('delete-button'); // Optional: Add a CSS class for styling
+// Create "Delete" button
+const deleteButton = document.createElement('button');
+deleteButton.classList.add('delete-button'); // Optional: Add a CSS class for styling
 
-        // Create a span for the Font Awesome delete icon
-        const deleteIcon = document.createElement('span');
-        deleteIcon.classList.add('fas', 'fa-trash'); // Add the Font Awesome classes for the delete icon
+// Create a span for the Font Awesome delete icon
+const deleteIcon = document.createElement('span');
+deleteIcon.classList.add('fas', 'fa-trash'); // Add the Font Awesome classes for the delete icon
 
-        // Append the icon to the button
-        deleteButton.appendChild(deleteIcon);
-        deleteButton.addEventListener('click', () => {
-          handleDeleteMedication(medicationKey, tableRow);
-        });
+// Append the icon to the button
+deleteButton.appendChild(deleteIcon);
+deleteButton.addEventListener('click', () => {
+  handleDeleteMedication(medicationKey, tableRow);
+});
+
 
         // Append both buttons to the actions cell
         actionsCell.appendChild(editButton);
@@ -2533,19 +2509,10 @@ if (record.results && record.results.medication) {
         // Add to total cost
         totalCost += parseFloat(medicationData.totalCost); // Add the total cost to the variable
     });
-} else {
-    console.log('No medication data found in record:', record);
 }
 
-// Append the medication table to the div
 medicationTakenElement.appendChild(medicationTable);
-
-// Append the div to the record element
 recordElement.appendChild(medicationTakenElement);
-
-// Debugging: Ensure the table is visible
-console.log('Medication Table:', medicationTable);
-
 
 
 
@@ -2614,7 +2581,7 @@ saveButton.addEventListener('click', async () => {
         medicationData.totalCost = updatedTotalCost;
 
         // Reference to the specific medication in Firebase
-        const medicationRef = ref(database, `patients/${patient.patientId}/testsTaken/${recordKey}/results/medication/${medicationKey}`);
+        const medicationRef = ref(database, `babies/${patient.patientId}/testsTaken/${recordKey}/results/medication/${medicationKey}`);
 
         // Update the medication data in Firebase
         await update(medicationRef, {
@@ -2706,7 +2673,7 @@ function handleDeleteMedication(medicationKey, tableRow) {
       const confirmed = confirm('Are you sure you want to delete this medication?');
       if (confirmed) {
           // Reference to the specific medication in Firebase
-          const medicationRef = ref(database, `patients/${patient.patientId}/testsTaken/${recordKey}/results/medication/${medicationKey}`);
+          const medicationRef = ref(database, `babies/${patient.patientId}/testsTaken/${recordKey}/results/medication/${medicationKey}`);
 
           // Remove the medication data from Firebase
           remove(medicationRef)
@@ -2746,79 +2713,46 @@ totalRow.appendChild(totalCostCell);
 
 // Append the total row to the medication table
 medicationTable.appendChild(totalRow);
-// ==========================================================
-// CALCULATE OVERALL TOTAL
-// ==========================================================
 
-// Tests total
-const testsTotal =
-    Number(record.totalAmount) || 0;
+// Get the treatment total from the first element
+let treatmentTotal1 = 0;
+if (totalDataCell && totalDataCell.textContent) {
+    const totalDataText = totalDataCell.textContent.replace('UGX', '').trim();
+    if (totalDataText) {
+        treatmentTotal1 = parseFloat(totalDataText);
+    }
+}
 
+// Extract numeric value from totalCostCell.textContent
+let treatmentTotal2 = 0;
+const totalCostText = totalCostCell.textContent.replace('Total Cost: UGX', '').trim();
+if (totalCostText) {
+    treatmentTotal2 = parseFloat(totalCostText);
+}
 
-// Medication total
-const medicationTotal =
-    Number(totalCost) || 0;
+// Log treatmentTotal2 and treatmentTotal1 after they are initialized
+console.log('Treatment 2:', treatmentTotal2);
+console.log('Treatment 1:', treatmentTotal1);
 
+// Check if treatmentTotal2 is a valid number after parsing
+if (!isNaN(treatmentTotal2)) {
+    // Successfully parsed treatmentTotal2, proceed with calculations
+    // Calculate the overall total by summing up the totals from both elements
+    const overallTotal = treatmentTotal1 + treatmentTotal2;
+    console.log('Overall Total:', overallTotal);
 
-// Consumables total
-const consumablesTotal =
-    Number(
-        record.consumablesAndSundries?.consumablesPrice
-    ) || 0;
+    // Display the overall total
+    const overallTotalSpan = document.createElement('span');
+    overallTotalSpan.textContent = 'Overall Total: UGX ' + overallTotal.toFixed(2);
+    overallTotalSpan.classList.add('overall-total'); // Add the CSS class
 
+    // Append the overall total to the document body or any desired location
+    medicationTable.appendChild(overallTotalSpan);
+} else {
+    // Failed to parse treatmentTotal2, handle the error
+    console.log('Failed to parse treatmentTotal2:', totalCostText);
+}
 
-// Sundries total
-const sundriesTotal =
-    Number(
-        record.consumablesAndSundries?.sundriesPrice
-    ) || 0;
-
-
-// Treatment total = Consumables + Sundries
-const treatmentTotal =
-    consumablesTotal +
-    sundriesTotal;
-
-
-// Overall total
-const overallTotal =
-    testsTotal +
-    medicationTotal +
-    treatmentTotal;
-
-
-console.log('Tests Total:', testsTotal);
-console.log('Medication Total:', medicationTotal);
-console.log('Consumables:', consumablesTotal);
-console.log('Sundries:', sundriesTotal);
-console.log('Treatment Total:', treatmentTotal);
-console.log('Overall Total:', overallTotal);
-
-
-// ==========================================================
-// DISPLAY OVERALL TOTAL
-// ==========================================================
-
-const overallTotalSpan =
-    document.createElement('span');
-
-overallTotalSpan.textContent =
-    'Overall Total: UGX ' +
-    overallTotal.toLocaleString(
-        'en-US',
-        {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-        }
-    );
-
-overallTotalSpan.classList.add(
-    'overall-total'
-);
-
-medicationTable.appendChild(
-    overallTotalSpan
-);
 
 
 // Create share button
@@ -2938,7 +2872,7 @@ function getPatientDetails(patientName) {
 
 // Function to get the latest visit data for a patient
 function getLatestVisitData(patientName) {
-  const visitsRef = ref(database, `patients/${patientName}/visits`);
+  const visitsRef = ref(database, `babies/${patientName}/visits`);
   return get(visitsRef)
     .then((snapshot) => {
       const visitDetails = snapshot.val();
@@ -2961,7 +2895,7 @@ function getLatestVisitData(patientName) {
 }
 
 function getPatientVisitDetails(patientName) {
-  const visitsRef = ref(database, `patients/${patientName}/visits`);
+  const visitsRef = ref(database, `babies/${patientName}/visits`);
   onValue(visitsRef, (snapshot) => {
     const visitDetails = snapshot.val();
     if (visitDetails) {
@@ -2998,2740 +2932,317 @@ printButton.addEventListener('click', async () => {
   // Get the patient details and latest visit data
   const patient = await getPatientDetails(patientName);
   const latestVisitData = await getLatestVisitData(patientName);
-// If testsTaken is an object with keys
-const recordKey = Object.keys(patient.testsTaken)[0]; // "test1"
-printRecord(patient, record, recordKey, visitDetails, latestVisitData);
 
+  // Call the printRecord function with patient details, record details, visit keys, visit details, and latest visit data
+  printRecord(patient, record, visitKeys, visitDetails, latestVisitData);
 });
 
 // Append the print button to the record element
 recordElement.appendChild(printButton);
-function getPatientCBCGroup(patient) {
 
-    if (!patient || !patient.dob) {
-        return "general";
-    }
 
-    const parts = String(patient.dob).split("-");
 
-    if (parts.length !== 3) {
-        return "general";
-    }
 
-    const birthDate = new Date(
-        Number(parts[0]),
-        Number(parts[1]) - 1,
-        Number(parts[2])
-    );
-
-    if (Number.isNaN(birthDate.getTime())) {
-        return "general";
-    }
-
-    const today = new Date();
-
-    // Exact age in days — needed for neonates
-    const ageMilliseconds =
-        today.getTime() - birthDate.getTime();
-
-    const ageDays =
-        Math.floor(
-            ageMilliseconds / (1000 * 60 * 60 * 24)
-        );
-
-    let ageYears =
-        today.getFullYear() -
-        birthDate.getFullYear();
-
-    const monthDiff =
-        today.getMonth() -
-        birthDate.getMonth();
-
-    if (
-        monthDiff < 0 ||
-        (
-            monthDiff === 0 &&
-            today.getDate() < birthDate.getDate()
-        )
-    ) {
-        ageYears--;
-    }
-
-    const sex =
-        String(patient.sex || "")
-            .trim()
-            .toLowerCase();
-
-    let group = "general";
-
-
-    // Neonate: first 28 days of life
-    if (ageDays >= 0 && ageDays < 28) {
-
-        group = "neonate";
-
-    }
-
-    // Under 18 -> BC-2800 Child group
-    else if (ageYears >= 0 && ageYears < 18) {
-
-        group = "child";
-
-    }
-
-    else if (
-        sex === "male" ||
-        sex === "m" ||
-        sex === "man"
-    ) {
-
-        group = "adult_male";
-
-    }
-
-    else if (
-        sex === "female" ||
-        sex === "f" ||
-        sex === "woman"
-    ) {
-
-        group = "adult_female";
-
-    }
-
-
-    console.log("🧍 BC-2800 REFERENCE GROUP:", {
-        dob: patient.dob,
-        sex: patient.sex,
-        ageDays,
-        ageYears,
-        selectedGroup: group
-    });
-
-
-    return group;
-}
-
-
-function getCBCReference(parameter, patient) {
-
-    const config = CBC_REFERENCE_CONFIG[parameter];
-
-    if (!config || !Array.isArray(config.ranges)) {
-        return null;
-    }
-
-    const group = getPatientCBCGroup(patient);
-
-    console.log("🧍 CBC RANGE GROUP:", {
-        dob: patient?.dob,
-        sex: patient?.sex,
-        age: getPatientAge(patient?.dob),
-        group
-    });
-
-    return config.ranges.find(
-        range => range.group === group
-    ) || null;
-}
-
-const CBC_REFERENCE_CONFIG = {
-
-    WBC: {
-        label: "WBC",
-        unit: "10⁹/L",
-        ranges: [
-            { group: "general", low: 4.0, high: 10.0 },
-            { group: "adult_male", low: 4.0, high: 10.0 },
-            { group: "adult_female", low: 4.0, high: 10.0 },
-            { group: "child", low: 5.0, high: 12.0 },
-            { group: "neonate", low: 15.0, high: 20.0 }
-        ]
-    },
-
-    LymphAbs: {
-        label: "LYM #",
-        unit: "10⁹/L",
-        ranges: [
-            { group: "general", low: 0.8, high: 4.0 },
-            { group: "adult_male", low: 0.8, high: 4.0 },
-            { group: "adult_female", low: 0.8, high: 4.0 },
-            { group: "child", low: 0.8, high: 4.0 },
-            { group: "neonate", low: 3.0, high: 12.0 }
-        ]
-    },
-
-    MidAbs: {
-        label: "MID #",
-        unit: "10⁹/L",
-        ranges: [
-            { group: "general", low: 0.1, high: 1.2 },
-            { group: "adult_male", low: 0.1, high: 1.2 },
-            { group: "adult_female", low: 0.1, high: 1.2 },
-            { group: "child", low: 0.1, high: 1.2 }
-        ]
-    },
-
-    GranAbs: {
-        label: "GRAN #",
-        unit: "10⁹/L",
-        ranges: [
-            { group: "general", low: 2.0, high: 7.0 },
-            { group: "adult_male", low: 2.0, high: 7.0 },
-            { group: "adult_female", low: 2.0, high: 7.0 },
-            { group: "child", low: 2.0, high: 7.0 }
-        ]
-    },
-
-    LymphPct: {
-        label: "LYM %",
-        unit: "%",
-        ranges: [
-            { group: "general", low: 20.0, high: 40.0 },
-            { group: "adult_male", low: 20.0, high: 40.0 },
-            { group: "adult_female", low: 20.0, high: 40.0 },
-            { group: "child", low: 20.0, high: 40.0 }
-        ]
-    },
-
-    MidPct: {
-        label: "MID %",
-        unit: "%",
-        ranges: [
-            { group: "general", low: 3.0, high: 14.0 },
-            { group: "adult_male", low: 3.0, high: 14.0 },
-            { group: "adult_female", low: 3.0, high: 14.0 },
-            { group: "child", low: 3.0, high: 14.0 }
-        ]
-    },
-
-    GranPct: {
-        label: "GRAN %",
-        unit: "%",
-        ranges: [
-            { group: "general", low: 50.0, high: 70.0 },
-            { group: "adult_male", low: 50.0, high: 70.0 },
-            { group: "adult_female", low: 50.0, high: 70.0 },
-            { group: "child", low: 50.0, high: 70.0 }
-        ]
-    },
-
-    HGB: {
-        label: "HGB",
-        unit: "g/dL",
-        ranges: [
-            { group: "general", low: 11.0, high: 16.0 },
-            { group: "adult_male", low: 12.0, high: 16.0 },
-            { group: "adult_female", low: 11.0, high: 15.0 },
-            { group: "child", low: 12.0, high: 15.5 },
-            { group: "neonate", low: 17.0, high: 20.0 }
-        ]
-    },
-
-    RBC: {
-        label: "RBC",
-        unit: "10¹²/L",
-        ranges: [
-            { group: "general", low: 3.50, high: 5.50 },
-            { group: "adult_male", low: 4.00, high: 5.50 },
-            { group: "adult_female", low: 3.50, high: 5.00 },
-            { group: "child", low: 4.00, high: 5.20 },
-            { group: "neonate", low: 6.00, high: 7.00 }
-        ]
-    },
-
-    HCT: {
-        label: "HCT",
-        unit: "%",
-        ranges: [
-            { group: "general", low: 37.0, high: 50.0 },
-            { group: "adult_male", low: 40.0, high: 50.0 },
-            { group: "adult_female", low: 37.0, high: 48.0 },
-            { group: "child", low: 35.0, high: 49.0 }
-        ]
-    },
-
-    MCV: {
-        label: "MCV",
-        unit: "fL",
-        ranges: [
-            { group: "general", low: 82.0, high: 95.0 },
-            { group: "adult_male", low: 82.0, high: 95.0 },
-            { group: "adult_female", low: 82.0, high: 95.0 },
-            { group: "child", low: 82.0, high: 95.0 }
-        ]
-    },
-
-    MCH: {
-        label: "MCH",
-        unit: "pg",
-        ranges: [
-            { group: "general", low: 27.0, high: 31.0 },
-            { group: "adult_male", low: 27.0, high: 31.0 },
-            { group: "adult_female", low: 27.0, high: 31.0 },
-            { group: "child", low: 27.0, high: 31.0 }
-        ]
-    },
-
-    MCHC: {
-        label: "MCHC",
-        unit: "g/dL",
-        ranges: [
-            { group: "general", low: 32.0, high: 36.0 },
-            { group: "adult_male", low: 32.0, high: 36.0 },
-            { group: "adult_female", low: 32.0, high: 36.0 },
-            { group: "child", low: 32.0, high: 36.0 }
-        ]
-    },
-
-    RDW_CV: {
-        label: "RDW-CV",
-        unit: "%",
-        ranges: [
-            { group: "general", low: 11.5, high: 14.5 },
-            { group: "adult_male", low: 11.5, high: 14.5 },
-            { group: "adult_female", low: 11.5, high: 14.5 },
-            { group: "child", low: 11.5, high: 14.5 }
-        ]
-    },
-
-    RDW_SD: {
-        label: "RDW-SD",
-        unit: "fL",
-        ranges: [
-            { group: "general", low: 35.0, high: 56.0 },
-            { group: "adult_male", low: 35.0, high: 56.0 },
-            { group: "adult_female", low: 35.0, high: 56.0 },
-            { group: "child", low: 35.0, high: 56.0 }
-        ]
-    },
-
-    PLT: {
-        label: "PLT",
-        unit: "10⁹/L",
-        ranges: [
-            { group: "general", low: 100, high: 300 },
-            { group: "adult_male", low: 100, high: 300 },
-            { group: "adult_female", low: 100, high: 300 },
-            { group: "child", low: 100, high: 300 },
-            { group: "neonate", low: 100, high: 300 }
-        ]
-    },
-
-    MPV: {
-        label: "MPV",
-        unit: "fL",
-        ranges: [
-            { group: "general", low: 7.0, high: 11.0 },
-            { group: "adult_male", low: 7.0, high: 11.0 },
-            { group: "adult_female", low: 7.0, high: 11.0 },
-            { group: "child", low: 7.0, high: 11.0 }
-        ]
-    },
-
-    PDW: {
-        label: "PDW",
-        unit: "fL",
-        ranges: [
-            { group: "general", low: 15.0, high: 17.0 },
-            { group: "adult_male", low: 15.0, high: 17.0 },
-            { group: "adult_female", low: 15.0, high: 17.0 },
-            { group: "child", low: 15.0, high: 17.0 }
-        ]
-    },
-
-    PCT: {
-        label: "PCT",
-        unit: "%",
-        ranges: [
-            { group: "general", low: 0.108, high: 0.282 },
-            { group: "adult_male", low: 0.108, high: 0.282 },
-            { group: "adult_female", low: 0.108, high: 0.282 },
-            { group: "child", low: 0.108, high: 0.282 }
-        ]
-    }
-};
-
-function getPatientAge(dob) {
-    if (!dob) return null;
-
-    const [year, month, day] = dob.split("-").map(Number);
-    const birthDate = new Date(year, month - 1, day);
-    const today = new Date();
-
-    let age = today.getFullYear() - birthDate.getFullYear();
-
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-
-    if (
-        monthDiff < 0 ||
-        (
-            monthDiff === 0 &&
-            today.getDate() < birthDate.getDate()
-        )
-    ) {
-        age--;
-    }
-
-    return age;
-}
-
-function getPatientCBCGroup(patient) {
-
-    if (!patient || !patient.dob) {
-        return "general";
-    }
-
-    const parts = String(patient.dob).split("-");
-
-    if (parts.length !== 3) {
-        return "general";
-    }
-
-    const birthDate = new Date(
-        Number(parts[0]),
-        Number(parts[1]) - 1,
-        Number(parts[2])
-    );
-
-    if (Number.isNaN(birthDate.getTime())) {
-        return "general";
-    }
-
-    const today = new Date();
-
-    // Exact age in days — needed for neonates
-    const ageMilliseconds =
-        today.getTime() - birthDate.getTime();
-
-    const ageDays =
-        Math.floor(
-            ageMilliseconds / (1000 * 60 * 60 * 24)
-        );
-
-    let ageYears =
-        today.getFullYear() -
-        birthDate.getFullYear();
-
-    const monthDiff =
-        today.getMonth() -
-        birthDate.getMonth();
-
-    if (
-        monthDiff < 0 ||
-        (
-            monthDiff === 0 &&
-            today.getDate() < birthDate.getDate()
-        )
-    ) {
-        ageYears--;
-    }
-
-    const sex =
-        String(patient.sex || "")
-            .trim()
-            .toLowerCase();
-
-    let group = "general";
-
-
-    // Neonate: first 28 days of life
-    if (ageDays >= 0 && ageDays < 28) {
-
-        group = "neonate";
-
-    }
-
-    // Under 18 -> BC-2800 Child group
-    else if (ageYears >= 0 && ageYears < 18) {
-
-        group = "child";
-
-    }
-
-    else if (
-        sex === "male" ||
-        sex === "m" ||
-        sex === "man"
-    ) {
-
-        group = "adult_male";
-
-    }
-
-    else if (
-        sex === "female" ||
-        sex === "f" ||
-        sex === "woman"
-    ) {
-
-        group = "adult_female";
-
-    }
-
-
-    console.log("🧍 BC-2800 REFERENCE GROUP:", {
-        dob: patient.dob,
-        sex: patient.sex,
-        ageDays,
-        ageYears,
-        selectedGroup: group
-    });
-
-
-    return group;
-}
-function getCBCReferenceRange(reference) {
-
-    if (!reference) {
-        return "-";
-    }
-
-    const hasLow =
-        reference.low !== null &&
-        reference.low !== undefined &&
-        reference.low !== "";
-
-    const hasHigh =
-        reference.high !== null &&
-        reference.high !== undefined &&
-        reference.high !== "";
-
-    if (hasLow && hasHigh) {
-        return `${reference.low} - ${reference.high}`;
-    }
-
-    if (hasLow) {
-        return `≥ ${reference.low}`;
-    }
-
-    if (hasHigh) {
-        return `≤ ${reference.high}`;
-    }
-
-    return "-";
-}
-
-function getCBCConfigKey(parameter) {
-
-    const key = String(parameter || '')
-        .trim()
-        .toUpperCase();
-
-    const map = {
-        'WBC': 'WBC',
-
-        'LYM #': 'LymphAbs',
-        'LYM#': 'LymphAbs',
-        'LYMPH #': 'LymphAbs',
-        'LYMPH#': 'LymphAbs',
-
-        'MID #': 'MidAbs',
-        'MID#': 'MidAbs',
-
-        'GRAN #': 'GranAbs',
-        'GRAN#': 'GranAbs',
-
-        'LYM %': 'LymphPct',
-        'LYM%': 'LymphPct',
-        'LYMPH %': 'LymphPct',
-        'LYMPH%': 'LymphPct',
-
-        'MID %': 'MidPct',
-        'MID%': 'MidPct',
-
-        'GRAN %': 'GranPct',
-        'GRAN%': 'GranPct',
-
-        'RBC': 'RBC',
-        'HGB': 'HGB',
-        'HCT': 'HCT',
-        'MCV': 'MCV',
-        'MCH': 'MCH',
-        'MCHC': 'MCHC',
-
-        'RDW-CV': 'RDW_CV',
-        'RDW CV': 'RDW_CV',
-
-        'RDW-SD': 'RDW_SD',
-        'RDW SD': 'RDW_SD',
-
-        'PLT': 'PLT',
-        'MPV': 'MPV',
-        'PDW': 'PDW',
-        'PCT': 'PCT'
-    };
-
-    return map[key] || parameter;
-}
-
-
-function populateCBC(cbc) {
-
-    if (!cbc) {
-
-        console.error(
-            "❌ populateCBC called without CBC data."
-        );
-
-        return;
-    }
-
-
-    // ==================================================
-    // STORE LATEST ANALYZER RESULT FOR FEED RESULTS
-    // ==================================================
-
-    window.lastCBCResult = cbc;
-
-
-    console.log(
-        "🩸 Latest BC-2800 CBC stored:",
-        window.lastCBCResult
-    );
-
-
-    // ==================================================
-    // POPULATE EXISTING CBC INPUT FIELDS
-    // ==================================================
-
-    const fields = {
-
-        wbc: cbc.WBC,
-
-        rbc: cbc.RBC,
-
-        hgb: cbc.HGB,
-        hct: cbc.HCT,
-
-        mcv: cbc.MCV,
-        mch: cbc.MCH,
-        mchc: cbc.MCHC,
-
-        plt: cbc.PLT,
-
-        lymph: cbc.LymphAbs,
-        mid: cbc.MidAbs,
-        gran: cbc.GranAbs,
-
-        lymphPct: cbc.LymphPct,
-        midPct: cbc.MidPct,
-        granPct: cbc.GranPct,
-
-        rdwcv: cbc.RDW_CV,
-        rdwsd: cbc.RDW_SD,
-
-        mpv: cbc.MPV,
-        pdw: cbc.PDW,
-        pct: cbc.PCT
-
-    };
-
-
-    Object.entries(fields)
-        .forEach(([id, value]) => {
-
-            const input =
-                document.getElementById(id);
-
-
-            if (!input) {
-                return;
-            }
-
-
-            input.value =
-                value ?? "";
-
-
-            input.style.background =
-                "#d1e7dd";
-
-        });
-
-
-    // ==================================================
-    // GET CBC TABLE
-    // ==================================================
-
-    const tableBody =
-        document.getElementById(
-            "cbcAnalyzerTable"
-        );
-
-
-    if (!tableBody) {
-
-        console.error(
-            "❌ cbcAnalyzerTable was not found in the page."
-        );
-
-        return;
-    }
-
-
-    tableBody.innerHTML = "";
-
-
-    // ==================================================
-    // GET CURRENT PATIENT
-    // ==================================================
-
-    const patient =
-        window.currentPatient || null;
-
-
-    if (patient) {
-
-        console.log(
-            "👤 Current patient available for CBC:",
-            patient
-        );
-
-    }
-
-    else {
-
-        console.warn(
-            "⚠️ window.currentPatient is not set."
-        );
-
-    }
-
-
-    // ==================================================
-    // CREATE TABLE ROWS
-    // ==================================================
-
-    const resultRows =
-        getCBCResultRows(cbc);
-
-
-    resultRows.forEach(
-        ([key, value]) => {
-
-            const config =
-                CBC_REFERENCE_CONFIG[key];
-
-
-            if (!config) {
-
-                console.warn(
-                    "⚠️ Missing CBC config:",
-                    key
-                );
-
-                return;
-            }
-
-
-            const reference =
-                getCBCReference(
-                    key,
-                    patient
-                );
-
-
-            const range =
-                getCBCReferenceRange(
-                    reference
-                );
-
-
-            const flag =
-                getCBCFlag(
-                    value,
-                    reference
-                );
-
-
-            // ==========================================
-            // CREATE ROW
-            // ==========================================
-
-            const row =
-                document.createElement("tr");
-
-
-            // ==========================================
-            // PARAMETER
-            // ==========================================
-
-            const parameterCell =
-                document.createElement("td");
-
-
-            parameterCell.textContent =
-                config.label;
-
-
-            parameterCell.style.fontWeight =
-                "600";
-
-
-            // ==========================================
-            // RESULT
-            // ==========================================
-
-            const valueCell =
-                document.createElement("td");
-
-
-            valueCell.textContent =
-                value !== undefined &&
-                value !== null &&
-                value !== ""
-                    ? value
-                    : "-";
-
-
-            // ==========================================
-            // UNIT
-            // ==========================================
-
-            const unitCell =
-                document.createElement("td");
-
-
-            unitCell.textContent =
-                config.unit || "-";
-
-
-            // ==========================================
-            // REFERENCE RANGE
-            // ==========================================
-
-            const rangeCell =
-                document.createElement("td");
-
-
-            rangeCell.textContent =
-                range;
-
-
-            // ==========================================
-            // FLAG
-            // ==========================================
-
-            const flagCell =
-                document.createElement("td");
-
-
-            flagCell.textContent =
-                flag;
-
-
-            // ==========================================
-            // FLAG STYLING
-            // ==========================================
-
-            if (flag === "H") {
-
-                flagCell.className =
-                    "cbc-flag-high";
-
-
-                valueCell.classList.add(
-                    "cbc-result-high"
-                );
-
-            }
-
-
-            else if (flag === "L") {
-
-                flagCell.className =
-                    "cbc-flag-low";
-
-
-                valueCell.classList.add(
-                    "cbc-result-low"
-                );
-
-            }
-
-
-            else {
-
-                flagCell.className =
-                    "cbc-flag-normal";
-
-            }
-
-
-            // ==========================================
-            // ADD CELLS
-            // ==========================================
-
-            row.appendChild(
-                parameterCell
-            );
-
-            row.appendChild(
-                valueCell
-            );
-
-            row.appendChild(
-                unitCell
-            );
-
-            row.appendChild(
-                rangeCell
-            );
-
-            row.appendChild(
-                flagCell
-            );
-
-
-            tableBody.appendChild(
-                row
-            );
-
-        }
-    );
-
-
-    // ==================================================
-    // SAMPLE DETAILS
-    // ==================================================
-
-    const details =
-        document.getElementById(
-            "cbcSampleDetails"
-        );
-
-
-    if (details) {
-
-        const sampleId =
-            cbc.sampleId ?? "-";
-
-
-        const date =
-            cbc.date ?? "";
-
-
-        const time =
-            cbc.time ?? "";
-
-
-        details.textContent =
-            `Sample ID: ${sampleId}` +
-            (
-                date || time
-                    ? ` | ${date} ${time}`.trimEnd()
-                    : ""
-            );
-
-    }
-
-
-    // ==================================================
-    // SHOW CBC PANEL
-    // ==================================================
-
-    const panel =
-        document.getElementById(
-            "cbcResultPanel"
-        );
-
-
-    if (panel) {
-
-        panel.style.display =
-            "block";
-
-    }
-
-    else if (
-        typeof cbcResultPanel !==
-        "undefined" &&
-        cbcResultPanel
-    ) {
-
-        cbcResultPanel.style.display =
-            "block";
-
-    }
-
-
-    console.log(
-        "✅ CBC table populated successfully."
-    );
-
-
-    console.log(
-        "📊 CBC histogram data:",
-        cbc.histograms
-    );
-}
-const cbcResultPanel = document.createElement("div");
-cbcResultPanel.style.display = "none";
-
-cbcResultPanel.innerHTML = `
-
-<div style="
-    margin-top:18px;
-    border:1px solid #ddd;
-    border-radius:10px;
-    background:white;
-    overflow:hidden;
-">
-
-    <div style="
-        padding:10px 14px;
-        background:#f5f7fa;
-        border-bottom:1px solid #ddd;
-        display:flex;
-        justify-content:space-between;
-        align-items:center;
-    ">
-
-        <div>
-            <div style="font-weight:bold;font-size:14px;">
-                Mindray BC-2800 Result
-            </div>
-
-            <div id="cbcSampleDetails"
-                 style="font-size:11px;color:#777;margin-top:2px;">
-                CBC Analyzer Result
-            </div>
-        </div>
-
-        <div style="
-            font-size:11px;
-            background:#d1e7dd;
-            color:#146c43;
-            padding:4px 9px;
-            border-radius:20px;
-            font-weight:bold;
-        ">
-            <i class="fa fa-check-circle"></i>
-            Imported
-        </div>
-
-    </div>
-
-
-    <div class="cbc-analyzer-layout">
-
-        <!-- CBC VALUES -->
-
-        <div>
-
-            <div style="
-                font-size:12px;
-                font-weight:bold;
-                margin-bottom:8px;
-                color:#444;
-            ">
-                CBC Results
-            </div>
-
-            <table class="cbc-analyzer-table">
-
-    <thead>
-        <tr>
-            <th>Parameter</th>
-            <th>Result</th>
-            <th>Unit</th>
-            <th>Reference Range</th>
-            <th>Flag</th>
-        </tr>
-    </thead>
-
-    <tbody id="cbcAnalyzerTable"></tbody>
-
-</table>
-        </div>
-
-
-        <!-- GRAPHS -->
-
-        <div>
-
-            <div style="
-                font-size:12px;
-                font-weight:bold;
-                margin-bottom:8px;
-                color:#444;
-            ">
-                Histograms
-            </div>
-
-
-            <div class="cbc-small-chart">
-
-                <span>WBC</span>
-
-                <canvas id="wbcChart"></canvas>
-
-            </div>
-
-
-            <div class="cbc-small-chart">
-
-                <span>RBC</span>
-
-                <canvas id="rbcChart"></canvas>
-
-            </div>
-
-
-            <div class="cbc-small-chart">
-
-                <span>PLT</span>
-
-                <canvas id="pltChart"></canvas>
-
-            </div>
-
-        </div>
-
-    </div>
-
-</div>
-
-`;
-
-recordElement.appendChild(cbcResultPanel);
-
-function getCBCFlag(value, reference) {
-
-    if (!reference) return "";
-
-    const result = Number(value);
-
-    if (!Number.isFinite(result)) {
-        return "";
-    }
-
-    const hasLow =
-        reference.low !== null &&
-        reference.low !== undefined &&
-        reference.low !== "";
-
-    const hasHigh =
-        reference.high !== null &&
-        reference.high !== undefined &&
-        reference.high !== "";
-
-    if (hasLow) {
-        const low = Number(reference.low);
-
-        if (
-            Number.isFinite(low) &&
-            result < low
-        ) {
-            return "L";
-        }
-    }
-
-    if (hasHigh) {
-        const high = Number(reference.high);
-
-        if (
-            Number.isFinite(high) &&
-            result > high
-        ) {
-            return "H";
-        }
-    }
-
-    return "";
-}
-async function printRecord(patient, record, recordKey, visitDetails, latestVisitData) {
+// ...
+// Function to print the record
+function printRecord(patient, record, visitKeys, visitDetails, latestVisitData) {
   window.jsPDF = window.jspdf.jsPDF;
+  // Create a new jsPDF instance
   const doc = new jsPDF();
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const pageHeight = doc.internal.pageSize.getHeight();
-  const margin = 15;
-  let cursorY = margin;
-
-  const lineHeight = 5;
-  const bodyFontSize = 9;
-  const headingFontSize = 11;
-
-  // ---------------- Watermark ----------------
-  doc.setGState(new doc.GState({ opacity: 0.05 }));
-  const watermarkSize = 100;
-  doc.addImage('sanyu.png', 'PNG', (pageWidth - watermarkSize) / 2, (pageHeight - watermarkSize) / 2, watermarkSize, watermarkSize);
-  doc.setGState(new doc.GState({ opacity: 1 }));
-
-  // ---------------- Header ----------------
-  cursorY -= 8;
-doc.addImage('sanyu.png', 'PNG', margin, cursorY - 6, 40, 40);
-  doc.setFont('helvetica', 'bold');
+  
+  // Set the font size
   doc.setFontSize(20);
-  doc.setTextColor(0, 100, 0);
-  doc.text('SANYU HOSPITAL ', pageWidth / 2 + 10, cursorY + 10, { align: 'center' });
-  cursorY += 13;
+  
+  // Define the hospital logo URL or path
+  const hospitalLogo = 'sanyu.png'; // Replace with the actual URL or path
+  
+  // Define the coordinates and dimensions for the header box
+  const headerBoxX = 20;
+  const headerBoxY = 10;
+  const headerBoxWidth = 170;
+  const headerBoxHeight = 40;
+  
+  // Draw the header box without a border
+  doc.setFillColor(255, 255, 255);
+  doc.rect(headerBoxX, headerBoxY, headerBoxWidth, headerBoxHeight, 'F'); // Use 'F' for fill without border
+  
+  
+  // Calculate the center position of the header box
+  const headerBoxCenterX = headerBoxX + (headerBoxWidth / 2);
+  const headerBoxCenterY = headerBoxY + (headerBoxHeight / 2);
+  
+  // Print hospital logo
+  // Increase the width and height values to adjust the size of the logo
+  doc.addImage(hospitalLogo, 'PNG', headerBoxX - 10, headerBoxY - 5, 55, 55); // Adjust width and height as needed
+  
+  
+  // Print hospital name
+  const hospitalName = 'SANYU HOSPITAL  ';
+  const hospitalNameWidth = doc.getTextWidth(hospitalName);
+  const hospitalNameY = headerBoxCenterY - 5; // Adjust the Y coordinate for vertical alignment
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(28); // Increase font size for the hospital name
+  doc.setTextColor(0, 0, 0); // Set text color to black
+  doc.text(hospitalName, headerBoxCenterX, hospitalNameY, { align: 'center' });
+  
+  // Print hospital address
+  const hospitalAddress = 'Located at Katooke-Wakiso District';
+  const hospitalAddressY = headerBoxCenterY + 6; // Adjust the Y coordinate for address
   doc.setFont('helvetica', 'normal');
+  doc.setFontSize(12); // Decrease font size for the address
+  doc.text(hospitalAddress, headerBoxCenterX, hospitalAddressY, { align: 'center' });
+  
+  // Print telephone contacts
+  const telephoneContacts = 'Tel: +256 782 477 517, Email: info@keahmedicals.com';
+  const telephoneContactsY = headerBoxCenterY + 15; // Adjust the Y coordinate for contacts
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10); // Decrease font size for contacts
+  doc.text(telephoneContacts, headerBoxCenterX, telephoneContactsY, { align: 'center' });
+  
+  
+  // Reset the font
+  doc.setFont('helvetica', 'normal');
+  // Print the heading "LABORATORY REPORT"
+  doc.setFont('helvetica', 'bold');
   doc.setFontSize(13);
-  doc.setTextColor(0, 0, 0);
-  doc.text('Located at Katooke-Wakiso District', pageWidth / 2 + 10, cursorY + 6, { align: 'center' });
-  cursorY += 7;
-  doc.text('Tel: +256 708 657 717 | Email: sanyuhospital@gmail.com', pageWidth / 2 + 10, cursorY + 6, { align: 'center' });
-  cursorY += 15;
-
-  // ---------------- Outer Box ----------------
-  const boxX = margin;
-  const boxY = cursorY;
-  const boxWidth = pageWidth - 2 * margin;
-  const boxHeight = pageHeight - boxY - margin;
-doc.setDrawColor(0, 100, 0);  doc.setLineWidth(0.8);
-  doc.rect(boxX, boxY, boxWidth, boxHeight);
-
-  // Title
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(headingFontSize);
-  doc.text('Doctor Notes', boxX + boxWidth / 2, boxY + 10, { align: 'center' });
-
-  // ---------------- Top Section ----------------
-  const topY = boxY + 18;
-  const topHeight = 40;
-  const topLeftWidth = boxWidth * 0.5 - 2;
-  const topRightWidth = boxWidth * 0.5 - 2;
-
-  doc.line(boxX, topY - 2, boxX + boxWidth, topY - 2);
-  doc.line(boxX + boxWidth / 2, topY, boxX + boxWidth / 2, topY + topHeight);
-
-  // Top left: Patient Info
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(headingFontSize);
-  doc.text('Patient Info', boxX + 2, topY + 6);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(bodyFontSize);
-
-  let leftY = topY + 12;
-  const topLeftInfo = [
-    ['Name', patient.name],
-    ['Date Of Birth', patient.dob],
-    ['PI', patient.patientId],
-  ];
-  topLeftInfo.forEach(([k, v]) => {
-    const lines = doc.splitTextToSize(`${k}: ${v}`, topLeftWidth - 4);
-    lines.forEach(line => {
-      doc.text(line, boxX + 2, leftY);
-      leftY += lineHeight;
-    });
-  });
-
-  // Top right: Contact Info
-  const rightX = boxX + boxWidth / 2 + 2;
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(headingFontSize);
-  doc.text('Contact Info', rightX, topY + 6);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(bodyFontSize);
-
-  let rightY = topY + 12;
-const topRightInfo = [
-  ['Contact', patient.parents || 'N/A'],
-  ['Residence', patient.residence || 'N/A'],
-  ['Record Key', recordKey || 'N/A'],  // ✅ now shows "test1"
-  ['Date Taken', new Date(record.dateTaken).toLocaleString() || 'N/A'],
-];
-
-  topRightInfo.forEach(([k, v]) => {
-    const lines = doc.splitTextToSize(`${k}: ${v}`, topRightWidth - 4);
-    lines.forEach(line => {
-      doc.text(line, rightX, rightY);
-      rightY += lineHeight;
-    });
-  });
-
-  // ---------------- Lower Section ----------------
-  const sectionPadding = 6;
-  const lowerY = topY + topHeight + 5;
-  const lowerHeight = boxY + boxHeight - lowerY - 20;
-  const lowerLeftWidth = boxWidth * 0.35;
-  const lowerRightWidth = boxWidth - lowerLeftWidth - 10;
-
-  doc.line(boxX + lowerLeftWidth + 5, lowerY, boxX + lowerLeftWidth + 5, lowerY + lowerHeight);
-  doc.line(boxX, lowerY - 3, boxX + boxWidth, lowerY - 3);
-
-  // ---------------- Lower left: Vitals & Investigations ----------------
-  let leftStartY = lowerY + sectionPadding;
-
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(headingFontSize);
-  doc.text('Vitals & Investigations', boxX + sectionPadding, leftStartY);
-  leftStartY += lineHeight;
-
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(bodyFontSize);
-
-  const vitals = latestVisitData || {};
-  const vitalsList = [
-    ['Temp', vitals.temperature, '°C'],
-    ['BP', vitals.bp, 'mmHg'],
-    ['RR', vitals.rr, 'breaths/min'],
-    ['HR', vitals.hr, 'bpm'],
-    ['SpO₂', vitals.sp02, '%'],
-    ['WT', vitals.wt, 'kg'],
-    ['HT', vitals.ht, 'cm'],
-    ['BMI', vitals.bmi, 'kg/m²'],
-    ['MUAC', vitals.muac, 'cm'],
-  ];
-
-  let hasVitals = false;
-  vitalsList.forEach(([label, value, unit]) => {
-    if (value !== undefined && value !== null && value !== '' && value !== 'N/D') {
-      hasVitals = true;
-      const displayText = `${label}: ${value} ${unit || ''}`;
-      const lines = doc.splitTextToSize(displayText, lowerLeftWidth - 2 * sectionPadding);
-      lines.forEach(line => {
-        doc.text(line.trim(), boxX + sectionPadding, leftStartY);
-        leftStartY += lineHeight;
-      });
-    }
-  });
-
-  if (!hasVitals) {
-    doc.text('No vitals recorded.', boxX + sectionPadding, leftStartY);
-  }
-
-  if (record.investigationsTaken?.length > 0) {
-    doc.setFont('helvetica', 'bold');
-    const invTitle = doc.splitTextToSize('Investigations:', lowerLeftWidth - 2 * sectionPadding);
-    invTitle.forEach(line => {
-      doc.text(line, boxX + sectionPadding, leftStartY);
-      leftStartY += lineHeight;
-    });
-    doc.setFont('helvetica', 'normal');
-    record.investigationsTaken.forEach(inv => {
-      const lines = doc.splitTextToSize(`${inv.category}: ${inv.name}`, lowerLeftWidth - 2 * sectionPadding);
-      lines.forEach(line => {
-        doc.text(line, boxX + sectionPadding, leftStartY);
-        leftStartY += lineHeight;
-      });
-    });
-  }
-
- // ============================================================
-// 3️⃣ MEDICATIONS — LOWER LEFT, UNDER VITALS / INVESTIGATIONS
-// ============================================================
-
-if (
-  record.results?.medication &&
-  Object.keys(record.results.medication).length > 0
-) {
-
-  // Space after vitals/investigations
-  leftStartY += 3;
-
-  const medicationX =
-    boxX + sectionPadding;
-
-  const medicationWidth =
-    lowerLeftWidth - (2 * sectionPadding);
-
-
-  // ---------------- Heading ----------------
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8);
-
-  doc.text(
-    'Medications:',
-    medicationX,
-    leftStartY
-  );
-
-  leftStartY += lineHeight;
-
-
-  // ---------------- Get medications ----------------
-  const medicationNodes =
-    record.results.medication;
-
-  const meds =
-    Object.keys(medicationNodes).map(key => {
-
-      const med =
-        medicationNodes[key] || {};
-
-      return {
-        name:
-          String(
-            med.medication || 'N/A'
-          ),
-
-        prescription:
-          String(
-            med.prescription || ''
-          )
-      };
-
-    });
-
-
-  // ==========================================================
-  // TWO COLUMNS
-  // ==========================================================
-
-  const colWidths = [
-    medicationWidth * 0.42, // Medication
-    medicationWidth * 0.58  // Prescription
-  ];
-
-  const rowHeight = 4;
-
-
-  // ---------------- Table Header ----------------
-
-  doc.setFillColor(235, 235, 235);
-
-  doc.rect(
-    medicationX,
-    leftStartY - rowHeight + 1,
-    medicationWidth,
-    rowHeight,
-    'F'
-  );
-
-
-  doc.setFont(
-    'helvetica',
-    'bold'
-  );
-
-  doc.setFontSize(5.5);
-
-
-  doc.text(
-    'Medication',
-    medicationX + 1,
-    leftStartY
-  );
-
-
-  doc.text(
-    'Prescription',
-    medicationX + colWidths[0] + 1,
-    leftStartY
-  );
-
-
-  // Header bottom line
-  doc.setDrawColor(180);
-
-  doc.line(
-    medicationX,
-    leftStartY + 1,
-    medicationX + medicationWidth,
-    leftStartY + 1
-  );
-
-
-  leftStartY +=
-    rowHeight + 1;
-
-
-  // ==========================================================
-  // MEDICATION ROWS
-  // ==========================================================
-
-  doc.setFont(
-    'helvetica',
-    'normal'
-  );
-
-  doc.setFontSize(5.5);
-
-
-  meds.forEach((row, index) => {
-
-    const y =
-      leftStartY;
-
-
-    // Alternate background
-    if (index % 2 === 0) {
-
-      doc.setFillColor(
-        248,
-        248,
-        248
-      );
-
-    } else {
-
-      doc.setFillColor(
-        255,
-        255,
-        255
-      );
-
-    }
-
-
-    doc.rect(
-      medicationX,
-      y - rowHeight + 1,
-      medicationWidth,
-      rowHeight,
-      'F'
-    );
-
-
-    const cells = [
-      row.name,
-      row.prescription
-    ];
-
-
-    cells.forEach(
-      (cellText, i) => {
-
-        const previousWidth =
-          colWidths
-            .slice(0, i)
-            .reduce(
-              (a, b) => a + b,
-              0
-            );
-
-
-        const x =
-          medicationX +
-          previousWidth;
-
-
-        let text =
-          String(cellText);
-
-
-        const maxTextWidth =
-          colWidths[i] - 2;
-
-
-        // Keep text inside column
-        while (
-          text.length > 0 &&
-          doc.getTextWidth(text) >
-            maxTextWidth
-        ) {
-
-          text =
-            text.slice(0, -1);
-
-        }
-
-
-        doc.text(
-          text,
-          x + 1,
-          y
-        );
-
-      }
-    );
-
-
-    // Row separator
-    doc.setDrawColor(180);
-    doc.setLineWidth(0.2);
-
-    doc.line(
-      medicationX,
-      y + 1,
-      medicationX + medicationWidth,
-      y + 1
-    );
-
-
-    leftStartY +=
-      rowHeight + 1;
-
-  });
-
-
-  leftStartY += 2;
-
-
-} else {
-
-  // Optional: show no medication message under vitals
-  leftStartY += 3;
-
-  doc.setFont(
-    'helvetica',
-    'italic'
-  );
-
-  doc.setFontSize(6);
-
-  doc.text(
-    'No medications recorded.',
-    boxX + sectionPadding,
-    leftStartY
-  );
-
-  leftStartY += lineHeight;
-
-}
-
-// ---------------- Lower right: Examination, Medications, Results ----------------
-const rightStartX = boxX + lowerLeftWidth + 10 + sectionPadding;
-let rightStartY = lowerY + sectionPadding;
-
-// 1️⃣ Examination & Notes
-doc.setFont('helvetica', 'bold');
-doc.setFontSize(headingFontSize);
-doc.text('Examination & Notes', rightStartX, rightStartY);
-rightStartY += lineHeight;
-
+  const reportHeading = 'PATIENT & TEST DETAILS';
+  const reportHeadingWidth = doc.getTextWidth(reportHeading);
+  const reportHeadingX = (doc.internal.pageSize.getWidth() - reportHeadingWidth) / 2;
+  const reportHeadingY = headerBoxY + headerBoxHeight + 10;
+  doc.text(reportHeading, reportHeadingX, reportHeadingY);
+  
+
+// Print patient details in a table
 doc.setFont('helvetica', 'normal');
-doc.setFontSize(bodyFontSize);
-
-// --- Format examination for printing ---
-let formattedExamination = '—';
-if (record.examination && typeof record.examination === 'object') {
-  const lines = [];
-
-  for (const [key, value] of Object.entries(record.examination)) {
-    if (value && value.trim() !== '') {
-      const formattedKey = key
-        .replace(/([A-Z])/g, ' $1') // space between words
-        .replace(/\s+/g, ' ')       // clean multiple spaces
-        .replace(/^./, s => s.toUpperCase()); // capitalize first letter
-
-      // Bold and neat spacing for print layout
-      lines.push(`${formattedKey}: ${value}`);
-    }
-  }
-
-  formattedExamination = lines.join('\n');
-} else if (typeof record.examination === 'string') {
-  formattedExamination = record.examination;
-}
-
-// Adjust these for compact layout
-const compactLineHeight = 4; // smaller than default 5
-const subsectionSpacing = 1;  // spacing between subsections
-const sectionSpacing = 2;     // spacing after main section
-
-// --- Prepare rightDetails ---
-const rightDetails = [
-  ['Complaints', record.additionalNotes || record.complaints || record.results?.complaints || '—'],
-  ['Examination', record.examination || record.results?.examination || '—'],
-  ['Diagnosis', record.diagnosis || record.results?.additionalNotes || '—'],
+doc.setFontSize(12);
+const patientDetails = [
+  ['Patient Name', patient.name, 'Record key:   ' + recordKey],
+  ['Date of Birth', patient.dob, 'Date taken:   ' + dateTakenElement.textContent],
+  ['Payment Type', patient.payment, 'Test taken:   ' +  testsTakenElement.textContent],
+  ['Residence', patient.residence, 'Service Payment:   ' +  paymentStatusElement.textContent],
+  ['Contact', patient.parents, 'Test Results status:   ' +  resultsObtainedElement.textContent],
+  ['Patient ID', patient.patientId, 'Diagnosis:   '  + additionalNotesElement.textContent]
 ];
-
-// --- Print rightDetails compactly ---
-rightDetails.forEach(([k, v]) => {
-  // Bold main header
-  doc.setFont('helvetica', 'bold');
-  const formattedKey = k
-    .replace(/([A-Z])/g, ' $1')
-    .replace(/\s+/g, ' ')
-    .replace(/^./, s => s.toUpperCase());
-  doc.text(`${formattedKey}:`, rightStartX, rightStartY);
-  rightStartY += compactLineHeight;
-
-  // Normal font for values
-  doc.setFont('helvetica', 'normal');
-
-  if (v && typeof v === 'object') {
-    // Loop through each subsection
-    for (const [section, text] of Object.entries(v)) {
-      if (text && text.trim() !== '') {
-        const formattedSection = section
-          .replace(/([A-Z])/g, ' $1')
-          .replace(/\s+/g, ' ')
-          .replace(/^./, s => s.toUpperCase());
-
-        const lines = doc.splitTextToSize(`${formattedSection}: ${text}`, lowerRightWidth - 2 * sectionPadding);
-        lines.forEach(line => {
-          doc.text(line, rightStartX + 3, rightStartY); // slight indent
-          rightStartY += compactLineHeight;
-        });
-        rightStartY += subsectionSpacing; // small gap between subsections
-      }
-    }
-  } else {
-    // Single string value
-    const lines = doc.splitTextToSize(String(v), lowerRightWidth - 2 * sectionPadding);
-    lines.forEach(line => {
-      doc.text(line, rightStartX + 3, rightStartY);
-      rightStartY += compactLineHeight;
-    });
-  }
-
-  rightStartY += sectionSpacing; // small gap after main section
-});
-
-
-// ============================================================
-// BC-2800 CBC RESULTS + NORMAL RANGES + SMALL HISTOGRAMS
-// ============================================================
-
-const savedInvestigations =
-  record.results?.investigationsResults || {};
-
-const savedHistograms =
-  record.results?.cbcHistograms || {};
-
-
-// Find the CBC test regardless of exact test-name spelling
-const cbcTestName = Object.keys(savedInvestigations).find(name => {
-
-  const n = name.toLowerCase();
-
-  return (
-    n.includes('cbc') &&
-    (
-      n.includes('haematology') ||
-      n.includes('hematology')
-    )
-  );
-
-});
-
-
-if (cbcTestName) {
-
-  const cbcResults =
-    savedInvestigations[cbcTestName];
-
-  if (
-    Array.isArray(cbcResults) &&
-    cbcResults.length > 0
-  ) {
-
-    // --------------------------------------------------------
-    // TITLE
-    // --------------------------------------------------------
-
-    rightStartY += 3;
-
-    doc.setFont(
-      'helvetica',
-      'bold'
-    );
-
-    doc.setFontSize(8);
-
-    doc.text(
-      'CBC HAEMATOLOGY',
-      rightStartX,
-      rightStartY
-    );
-
-    rightStartY += 4;
-
-
-    // --------------------------------------------------------
-    // PATIENT REFERENCE GROUP
-    // --------------------------------------------------------
-
-    const patientForCBC =
-      window.currentPatient || patient || null;
-
-    const patientGroup =
-      getPatientCBCGroup(patientForCBC);
-
-    const groupLabel = {
-      adult_male: 'Adult Male',
-      adult_female: 'Adult Female',
-      child: 'Child',
-      neonate: 'Neonate',
-      general: 'General'
-    }[patientGroup] || 'General';
-
-
-    doc.setFont(
-      'helvetica',
-      'normal'
-    );
-
-    doc.setFontSize(6);
-
-    doc.text(
-      `Reference Group: ${groupLabel}`,
-      rightStartX,
-      rightStartY
-    );
-
-    rightStartY += 3;
-
-
-    // --------------------------------------------------------
-    // CBC TABLE HEADER
-    // --------------------------------------------------------
-
-    const colParameter =
-      rightStartX;
-
-    const colResult =
-      rightStartX + 25;
-
-    const colUnit =
-      rightStartX + 42;
-
-    const colRange =
-      rightStartX + 59;
-
-    const colFlag =
-      rightStartX + 85;
-
-
-    doc.setFont(
-      'helvetica',
-      'bold'
-    );
-
-    doc.setFontSize(5.5);
-
-
-    doc.text(
-      'Parameter',
-      colParameter,
-      rightStartY
-    );
-
-    doc.text(
-      'Result',
-      colResult,
-      rightStartY
-    );
-
-    doc.text(
-      'Unit',
-      colUnit,
-      rightStartY
-    );
-
-    doc.text(
-      'Normal Range',
-      colRange,
-      rightStartY
-    );
-
-    doc.text(
-      'Flag',
-      colFlag,
-      rightStartY
-    );
-
-
-    rightStartY += 1;
-
-
-    // Header line
-    doc.setLineWidth(0.2);
-
-    doc.line(
-      rightStartX,
-      rightStartY,
-      colFlag + 8,
-      rightStartY
-    );
-
-    rightStartY += 3;
-
-
-    // --------------------------------------------------------
-    // PRINT EACH CBC RESULT
-    // --------------------------------------------------------
-
-    doc.setFontSize(5.5);
-
-cbcResults.forEach(result => {
-
-  // What we want to DISPLAY on the report
-  const parameter =
-    result.parameter || '-';
-
-  const value =
-    result.value ?? '-';
-
-
-  // ==========================================================
-  // CONVERT DISPLAY NAME TO CBC_REFERENCE_CONFIG KEY
-  // ==========================================================
-
-  const configKey =
-    getCBCConfigKey(parameter);
-
-
-  // ==========================================================
-  // GET REFERENCE RANGE
-  // ==========================================================
-
-  const reference =
-    getCBCReference(
-      configKey,
-      patientForCBC
-    );
-
-
-  const normalRange =
-    getCBCReferenceRange(
-      reference
-    );
-
-
-  // ==========================================================
-  // H / L FLAG
-  // ==========================================================
-
-  const flag =
-    getCBCFlag(
-      value,
-      reference
-    );
-
-
-  // ==========================================================
-  // UNIT
-  // ==========================================================
-
-  const config =
-    CBC_REFERENCE_CONFIG[
-      configKey
-    ];
-
-
-  const unit =
-    config?.unit || '-';
-
-
-  // ==========================================================
-  // PRINT PARAMETER
-  // ==========================================================
-
-  doc.setFont(
-    'helvetica',
-    'normal'
-  );
-
-  doc.text(
-    String(parameter),
-    colParameter,
-    rightStartY
-  );
-
-
-  // ==========================================================
-  // PRINT RESULT
-  // ==========================================================
-
-  if (flag) {
-
-    doc.setFont(
-      'helvetica',
-      'bold'
-    );
-
-  } else {
-
-    doc.setFont(
-      'helvetica',
-      'normal'
-    );
-
-  }
-
-
-  doc.text(
-    String(value),
-    colResult,
-    rightStartY
-  );
-
-
-  // ==========================================================
-  // PRINT UNIT
-  // ==========================================================
-
-  doc.setFont(
-    'helvetica',
-    'normal'
-  );
-
-  doc.text(
-    String(unit),
-    colUnit,
-    rightStartY
-  );
-
-
-  // ==========================================================
-  // PRINT NORMAL RANGE
-  // ==========================================================
-
-  doc.text(
-    String(normalRange),
-    colRange,
-    rightStartY
-  );
-
-
-  // ==========================================================
-  // PRINT H / L
-  // ==========================================================
-
-  if (flag) {
-
-    doc.setFont(
-      'helvetica',
-      'bold'
-    );
-
-    doc.text(
-      String(flag),
-      colFlag,
-      rightStartY
-    );
-
-  }
-
-
-  rightStartY += 3;
-
-});
-
-
-    // Bottom line
-    doc.setLineWidth(0.2);
-
-    doc.line(
-      rightStartX,
-      rightStartY,
-      colFlag + 8,
-      rightStartY
-    );
-
-
-    rightStartY += 4;
-
-
-    // ========================================================
-    // PRINT SAVED BC-2800 HISTOGRAMS
-    // ========================================================
-
-    const histogramTestName =
-      Object.keys(savedHistograms)
-        .find(name => {
-
-          const n =
-            name.toLowerCase();
-
-          return (
-            n.includes('cbc') ||
-            n.includes('haematology') ||
-            n.includes('hematology')
-          );
-
-        });
-
-
-    if (histogramTestName) {
-
-      const histograms =
-        savedHistograms[
-          histogramTestName
-        ];
-
-
-      if (histograms) {
-
-        printCBCHistograms(
-          doc,
-          histograms,
-          rightStartX,
-          rightStartY,
-          28,     // graph width
-          18      // graph height
-        );
-
-
-        rightStartY += 23;
-
-      }
-
-    }
-
-  }
-
-}
-
-
-
-
-
-function printCBCHistograms(
-  doc,
-  histograms,
-  startX,
-  startY,
-  graphWidth = 28,
-  graphHeight = 18
-) {
-
-  if (!histograms) {
-    return;
-  }
-
-
-  const graphs = [
-    {
-      key: 'WBC',
-      title: 'WBC'
-    },
-    {
-      key: 'RBC',
-      title: 'RBC'
-    },
-    {
-      key: 'PLT',
-      title: 'PLT'
-    }
-  ];
-
-
-  const gap = 3;
-
-
-  graphs.forEach(
-    (graph, graphIndex) => {
-
-      const rawPoints =
-        histograms[graph.key] ||
-        histograms[
-          graph.key.toLowerCase()
-        ];
-
-
-      if (!rawPoints) {
-        return;
-      }
-
-
-      // Firebase may return arrays as objects
-      const values =
-        Array.isArray(rawPoints)
-
-          ? rawPoints.map(Number)
-
-          : Object.keys(rawPoints)
-
-              .sort(
-                (a, b) =>
-                  Number(a) - Number(b)
-              )
-
-              .map(
-                key =>
-                  Number(rawPoints[key])
-              );
-
-
-      if (values.length === 0) {
-        return;
-      }
-
-
-      const x =
-        startX +
-        graphIndex *
-        (
-          graphWidth +
-          gap
-        );
-
-
-      const y =
-        startY;
-
-
-      // ------------------------------------------------------
-      // GRAPH TITLE
-      // ------------------------------------------------------
-
-      doc.setFont(
-        'helvetica',
-        'bold'
-      );
-
-      doc.setFontSize(5);
-
-      doc.text(
-        graph.title,
-        x + graphWidth / 2,
-        y,
-        {
-          align: 'center'
-        }
-      );
-
-
-      const graphTop =
-        y + 2;
-
-
-      // ------------------------------------------------------
-      // GRAPH BORDER
-      // ------------------------------------------------------
-
-      doc.setLineWidth(0.15);
-
-      doc.rect(
-        x,
-        graphTop,
-        graphWidth,
-        graphHeight
-      );
-
-
-      // ------------------------------------------------------
-      // NORMALIZE DATA
-      // ------------------------------------------------------
-
-      const cleanValues =
-        values.map(value => {
-
-          return Number.isFinite(value)
-            ? value
-            : 0;
-
-        });
-
-
-      const maxValue =
-        Math.max(
-          ...cleanValues,
-          1
-        );
-
-
-      // ------------------------------------------------------
-      // DRAW HISTOGRAM CURVE
-      // ------------------------------------------------------
-
-      doc.setLineWidth(0.25);
-
-
-      let previousX = null;
-      let previousY = null;
-
-
-      cleanValues.forEach(
-        (value, index) => {
-
-          const pointX =
-            x +
-            (
-              index /
-              Math.max(
-                cleanValues.length - 1,
-                1
-              )
-            ) *
-            graphWidth;
-
-
-          const pointY =
-            graphTop +
-            graphHeight -
-            (
-              value /
-              maxValue
-            ) *
-            graphHeight;
-
-
-          if (
-            previousX !== null &&
-            previousY !== null
-          ) {
-
-            doc.line(
-              previousX,
-              previousY,
-              pointX,
-              pointY
-            );
-
-          }
-
-
-          previousX =
-            pointX;
-
-          previousY =
-            pointY;
-
-        }
-      );
-
-
-      // ------------------------------------------------------
-      // SMALL AXIS LABELS
-      // ------------------------------------------------------
-
-      doc.setFont(
-        'helvetica',
-        'normal'
-      );
-
-      doc.setFontSize(3.8);
-
-
-      doc.text(
-        '0',
-        x,
-        graphTop +
-          graphHeight +
-          2
-      );
-
-
-      doc.text(
-        String(
-          cleanValues.length - 1
-        ),
-        x + graphWidth,
-        graphTop +
-          graphHeight +
-          2,
-        {
-          align: 'right'
-        }
-      );
-
-    }
-  );
-
-}
-// ============================================================
-// 2️⃣ OTHER INVESTIGATION RESULTS
-// CBC IS EXCLUDED — IT HAS ITS OWN PRINT SECTION
-// ============================================================
-
-if (
-  record.results?.investigationsResults &&
-  Object.keys(record.results.investigationsResults).length > 0
-) {
-
-  try {
-
-    const otherInvestigationValues = [];
-
-    const resultEntries =
-      Object.entries(
-        record.results.investigationsResults
-      );
-
-
-    // ========================================================
-    // COLLECT NON-CBC RESULTS ONLY
-    // ========================================================
-
-    for (const [testName, vals] of resultEntries) {
-
-      if (
-        !Array.isArray(vals) ||
-        vals.length === 0
-      ) {
-        continue;
-      }
-
-
-      // ------------------------------------------------------
-      // IDENTIFY CBC
-      // ------------------------------------------------------
-
-      const testText =
-        String(testName)
-          .trim()
-          .toLowerCase();
-
-
-      const isCBC =
-        testText.includes('cbc') &&
-        (
-          testText.includes('haematology') ||
-          testText.includes('hematology')
-        );
-
-
-      // CBC is printed separately with:
-      // Result + Unit + Normal Range + Flag + Histograms
-      if (isCBC) {
-
-        console.log(
-          "🩸 Skipping CBC from Other Results:",
-          testName
-        );
-
-        continue;
-
-      }
-
-
-      // ------------------------------------------------------
-      // ALL OTHER LABORATORY RESULTS
-      // ------------------------------------------------------
-
-      vals.forEach(v => {
-
-        if (
-          !v ||
-          v.value === undefined ||
-          v.value === null ||
-          String(v.value).trim() === ''
-        ) {
-          return;
-        }
-
-
-        const parameter =
-          String(
-            v.parameter || ''
-          ).trim();
-
-
-        // If this investigation has a meaningful parameter
-        if (
-          parameter &&
-          parameter !== 'Result' &&
-          parameter !== testName
-        ) {
-
-          otherInvestigationValues.push(
-            `${testName} - ${parameter}: ${v.value}`
-          );
-
-        }
-
-        // Normal single result / radio result
-        else {
-
-          otherInvestigationValues.push(
-            `${testName}: ${v.value}`
-          );
-
-        }
-
-      });
-
-    }
-
-
-    // ========================================================
-    // PRINT ONLY IF OTHER RESULTS EXIST
-    // ========================================================
-
-    if (
-      otherInvestigationValues.length > 0
-    ) {
-
-      rightStartY += 4;
-
-
-      // ------------------------------------------------------
-      // HEADING
-      // ------------------------------------------------------
-
-      doc.setFont(
-        'helvetica',
-        'bold'
-      );
-
-      doc.setFontSize(7);
-
-      doc.text(
-        'Other Laboratory Results:',
-        rightStartX,
-        rightStartY
-      );
-
-
-      rightStartY += 4;
-
-
-      // ------------------------------------------------------
-      // RESULT BOX
-      // ------------------------------------------------------
-
-      const resultBoxX =
-        rightStartX;
-
-      const resultBoxY =
-        rightStartY - 2;
-
-      const resultBoxWidth =
-        lowerRightWidth -
-        2 * sectionPadding;
-
-      const boxPadding = 3;
-
-      const resultLineHeight = 4;
-
-
-      // ------------------------------------------------------
-      // PREPARE WRAPPED TEXT FIRST
-      // ------------------------------------------------------
-
-      const printableLines = [];
-
-
-      otherInvestigationValues.forEach(
-        result => {
-
-          const wrapped =
-            doc.splitTextToSize(
-              result,
-              resultBoxWidth -
-              boxPadding * 2
-            );
-
-
-          wrapped.forEach(line => {
-
-            printableLines.push(
-              line
-            );
-
-          });
-
-        }
-      );
-
-
-      // ------------------------------------------------------
-      // CALCULATE BOX HEIGHT
-      // ------------------------------------------------------
-
-      const resultBoxHeight =
-        (
-          printableLines.length *
-          resultLineHeight
-        ) +
-        (
-          boxPadding * 2
-        );
-
-
-      // ------------------------------------------------------
-      // DRAW BOX
-      // ------------------------------------------------------
-
-      doc.setLineWidth(0.3);
-
-      doc.rect(
-        resultBoxX,
-        resultBoxY,
-        resultBoxWidth,
-        resultBoxHeight
-      );
-
-
-      // ------------------------------------------------------
-      // PRINT RESULTS
-      // ------------------------------------------------------
-
-      doc.setFont(
-        'helvetica',
-        'normal'
-      );
-
-      doc.setFontSize(6);
-
-
-      let resultY =
-        resultBoxY +
-        boxPadding +
-        2;
-
-
-      printableLines.forEach(line => {
-
-        doc.text(
-          String(line),
-          resultBoxX +
-          boxPadding,
-          resultY
-        );
-
-
-        resultY +=
-          resultLineHeight;
-
-      });
-
-
-      // Move next print section below box
-      rightStartY =
-        resultBoxY +
-        resultBoxHeight +
-        6;
-
-    }
-
-  }
-
-  catch (err) {
-
-    console.warn(
-      "Error printing other investigation results:",
-      err
-    );
-
-  }
-
-}
-// ============================================================
-// PROCEDURES — LOWER LEFT
-// ============================================================
-
-if (
-  record.proceduresTaken &&
-  record.proceduresTaken.length > 0
-) {
-
-  leftStartY += 2;
-
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8);
-
-  doc.text(
-    'Procedures:',
-    boxX + sectionPadding,
-    leftStartY
-  );
-
-  leftStartY += lineHeight - 2;
-
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7);
-
-
-  record.proceduresTaken.forEach(proc => {
-
-    const text =
-      `${proc.category || ''}: ${proc.name || ''}`;
-
-    const lines =
-      doc.splitTextToSize(
-        text,
-        lowerLeftWidth - 2 * sectionPadding
-      );
-
-    lines.forEach(line => {
-
-      doc.text(
-        line,
-        boxX + sectionPadding,
-        leftStartY
-      );
-
-      leftStartY += lineHeight - 2;
-
-    });
-
+  const patientTableX = 20;
+  const patientTableY = reportHeadingY + 5;
+  const patientTableOptions = {
+  startX: patientTableX,
+  startY: patientTableY,
+  margin: { top: 8 },
+  styles: { font: 'helvetica', fontStyle: 'normal', fontSize: 8 },
+  headStyles: { fillColor: [0, 128, 0], fontStyle: 'bold' },
+  bodyStyles: { fillColor: 255 },
+  columnStyles: { 0: { cellWidth: 55 }, 1: { cellWidth: 55 }, 2: { cellWidth: 70 } } // Adjust column widths
+  };
+  
+  doc.autoTable({
+  head: [['Field', 'Value', 'Test Details']],
+  body: patientDetails,
+  ...patientTableOptions
   });
-
-} else {
-
-  leftStartY += 2;
-
-  doc.setFont('helvetica', 'italic');
-  doc.setFontSize(7);
-
-  doc.text(
-    'No procedures recorded.',
-    boxX + sectionPadding,
-    leftStartY
-  );
-
-  leftStartY += lineHeight - 2;
-}
-
-
-// ============================================================
-// SERVICES — LOWER LEFT
-// ============================================================
-
-if (
-  record.servicesTaken &&
-  record.servicesTaken.length > 0
-) {
-
-  leftStartY += 2;
-
+  
+  
+  // Print the heading "LATEST VISIT TRIAGE"
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8);
-
-  doc.text(
-    'Services:',
-    boxX + sectionPadding,
-    leftStartY
-  );
-
-  leftStartY += lineHeight - 2;
-
+  doc.setFontSize(16);
+  const latestVisitHeading = 'LATEST VISIT TRIAGE';
+  const latestVisitHeadingWidth = doc.getTextWidth(latestVisitHeading);
+  const latestVisitHeadingX = (doc.internal.pageSize.getWidth() - latestVisitHeadingWidth) / 2;
+  const latestVisitHeadingY = patientTableY + 65;
+  doc.text(latestVisitHeading, latestVisitHeadingX, latestVisitHeadingY);
+  
+  // Print the latest visit triage details in a table with four columns
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7);
-
-
-  record.servicesTaken.forEach(srv => {
-
-    const text =
-      `${srv.category || ''}: ${srv.name || ''}`;
-
-    const lines =
-      doc.splitTextToSize(
-        text,
-        lowerLeftWidth - 2 * sectionPadding
-      );
-
-    lines.forEach(line => {
-
-      doc.text(
-        line,
-        boxX + sectionPadding,
-        leftStartY
-      );
-
-      leftStartY += lineHeight - 2;
-
-    });
-
-  });
-
-} else {
-
-  leftStartY += 2;
-
-  doc.setFont('helvetica', 'italic');
-  doc.setFontSize(7);
-
-  doc.text(
-    'No services recorded.',
-    boxX + sectionPadding,
-    leftStartY
+  doc.setFontSize(8);
+  const latestVisitTableX = 20;
+  const latestVisitTableY = latestVisitHeadingY + 5;
+  const latestVisitTableOptions = {
+  startX: latestVisitTableX,
+  startY: latestVisitTableY,
+  margin: { top: 8 },
+  styles: { font: 'helvetica', fontStyle: 'normal', fontSize: 7 },
+  headStyles: { fillColor: [0, 128, 0], fontStyle: 'bold' },
+  bodyStyles: { fillColor: 255 },
+  columnStyles: { 0: { cellWidth: 45 }, 1: { cellWidth: 45 }, 2: { cellWidth: 45 }, 3: { cellWidth: 45 } }
+  };
+  
+  const latestVisitDetails = [];
+  if (latestVisitData) {
+  latestVisitDetails.push(
+    ['Date', formatDate(latestVisitData.timestamp), 'Clinician\'s Name', latestVisitData.clinicianName || 'N/D'],
+    ['Temperature', latestVisitData.temperature || 'N/D', 'BP', latestVisitData.bp || 'N/D'],
+    ['RR', latestVisitData.rr || 'N/D', 'HR', latestVisitData.hr || 'N/D'],
+    ['SpO2', latestVisitData.sp02 || 'N/D', 'WT', latestVisitData.wt || 'N/D'],
+    ['HT', latestVisitData.ht || 'N/D', 'BMI', latestVisitData.bmi || 'N/D'],
+    ['MUAC', latestVisitData.muac || 'N/D', 'Weight for Age Z score', latestVisitData.weightForAgeZScore || 'N/D'],
+    ['Disability', latestVisitData.disability || 'N/D', 'Known Chronic Illness', latestVisitData.chronicIllness || 'N/D'],
+    ['Any Drug Abuse', latestVisitData.drugAbuse || 'N/D', 'Allergies', latestVisitData.allergies && latestVisitData.allergies.length > 0
+      ? latestVisitData.allergies.join(', ')
+      : 'N/D']
   );
+  } else {
+  // If there's no latest visit data, display "N/A" for each field
+  latestVisitDetails.push(
+    ['Date', 'N/A', 'Clinician\'s Name', 'N/A'],
+    ['Temperature', 'N/A', 'BP', 'N/A'],
+    ['RR', 'N/A', 'HR', 'N/A'],
+    ['SpO2', 'N/A', 'WT', 'N/A'],
+    ['HT', 'N/A', 'BMI', 'N/A'],
+    ['MUAC', 'N/A', 'Weight for Age Z score', 'N/A'],
+    ['Disability', 'N/A', 'Known Chronic Illness', 'N/A'],
+    ['Any Drug Abuse', 'N/A', 'Allergies', 'N/A']
+  );
+  }
+  
+  doc.autoTable({
+  head: [['Field', 'Value', 'Field', 'Value']],
+  body: latestVisitDetails,
+  ...latestVisitTableOptions
+  });
+  
+  
+  // Extract medication table data from the dynamically created table
+const medicationTableData = [];
+const medicationRows = medicationTable.querySelectorAll('tr');
+for (let i = 1; i < medicationRows.length; i++) {  // Start from 1 to skip header row
+    const cells = medicationRows[i].querySelectorAll('td');
+    if (cells.length === 5) {  // Make sure there are 5 cells (including actions column)
+        const medication = cells[0].textContent.trim();
+        const prescription = cells[1].textContent.trim();
+        const grams = cells[2].textContent.trim();
+        const totalCost = cells[3].textContent.trim();
 
-  leftStartY += lineHeight - 2;
+        // Push to medicationTableData array
+        medicationTableData.push([medication, prescription]);
+    }
 }
 
-  // ---------------- Signature ----------------
-  const signatureY = boxY + boxHeight - 6;
-  doc.setFont('helvetica', 'bold');
-  doc.text("Doctor's Signature: ____________________", boxX + 5, signatureY);
+// Now use autoTable to add the data to the PDF
+doc.autoTable({
+    startY: 200, // Starting Y position for the table
+    head: [['Medication', 'Prescription']], // Define table header
+    body: medicationTableData, // Use the dynamically generated data
+    theme: 'grid',
+    styles: {
+        fontSize: 8,
+        cellPadding: 1.3,
+        lineColor: [0, 0, 0],
+        lineWidth: 0.1,
+    },
+    columnStyles: {
+        0: { cellWidth: 50 },
+        1: { cellWidth: 50 },
+        2: { cellWidth: 40 },
+        3: { cellWidth: 40 },
+    },
+});
 
-  // ---------------- Print ----------------
+  // Add the doctor's signature label
+  const signatureLabelX = 20;
+  const signatureLabelY = doc.internal.pageSize.getHeight() - 20;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(12);
+  doc.text('Doctor\'s Signature:', signatureLabelX, signatureLabelY, { align: 'left' });
+
+  // Print the document
   doc.autoPrint();
+
+  // Open the print dialog
   doc.output('dataurlnewwindow');
 }
 
 
 
+
+
+// Select the search input field
+const testSearchInput = document.getElementById('testSearch');
+
+// Add an input event listener to the search input field
+testSearchInput.addEventListener('input', () => {
+  const searchTerm = testSearchInput.value.toLowerCase(); // Get the search term and convert to lowercase
+
+  // Select all the test record elements
+  const testRecordElements = document.querySelectorAll('.record');
+
+  // Loop through the test record elements and filter based on record keys
+  testRecordElements.forEach((recordElement) => {
+    const recordKeyElement = recordElement.querySelector('h4'); // Assuming record keys are inside h4 elements
+
+    if (recordKeyElement) {
+      const recordKey = recordKeyElement.textContent.toLowerCase();
+
+      if (recordKey.includes(searchTerm)) {
+        // Show the test if the record key matches the search term
+        recordElement.style.display = 'block';
+      } else {
+        // Hide the test if the record key doesn't match the search term
+        recordElement.style.display = 'none';
+      }
+    }
+  });
+});
+
+
+// Create a button for printing the test invoice
+const printInvoiceButton = document.createElement('button');
+printInvoiceButton.textContent = 'Print TI';
+printInvoiceButton.classList.add('button', 'print-invoice-button');
+// Create an icon element (e.g., using Font Awesome)
+const invoiceIcon = document.createElement('i');
+invoiceIcon.classList.add('fas', 'fa-file-invoice');
+
+// Append the icon to the button
+printInvoiceButton.appendChild(invoiceIcon);
+
+// Add an event listener to the "Print Test Invoice" button
+printInvoiceButton.addEventListener('click', () => {
+  printTestInvoice(patient.name, patient.patientId, recordKey, record.testsTaken, recordKey); // Modify these arguments as needed
+});
+
+// Append the "Print Test Invoice" button to the record element
+recordElement.appendChild(printInvoiceButton);
+function printTestInvoice(patientName, patientId, recordKey, testName) {
+  
+// Inside the printTestInvoice function, pass the recordKey to generateInvoiceNumber
+const invoiceNumber = generateInvoiceNumber(recordKey);
+
+  // Create the content to be printed as a test invoice, including hospital credentials
+  const invoiceContent = `
+    <div class="invoice">
+      <div class="invoice-header">
+        <h2>SANYU HOSPITAL  </h2>
+        <p>Located at Katooke-Wakiso District</p>
+        <p>Phone: +256 782 477 517</p>
+        <p>Email: info@keahmedicals.com</p>
+      </div>
+      <div class="invoice-details">
+      <h1>Test Invoice</h1>
+      <p><strong>Invoice Ref:</strong> ${invoiceNumber}<p>
+      <p><strong>Invoice Date:</strong> ${getCurrentDate()}</p>
+      <p><strong>Patient Name:</strong> ${patientName}</p>
+      <p><strong>Patient ID:</strong> ${patientId}</p>
+      <p><strong>Test Name:</strong> ${testName}</p>
+      <p><strong>Record Key:</strong> ${recordKey}</p>
+    </div>
+    </div>
+  `;
+
+  // Create a new window for printing
+  const printWindow = window.open('', '', 'width=600,height=600');
+
+  // Set the content of the print window
+  printWindow.document.open();
+  printWindow.document.write(`<style>${invoiceStyles}</style>`);
+  printWindow.document.write(invoiceContent);
+  printWindow.document.close();
+
+  // Print the window
+  printWindow.print();
+
+  // Close the print window
+  printWindow.close();
+}
 
 // Generate the invoice number as the same value as the record key
 function generateInvoiceNumber(recordKey) {
@@ -5922,625 +3433,91 @@ viewResultsButton.addEventListener('click', async () => {
 
 // Append the button
 recordElement.appendChild(viewResultsButton);
-async function openResultsPopup(testData, patientName, recordKey) {
+function openResultsPopup(testData, patientName, recordKey) {
   const popup = document.getElementById('viewResultsPopup');
   const container = document.getElementById('viewResultsContainer');
   const header = document.getElementById('viewResultsHeader');
 
-  header.textContent = `${recordKey} - Results for PI- ${patientName}`;
+  header.textContent = `${recordKey} - Results for ${patientName}`;
   container.innerHTML = '';
-console.log("🔥 FULL TEST DATA:", testData);
-console.log("📊 RESULTS:", testData.results);
-console.log(
-  "📊 SAVED CBC HISTOGRAMS:",
-  testData.results?.cbcHistograms
-);
-  async function getTestDef(testName) {
-    const testKey = testName.replace(/\s+/g, '_').toLowerCase();
-    const snapshot = await get(ref(database, `tests/${testKey}`));
-    return snapshot.val();
-  }
 
-  function buildCBCSavedGraphs(cbcHistograms) {
-
-  if (!cbcHistograms) {
-    return null;
-  }
-
-  // cbcHistograms is saved using the test name:
-  // cbcHistograms["CBC Haematology"] = { WBC, RBC, PLT }
-  const testNames =
-    Object.keys(cbcHistograms);
-
-  if (testNames.length === 0) {
-    return null;
-  }
-
-  const graphSection =
-    document.createElement('div');
-
-  graphSection.className =
-    'cbc-saved-graphs-section';
-
-
-  const heading =
-    document.createElement('h4');
-
-  heading.textContent =
-    'BC-2800 Histograms';
-
-  graphSection.appendChild(heading);
-
-
-  testNames.forEach(testName => {
-
-    const histograms =
-      cbcHistograms[testName];
-
-    if (!histograms) {
-      return;
-    }
-
-
-    const testTitle =
-      document.createElement('h5');
-
-    testTitle.textContent =
-      testName;
-
-    graphSection.appendChild(
-      testTitle
-    );
-
-
-    const graphsContainer =
-      document.createElement('div');
-
-    graphsContainer.className =
-      'cbc-saved-graphs';
-
-
-    [
-      { key: 'WBC', title: 'WBC Histogram' },
-      { key: 'RBC', title: 'RBC Histogram' },
-      { key: 'PLT', title: 'PLT Histogram' }
-
-    ].forEach(graph => {
-
-      // Accept uppercase or lowercase keys
-      const points =
-        histograms[graph.key] ||
-        histograms[graph.key.toLowerCase()];
-
-
-      if (!points) {
-        return;
-      }
-
-
-      // Firebase may return an object instead of an Array.
-      const values =
-        Array.isArray(points)
-          ? points
-          : Object.keys(points)
-              .sort(
-                (a, b) =>
-                  Number(a) - Number(b)
-              )
-              .map(key =>
-                Number(points[key])
-              );
-
-
-      if (values.length === 0) {
-        return;
-      }
-
-
-      const graphBox =
-        document.createElement('div');
-
-      graphBox.className =
-        'cbc-saved-graph-box';
-
-
-      const title =
-        document.createElement('div');
-
-      title.className =
-        'cbc-saved-graph-title';
-
-      title.textContent =
-        graph.title;
-
-      graphBox.appendChild(title);
-
-
-      const canvas =
-        document.createElement('canvas');
-
-      canvas.width = 320;
-      canvas.height = 150;
-
-      graphBox.appendChild(canvas);
-
-      graphsContainer.appendChild(
-        graphBox
-      );
-
-
-      // Draw after canvas exists
-      requestAnimationFrame(() => {
-
-        drawSavedCBCHistogram(
-          canvas,
-          values,
-          graph.key
-        );
-
-      });
-
-    });
-
-
-    graphSection.appendChild(
-      graphsContainer
-    );
-
-  });
-
-
-  return graphSection;
-}
-function drawSavedCBCHistogram(
-  canvas,
-  values,
-  label
-) {
-
-  if (
-    !canvas ||
-    !Array.isArray(values) ||
-    values.length === 0
-  ) {
-    return;
-  }
-
-
-  const ctx =
-    canvas.getContext('2d');
-
-
-  const width =
-    canvas.width;
-
-  const height =
-    canvas.height;
-
-
-  // Padding
-  const left = 30;
-  const right = 10;
-  const top = 15;
-  const bottom = 25;
-
-
-  const graphWidth =
-    width - left - right;
-
-  const graphHeight =
-    height - top - bottom;
-
-
-  // Clear
-  ctx.clearRect(
-    0,
-    0,
-    width,
-    height
-  );
-
-
-  // White background
-  ctx.fillStyle = '#ffffff';
-
-  ctx.fillRect(
-    0,
-    0,
-    width,
-    height
-  );
-
-
-  // ============================================
-  // AXES
-  // ============================================
-
-  ctx.strokeStyle = '#94a3b8';
-  ctx.lineWidth = 1;
-
-  ctx.beginPath();
-
-  ctx.moveTo(left, top);
-
-  ctx.lineTo(
-    left,
-    height - bottom
-  );
-
-  ctx.lineTo(
-    width - right,
-    height - bottom
-  );
-
-  ctx.stroke();
-
-
-  // ============================================
-  // FIND MAXIMUM VALUE
-  // ============================================
-
-  const numericValues =
-    values.map(value => {
-
-      const number =
-        Number(value);
-
-      return Number.isFinite(number)
-        ? number
-        : 0;
-
-    });
-
-
-  const maxValue =
-    Math.max(
-      ...numericValues,
-      1
-    );
-
-
-  // ============================================
-  // DRAW HISTOGRAM
-  // ============================================
-
-  ctx.beginPath();
-
-  numericValues.forEach(
-    (value, index) => {
-
-      const x =
-        left +
-        (
-          index /
-          Math.max(
-            numericValues.length - 1,
-            1
-          )
-        ) *
-        graphWidth;
-
-
-      const y =
-        top +
-        graphHeight -
-        (
-          value /
-          maxValue
-        ) *
-        graphHeight;
-
-
-      if (index === 0) {
-
-        ctx.moveTo(x, y);
-
-      } else {
-
-        ctx.lineTo(x, y);
-
-      }
-
-    }
-  );
-
-
-  // Different analyzer curves
-  if (label === 'WBC') {
-
-    ctx.strokeStyle =
-      '#2563eb';
-
-  } else if (label === 'RBC') {
-
-    ctx.strokeStyle =
-      '#dc2626';
-
-  } else {
-
-    ctx.strokeStyle =
-      '#16a34a';
-
-  }
-
-
-  ctx.lineWidth = 1.5;
-
-  ctx.stroke();
-
-
-  // ============================================
-  // LABELS
-  // ============================================
-
-  ctx.fillStyle =
-    '#64748b';
-
-  ctx.font =
-    '10px Arial';
-
-
-  ctx.fillText(
-    '0',
-    left - 3,
-    height - 8
-  );
-
-
-  ctx.fillText(
-    String(
-      numericValues.length - 1
-    ),
-    width - 30,
-    height - 8
-  );
-
-
-  ctx.fillText(
-    String(maxValue),
-    3,
-    top + 5
-  );
-
-}
-async function buildInvestigationSection(data) {
-  if (!data || Object.keys(data).length === 0) return null;
-
-  const sectionDiv = document.createElement('div');
-  sectionDiv.classList.add('result-section');
-
-  const titleEl = document.createElement('h4');
-  titleEl.textContent = 'Investigations';
-  titleEl.style.marginBottom = '6px';
-  sectionDiv.appendChild(titleEl);
-
-  // ---------------- Color guide ----------------
-  const guideDiv = document.createElement('div');
-  guideDiv.style.display = 'flex';
-  guideDiv.style.gap = '10px';
-  guideDiv.style.marginBottom = '8px';
-  
-  const colors = [
-    { color: 'blue', text: 'Below Normal' },
-    { color: 'green', text: 'Within Normal' },
-    { color: 'red', text: 'Above Normal' }
-  ];
-
-  colors.forEach(c => {
-    const item = document.createElement('div');
-    item.style.display = 'flex';
-    item.style.alignItems = 'center';
-    item.style.gap = '4px';
-
-    const colorBox = document.createElement('div');
-    colorBox.style.width = '12px';
-    colorBox.style.height = '12px';
-    colorBox.style.backgroundColor = c.color;
-    colorBox.style.border = '1px solid #000';
-    item.appendChild(colorBox);
-
-    const label = document.createElement('span');
-    label.textContent = c.text;
-    label.style.fontSize = '12px';
-    item.appendChild(label);
-
-    guideDiv.appendChild(item);
-  });
-
-  sectionDiv.appendChild(guideDiv);
-  // ----------------------------------------------
-
-  for (const [testName, results] of Object.entries(data)) {
-    const testDiv = document.createElement('div');
-    testDiv.classList.add('test-result-block');
-    testDiv.style.marginBottom = '10px';
-
-    const nameEl = document.createElement('h5');
-    nameEl.textContent = isNaN(testName) ? testName : `Test ${parseInt(testName) + 1}`;
-    nameEl.style.marginBottom = '4px';
-    testDiv.appendChild(nameEl);
-
-    const testDef = await getTestDef(testName);
-    let paramDefs = testDef?.parameters || [];
-    if (paramDefs && !Array.isArray(paramDefs)) paramDefs = Object.values(paramDefs);
-
-    const table = document.createElement('table');
-    table.classList.add('results-table');
-
-    const thead = document.createElement('thead');
-    const headerRow = document.createElement('tr');
-    ['Parameter', 'Value', 'Normal Range', 'Unit'].forEach(text => {
-      const th = document.createElement('th');
-      th.textContent = text;
-      headerRow.appendChild(th);
-    });
-    thead.appendChild(headerRow);
-    table.appendChild(thead);
-
-    const tbody = document.createElement('tbody');
-
-    const addRow = (parameter, value, normal, unit) => {
-      const tr = document.createElement('tr');
-      [parameter, value, normal, unit].forEach((val, idx) => {
-        const td = document.createElement('td');
-        td.textContent = val;
-
-        // Color the value cell (index 1) based on normal range
-        if (idx === 1 && normal) {
-          const numericVal = parseFloat(value);
-          const rangeMatch = normal.match(/([\d.]+)\s*-\s*([\d.]+)/);
-          if (rangeMatch) {
-            const min = parseFloat(rangeMatch[1]);
-            const max = parseFloat(rangeMatch[2]);
-            if (!isNaN(numericVal)) {
-              if (numericVal < min) td.style.color = 'blue';
-              else if (numericVal > max) td.style.color = 'red';
-              else td.style.color = 'green';
-            }
-          } else {
-            const singleVal = parseFloat(normal);
-            if (!isNaN(numericVal) && !isNaN(singleVal)) {
-              td.style.color = numericVal === singleVal ? 'green' : 'red';
-            }
-          }
-        }
-
-        tr.appendChild(td);
-      });
-      tbody.appendChild(tr);
-    };
-
-    if (Array.isArray(results)) {
-      results.forEach(r => {
-        const paramDef = paramDefs.find(p => p.name === r.parameter) || {};
-        addRow(
-          r.parameter || '-',
-          r.value || '-',
-          paramDef.normal || '-',
-          paramDef.unit || '-'
-        );
-      });
-    } else if (typeof results === 'object') {
-      Object.entries(results).forEach(([paramKey, paramVal]) => {
-        let parameter = paramKey;
-        let value = '';
-        let normal = '';
-        let unit = '';
-
-        if (typeof paramVal === 'object') {
-          parameter = paramVal.parameter || paramKey;
-          value = paramVal.value || '';
-          const paramDef = paramDefs.find(p => p.name === parameter) || {};
-          normal = paramDef.normal || '';
-          unit = paramDef.unit || '';
+  // Helper to build each results section
+  function buildSection(title, data) {
+    if (!data || Object.keys(data).length === 0) return null;
+
+    const sectionDiv = document.createElement('div');
+    sectionDiv.classList.add('result-section');
+    sectionDiv.innerHTML = `<h4>${title}</h4>`;
+
+    Object.entries(data).forEach(([testName, results]) => {
+      const testDiv = document.createElement('div');
+      testDiv.classList.add('test-result-block');
+
+      const nameEl = document.createElement('h5');
+      nameEl.textContent = isNaN(testName) ? testName : `Test ${parseInt(testName) + 1}`;
+      testDiv.appendChild(nameEl);
+
+      // handle if results is an array (like [ { parameter, value } ])
+      if (Array.isArray(results)) {
+        results.forEach(r => {
+          const p = document.createElement('p');
+          p.textContent = `${r.parameter || 'Result'}: ${r.value || ''}`;
+          testDiv.appendChild(p);
+        });
+      } else if (typeof results === 'object') {
+        // handle if stored as an object with key-value
+        if (results.parameter || results.value) {
+          const p = document.createElement('p');
+          p.textContent = `${results.parameter || 'Result'}: ${results.value || ''}`;
+          testDiv.appendChild(p);
         } else {
-          value = paramVal;
+          // deeper object
+          Object.entries(results).forEach(([paramKey, paramVal]) => {
+            const p = document.createElement('p');
+            if (typeof paramVal === 'object') {
+              p.textContent = `${paramVal.parameter || paramKey}: ${paramVal.value || ''}`;
+            } else {
+              p.textContent = `${paramKey}: ${paramVal}`;
+            }
+            testDiv.appendChild(p);
+          });
         }
+      } else {
+        const p = document.createElement('p');
+        p.textContent = results;
+        testDiv.appendChild(p);
+      }
 
-        addRow(parameter, value, normal, unit);
-      });
-    }
+      sectionDiv.appendChild(testDiv);
+    });
 
-    table.appendChild(tbody);
-    testDiv.appendChild(table);
-    sectionDiv.appendChild(testDiv);
+    return sectionDiv;
   }
 
-  return sectionDiv;
-}
-function buildSimpleSection(title, data) {
-  if (!data || Object.keys(data).length === 0) return null;
+  // Build each category section
+  const investigationsSection = buildSection('Investigations', testData.results?.investigationsResults);
+  const proceduresSection = buildSection('Procedures', testData.results?.proceduresResults);
+  const servicesSection = buildSection('Services', testData.results?.servicesResults);
 
-  const sectionDiv = document.createElement('div');
-  sectionDiv.classList.add('result-section');
-
-  const titleEl = document.createElement('h4');
-  titleEl.textContent = title;
-  titleEl.style.marginBottom = '6px';
-  sectionDiv.appendChild(titleEl);
-
-  const container = document.createElement('div');
-  container.style.display = 'flex';
-  container.style.flexWrap = 'wrap';
-  container.style.gap = '8px'; // spacing between blocks
-  sectionDiv.appendChild(container);
-
-  Object.entries(data).forEach(([key, val]) => {
-    const block = document.createElement('div');
-    block.style.background = '#f9f9f9';
-    block.style.padding = '6px 10px';
-    block.style.borderRadius = '5px';
-    block.style.flex = '1 1 calc(33% - 8px)'; // 3 per row, adjust if needed
-    block.style.minWidth = '120px'; // ensures small blocks don't shrink too much
-    block.style.boxSizing = 'border-box';
-    block.style.display = 'flex';
-    block.style.flexDirection = 'column';
-
-    const nameEl = document.createElement('strong');
-    nameEl.textContent = isNaN(key) ? key : `Item ${parseInt(key) + 1}`;
-    nameEl.style.marginBottom = '2px';
-    block.appendChild(nameEl);
-
-    const valueEl = document.createElement('span');
-    valueEl.textContent = typeof val === 'object' ? (val.value || '-') : val;
-    valueEl.style.fontSize = '13px';
-    block.appendChild(valueEl);
-
-    container.appendChild(block);
-  });
-
-  return sectionDiv;
-}
-
-
-
-// ============================================
-// INVESTIGATION RESULTS
-// ============================================
-
-const investigationSection =
-  await buildInvestigationSection(
-    testData.results?.investigationsResults
-  );
-
-if (investigationSection) {
-  container.appendChild(
-    investigationSection
-  );
-}
-
-
-// ============================================
-// SAVED BC-2800 HISTOGRAMS
-// ============================================
-
-const cbcGraphs =
-  buildCBCSavedGraphs(
-    testData.results?.cbcHistograms
-  );
-
-if (cbcGraphs) {
-  container.appendChild(
-    cbcGraphs
-  );
-}  const proceduresSection = buildSimpleSection('Procedures', testData.results?.proceduresResults);
-  const servicesSection = buildSimpleSection('Services', testData.results?.servicesResults);
-
-  [investigationSection, proceduresSection, servicesSection].forEach(sec => {
+  // Append only existing sections
+  [investigationsSection, proceduresSection, servicesSection].forEach(sec => {
     if (sec) container.appendChild(sec);
   });
 
-  if (!investigationSection && !proceduresSection && !servicesSection) {
+  // If no results
+  if (!investigationsSection && !proceduresSection && !servicesSection) {
     const p = document.createElement('p');
     p.textContent = 'No results available for this record.';
     container.appendChild(p);
   }
 
+  // Show popup
   popup.style.display = 'flex';
+
+  // Close button
   const closeBtn = popup.querySelector('.close-popup-button');
   closeBtn.onclick = () => { popup.style.display = 'none'; };
 }
-
   
   return recordElement;
 }
@@ -6559,7 +3536,7 @@ function deleteRecord(recordKey) {
     // Check if the password is correct
     if (password === 'sanyu44') { // Replace 'your_password' with the actual password
       // Create a reference to the specific record in the patient's history
-      const recordRef = ref(database, `patients/${patientName}/testsTaken/${recordKey}`);
+      const recordRef = ref(database, `babies/${patientName}/testsTaken/${recordKey}`);
 
       // Remove the record from the database
       remove(recordRef)
@@ -6579,6 +3556,22 @@ function deleteRecord(recordKey) {
 }
 
 
+
+// Open the add record popup
+const addMedicationBtn = document.getElementById('addMedicationBtn');
+const addRecordPopupOverlay = document.getElementById('addRecordPopupOverlay');
+const addRecordPopupClose = document.getElementById('addRecordPopupClose');
+
+addMedicationBtn.addEventListener('click', () => {
+  addRecordPopupOverlay.style.visibility = 'visible';
+  addRecordPopupOverlay.style.opacity = '1';
+});
+
+// Close the add record popup
+addRecordPopupClose.addEventListener('click', () => {
+  addRecordPopupOverlay.style.visibility = 'hidden';
+  addRecordPopupOverlay.style.opacity = '0';
+});
 
 
 const loaderElement = document.getElementById('loader');
@@ -6622,28 +3615,25 @@ const createMedicationInput = () => {
   const medicationInput = document.createElement('select');
   medicationInput.required = true;
   medicationInput.classList.add('select2');
-const medicineRef = ref(database, 'medicine');
-onValue(medicineRef, (snapshot) => {
-  const medicineData = snapshot.val();
-  if (medicineData) {
-    Object.values(medicineData).forEach((medicine) => {
-      const option = document.createElement('option');
-      option.value = medicine.name;
-      option.text = medicine.name;
 
-      // Set Keah price from insurancePrices
-      option.dataset.keahPrice = medicine.insurancePrices?.keah || 0;
+  const medicineRef = ref(database, 'medicine');
+  onValue(medicineRef, (snapshot) => {
+    const medicineData = snapshot.val();
+    if (medicineData) {
+      Object.values(medicineData).forEach((medicine) => {
+        const option = document.createElement('option');
+        option.value = medicine.name;
+        option.text = medicine.name;
+        option.dataset.costPerGram = medicine.price; // Set cost per gram from Firebase
+        medicationInput.appendChild(option);
+      });
 
-      medicationInput.appendChild(option);
-    });
-
-    // Initialize Select2 for the medicationInput
-    $(medicationInput).select2({
-      dropdownParent: medicationInputContainer
-    });
-  }
-});
-
+      // Initialize Select2 for the medicationInput
+      $(medicationInput).select2({
+        dropdownParent: medicationInputContainer
+      });
+    }
+  });
 // Prescription label
 const prescriptionLabel = document.createElement('label');
 prescriptionLabel.textContent = 'Prescription:';
@@ -6682,15 +3672,14 @@ prescriptionInput.id = 'prescriptionInput';
     medicationInputContainer.remove();
   });
 
-gramsInput.addEventListener('input', () => {
-  const gramsValue = parseFloat(gramsInput.value) || 0;
-  const selectedOption = medicationInput.options[medicationInput.selectedIndex];
-  const keahPrice = parseFloat(selectedOption.dataset.keahPrice) || 0;
-  const totalCost = gramsValue * keahPrice;
-
-  costPerGramOutput.value = totalCost.toLocaleString();
-});
-
+  // Update the cost per gram output when grams input changes
+  gramsInput.addEventListener('input', () => {
+    const gramsValue = parseFloat(gramsInput.value); // Use parseFloat to handle decimal values
+    const selectedOption = medicationInput.options[medicationInput.selectedIndex];
+    const costPerGram = parseFloat(selectedOption.dataset.costPerGram);
+    const totalCost = gramsValue * costPerGram;
+    costPerGramOutput.value = totalCost.toFixed(2);
+  });
 
   medicationInputContainer.appendChild(medicationLabel);
   medicationInputContainer.appendChild(medicationInput);
@@ -6701,99 +3690,40 @@ gramsInput.addEventListener('input', () => {
   medicationInputContainer.appendChild(costPerGramLabel);
   medicationInputContainer.appendChild(costPerGramOutput);
   medicationInputContainer.appendChild(deleteButton);
-const submitMedicationButton = document.createElement('button');
-submitMedicationButton.type = 'button';
-submitMedicationButton.textContent = 'Submit Medication';
-submitMedicationButton.classList.add('submit-medication-button');
 
-submitMedicationButton.addEventListener('click', () => {
+  const submitMedicationButton = document.createElement('button');
+  submitMedicationButton.type = 'button';
+  submitMedicationButton.textContent = 'Submit Medication';
+  submitMedicationButton.classList.add('submit-medication-button');
+  submitMedicationButton.addEventListener('click', () => {
+    const medicationRecord = {
+      medication: medicationInput.value,
+      prescription: prescriptionInput.value,
+      grams: parseFloat(gramsInput.value),
+      totalCost: parseFloat(costPerGramOutput.value.replace(/,/g, ''))
+    };
 
-  const medicationRecord = {
-    medication: medicationInput.value || '',
-    prescription: prescriptionInput.value || '',
-    grams: parseFloat(gramsInput.value) || 0,
-    totalCost:
-      parseFloat(
-        costPerGramOutput.value.replace(/,/g, '')
-      ) || 0
-  };
+    // Get the record key from the hidden input field
+    const recordKeyInput = document.querySelector('input[name="recordKey"]');
+    const recordKey = recordKeyInput.value;
 
+    // Write medication record to Firebase under the record key
+    const patientRef = ref(database, `babies/${currentPatientName}/testsTaken/${recordKey}/results/medication`);
+    const newRecordRef = push(patientRef);
 
-  // Get record key
-  const recordKeyInput =
-    document.querySelector('input[name="recordKey"]');
+    set(newRecordRef, medicationRecord)
+      .then(() => {
+        showMessage('Medication submitted successfully!');
+      })
+      .catch((error) => {
+        console.error('Error submitting medication:', error);
+        showMessage('Error submitting medication. Please try again.');
+      });
+  });
 
-  if (!recordKeyInput || !recordKeyInput.value) {
-    console.error('❌ Record key missing');
-    showMessage('Record key missing.');
-    return;
-  }
+  medicationInputContainer.appendChild(submitMedicationButton);
 
-  const recordKey =
-    recordKeyInput.value;
-
-
-  // currentPatientName was already set when patient was opened
-  if (!currentPatientName) {
-    console.error('❌ currentPatientName is empty');
-    showMessage('Patient ID missing.');
-    return;
-  }
-
-
-  const firebasePath =
-    `patients/${currentPatientName}/testsTaken/${recordKey}/results/medication`;
-
-
-  console.log('💊 Patient:', currentPatientName);
-  console.log('💊 Record:', recordKey);
-  console.log('💊 SAVE PATH:', firebasePath);
-  console.log('💊 Medication:', medicationRecord);
-
-
-  const patientRef =
-    ref(database, firebasePath);
-
-  const newRecordRef =
-    push(patientRef);
-
-
-  set(newRecordRef, medicationRecord)
-
-    .then(() => {
-
-      console.log(
-        '✅ Medication saved to:',
-        firebasePath
-      );
-
-      showMessage(
-        'Medication submitted successfully!'
-      );
-
-    })
-
-    .catch(error => {
-
-      console.error(
-        '❌ Error submitting medication:',
-        error
-      );
-
-      showMessage(
-        'Error submitting medication. Please try again.'
-      );
-
-    });
-
-});
-
-
-medicationInputContainer.appendChild(
-  submitMedicationButton
-);
-
-return medicationInputContainer;
+  return medicationInputContainer;
 };
 
 const addMedicationButton = document.getElementById('addMedicationButton');
@@ -6815,10 +3745,10 @@ medicationInputs.forEach((medicationInput) => {
 });
 
 // Update the total cost when the selected test changes
-////const testsTakenSelect = document.getElementById('testsTaken');
-//testsTakenSelect.addEventListener('change', () => {
+const testsTakenSelect = document.getElementById('testsTaken');
+testsTakenSelect.addEventListener('change', () => {
 
-//});
+});
 
 // Retrieve tests from Firebase and populate the select options
 const testsRef = ref(database, 'tests');
@@ -6826,7 +3756,7 @@ onValue(testsRef, (snapshot) => {
   const testsData = snapshot.val();
 
   // Clear existing options
-  //testsTakenSelect.innerHTML = '';
+  testsTakenSelect.innerHTML = '';
   //testsTakenSelect.innerHTML = '<option value="" disabled selected>Click to select test to be done.</option>';
 
   // Add options for each test
@@ -6837,7 +3767,7 @@ onValue(testsRef, (snapshot) => {
       option.value = test.name + '      '+ '   Price: UGX ' + test.dob + '.00';
       option.textContent = test.name + '      '+ '   Price: UGX ' + test.dob + '.00';
       option.dataset.dob = test.dob;
-     // testsTakenSelect.appendChild(option);
+      testsTakenSelect.appendChild(option);
     });
   }
 
@@ -6848,35 +3778,9 @@ onValue(testsRef, (snapshot) => {
 
 
 
-const addMedicationBtn = document.getElementById('addMedicationBtn');
-const addRecordPopupOverlay = document.getElementById('addRecordPopupOverlay');
-const addRecordPopupClose = document.getElementById('addRecordPopupClose');
-
-addMedicationBtn.addEventListener('click', () => {
-
-    currentPatientName = addMedicationBtn.dataset.patientId;
-
-    console.log('PatientName when popup opens:', currentPatientName);
-
-    if (!currentPatientName) {
-        console.error('No patient ID found on Add Record button.');
-        showMessage('No patient selected.');
-        return;
-    }
-
-    addRecordPopupOverlay.style.visibility = 'visible';
-    addRecordPopupOverlay.style.opacity = '1';
-});
-
-addRecordPopupClose.addEventListener('click', () => {
-    addRecordPopupOverlay.style.visibility = 'hidden';
-    addRecordPopupOverlay.style.opacity = '0';
-});
-
 
 const addRecordForm = document.getElementById('addRecordForm');
-
-
+let currentPatientName = '';
 
 function showMessage(message) {
   const messageElement = document.getElementById('message');
@@ -6891,158 +3795,89 @@ function showMessage(message) {
 
 // Call showMessage with an empty message to hide the message on page load
 showMessage('');
-// --- DOM references ---
-const servicesSelect = document.getElementById('services');           // main services category
-const serviceDetails = document.getElementById('serviceDetails');     // sub-dropdown
+
 addRecordForm.addEventListener('submit', function (e) {
   e.preventDefault();
 
-
-   // Use the exact patient node selected when the popup was opened
   const patientName = currentPatientName;
-
-  console.log('Saving record for patient:', patientName);
-  console.log('Firebase path:', `patients/${patientName}/testsTaken`);
-
-  if (!patientName) {
-    alert('❌ No patient selected. Please close and reopen the test popup.');
-    return;
-  }
-
   const medicationInputs = document.querySelectorAll('.medication-input-container');
 
-  // --- Extract selected items ---
-  const investigationsTaken = selectedInvestigations.map(item => ({
-    name: item.name,
-    amount: Number(item.price) || 0,
-    category: item.category || 'Uncategorized'
-  }));
+  const testsTakenSelect = document.getElementById('testsTaken');
+  const selectedOptions = Array.from(testsTakenSelect.selectedOptions);
+  const testsTaken = selectedOptions.map(option => option.value).join(', ');
 
-  const proceduresTaken = selectedProcedures.map(item => ({
-    name: item.name,
-    amount: Number(item.price) || 0,
-    category: item.category || 'Uncategorized'
-  }));
+  // Extract the total price from all selected tests
+  const totalPrice = selectedOptions.reduce((sum, option) => {
+    const priceMatch = option.value.match(/Price: UGX (\d+\.\d+)/);
+    const price = priceMatch ? parseFloat(priceMatch[1]) : 0;
+    return sum + price;
+  }, 0);
 
-  const servicesTaken = selectedServices.map(item => ({
-    name: item.name,
-    amount: Number(item.price) || 0,
-    category: item.category || 'Uncategorized'
-  }));
+  const additionalNotes = document.getElementById('Concerns').value;
+  const examination = document.getElementById('examination').value;
 
-  // --- Calculate total amount ---
-  const totalAmount = [
-    ...investigationsTaken,
-    ...proceduresTaken,
-    ...servicesTaken
-  ].reduce((sum, item) => sum + item.amount, 0);
-
-  // --- Prepare selectedItems array ---
-  const selectedItems = [
-    ...investigationsTaken.map(i => i.name),
-    ...proceduresTaken.map(p => p.name),
-    ...servicesTaken.map(s => s.name)
-  ];
-
-  const additionalNotes = document.getElementById('Concerns')?.value || '';
-
-  // --- Get Examination Data (General + Dynamic + Impression) ---
-  const generalExamination = document.getElementById('examination')?.value || '';
-  const impression = document.getElementById('impression')?.value || '';
-
-  // Collect all dynamically added textareas
-  const dynamicSections = {};
-  document.querySelectorAll('#extraExaminations textarea').forEach(textarea => {
-    const id = textarea.parentElement.id; // from the label key
-    const label = textarea.previousElementSibling.textContent.replace(':', '');
-    dynamicSections[label] = textarea.value;
-  });
-
-  // Combine everything into one examination object
-  const examinationData = {
-    generalExamination,
-    ...dynamicSections,
-    impression
-  };
-
+  // Generate current timestamp
   const dateTaken = Date.now();
 
-  // --- Create full record object ---
   const recordData = {
-    investigationsTaken,
-    proceduresTaken,
-    servicesTaken,
-    selectedItems,
-    totalAmount,
-    additionalNotes,
-    examination: examinationData,  // ✅ full structured exam data
-    dateTaken
+    testsTaken: testsTaken,
+    price: totalPrice, // Add the total price to the record data
+    additionalNotes: additionalNotes,
+    examination:examination,
+    dateTaken: dateTaken
   };
 
-  console.log('Record Data:', recordData);
-  console.log('Patient ID:', patientName);
-
-  // --- Save to Firebase ---
-  const patientRef = ref(database, `patients/${patientName}`);
+  const patientRef = ref(database, `babies/${patientName}`);
   const testsTakenRef = child(patientRef, 'testsTaken');
 
+  // Retrieve the existing records to determine the test number
   get(testsTakenRef)
-    .then(snapshot => {
+    .then((snapshot) => {
       const testsData = snapshot.val();
-      const testCount = testsData ? Object.keys(testsData).length : 0;
-      const newTestNumber = testCount + 1;
+      const testCount = testsData ? Object.keys(testsData).length : 0; // Get the number of existing records
+      const newTestNumber = testCount + 1; // Calculate the new test number
+
       const newRecordRef = child(testsTakenRef, 'test' + newTestNumber);
 
       set(newRecordRef, recordData)
         .then(() => {
-          // --- Save medication data ---
-          medicationInputs.forEach(input => {
-            const medSelect = input.querySelector('select[name="medication"]');
-            const prescriptionSelect = input.querySelector('select[name="prescription"]');
-            const gramsInput = input.querySelector('input[name="grams"]');
-            const costOutput = input.querySelector('.cost-per-gram-output');
+          // Save medication data under the new record
+          medicationInputs.forEach((medicationInput) => {
+            const medicationSelect = medicationInput.querySelector('select[name="medication"]');
+            const prescriptionSelect = medicationInput.querySelector('select[name="prescription"]');
+            const gramsInput = medicationInput.querySelector('input[name="grams"]');
+            const costPerGramOutput = medicationInput.querySelector('.cost-per-gram-output');
 
-            if (medSelect && prescriptionSelect && gramsInput && costOutput) {
-              const medRecord = {
-                medication: medSelect.value,
+            if (medicationSelect && prescriptionSelect && gramsInput && costPerGramOutput) {
+              const medicationRecord = {
+                medication: medicationSelect.value,
                 prescription: prescriptionSelect.value,
                 grams: parseFloat(gramsInput.value),
-                totalCost: parseFloat(costOutput.value.replace(/,/g, ''))
+                totalCost: parseFloat(costPerGramOutput.value.replace(/,/g, ''))
               };
-              push(child(newRecordRef, 'medication'), medRecord);
+
+              const medicationRef = child(newRecordRef, 'medication');
+              push(medicationRef, medicationRecord);
             }
           });
 
-          // ✅ Reset the form and UI
           addRecordForm.reset();
-          selectedInvestigations = [];
-          selectedProcedures = [];
-          selectedServices = [];
-          renderSelectedList('investigationList', selectedInvestigations);
-          renderSelectedList('procedureList', selectedProcedures);
-          renderSelectedList('serviceList', selectedServices);
-
-          // Remove dynamically added fields
-          document.getElementById('extraExaminations').innerHTML = '';
-          document.querySelectorAll('.exam-btn').forEach(btn => {
-            btn.textContent = '➕ ' + btn.textContent.replace(/^[➕✖]\s*/, '');
-            btn.classList.remove('red');
-          });
-
           showMessage('Record added successfully!');
           addRecordPopupOverlay.style.visibility = 'hidden';
           addRecordPopupOverlay.style.opacity = '0';
         })
-        .catch(error => {
+        .catch((error) => {
           console.error('Error saving new record:', error);
           showMessage('Error adding record. Please try again.');
         });
     })
-    .catch(error => {
+    .catch((error) => {
       console.error('Error retrieving existing records:', error);
       showMessage('Error retrieving existing records. Please try again.');
     });
 });
+
+
 
 // Function to save all fields
 function saveAllData() {
@@ -7071,7 +3906,7 @@ function saveAllData() {
   const recordKey = recordKeyInput.value;
   
   // Reference to the specific patient, test, and results in Firebase
-  const patientRef = ref(database, `patients/${currentPatientName}/testsTaken/${recordKey}/results`);
+  const patientRef = ref(database, `babies/${currentPatientName}/testsTaken/${recordKey}/results`);
  
   // Update the data in Firebase
   if (Object.keys(dataToSave).length > 0) {
@@ -7091,59 +3926,62 @@ function saveAllData() {
 
 
 const submitMedicationBtn = document.getElementById('submitMedicationButton');
- 
 submitMedicationBtn.addEventListener('click', (event) => {
-  event.preventDefault();
-  saveAllData();
+  event.preventDefault(); // Prevent the default form submission
+  saveAllData(); // Call the function to save all data
 
+  // Collect the medication record
   const medicationRecord = {
-    medication: document.getElementById('medication').value,
+    medication: document.getElementById('medication').value, // Capture the medication value
     additionalNotes: document.getElementById('additionalNotes').value,
     finalStatus: getFinalStatus(),
     followUpDateTime: document.getElementById('followUpDateTime').value
   };
 
+  // Get the record key from the hidden input field
   const recordKeyInput = document.querySelector('input[name="recordKey"]');
   const recordKey = recordKeyInput.value;
 
-  const patientRef = ref(database, `patients/${currentPatientName}/testsTaken/${recordKey}/results`);
+  // Reference to the specific patient, test, and results in Firebase
+  const patientRef = ref(database, `babies/${currentPatientName}/testsTaken/${recordKey}/results`);
 
+  // Get the existing data first
   get(patientRef)
     .then((snapshot) => {
-      const existingData = snapshot.val() || {};
-      if (!existingData.medication) existingData.medication = [];
-      existingData.medication.push({ medication: medicationRecord.medication });
+      const existingData = snapshot.val() || {}; // Get existing data or empty object if no data
 
-      if (medicationRecord.additionalNotes) existingData.additionalNotes = medicationRecord.additionalNotes;
-      if (medicationRecord.finalStatus) existingData.finalStatus = medicationRecord.finalStatus;
-      if (medicationRecord.followUpDateTime) existingData.followUpDateTime = medicationRecord.followUpDateTime;
-
-      return update(patientRef, existingData);
-    })
-    .then(() => {
-      showMessage('Medication submitted successfully!');
-
-      // --- CLOSE THE POPUP ---
-      const popup = document.querySelector('.popup3');
-      const overlay = document.querySelector('.overlay3');
-
-      if (popup && overlay) {
-        popup.remove();
-        overlay.remove();
+      // Ensure medication array exists
+      if (!existingData.medication) {
+        existingData.medication = []; // Initialize as an empty array if none exists
       }
 
-      // Clear the form fields
-      const medicationContainer = document.getElementById('medicationInputsContainer');
-      medicationContainer.innerHTML = '';
-      document.getElementById('additionalNotes').value = '';
-      document.getElementById('followUpDateTime').value = '';
+      // Add the new medication record to the array
+      existingData.medication.push({ medication: medicationRecord.medication });
+
+      // Update additional fields in existing data
+      if (medicationRecord.additionalNotes) {
+        existingData.additionalNotes = medicationRecord.additionalNotes; // Update additionalNotes
+      }
+      if (medicationRecord.finalStatus) {
+        existingData.finalStatus = medicationRecord.finalStatus; // Update finalStatus
+      }
+      if (medicationRecord.followUpDateTime) {
+        existingData.followUpDateTime = medicationRecord.followUpDateTime; // Update followUpDateTime
+      }
+
+      // Update the results in Firebase
+      update(patientRef, existingData)
+        .then(() => {
+          showMessage('Medication submitted successfully!');
+        })
+        .catch((error) => {
+          console.error('Error updating medication:', error);
+          showMessage('Error submitting medication. Please try again.');
+        });
     })
     .catch((error) => {
-      console.error('Error updating medication:', error);
-      showMessage('Error submitting medication. Please try again.');
+      console.error('Error retrieving data:', error);
     });
-
-
 
 // Event listener for the "Save All" button
 document.getElementById('saveAllButton').addEventListener('click', (event) => {
@@ -8200,7 +5038,7 @@ onValue(appointmentsRef, (snapshot) => {
 
 const displayFutureFollowUps = () => {
   // Reference to all patients' tests
-  const patientsRef = ref(database, 'patients');
+  const patientsRef = ref(database, 'babies');
   
   // Get all patient data
   get(patientsRef)
@@ -8324,264 +5162,4 @@ window.addEventListener('load', () => {
 const showFollowUpsBtn = document.getElementById('showFollowUpsButton');
 showFollowUpsBtn.addEventListener('click', () => {
   displayFutureFollowUps();
-});
-// ----------------------
-// DOM Elements
-// ----------------------
-const investigationsSelect = document.getElementById('investigations');
-const investigationDetails = document.getElementById('investigationDetails');
-const investigationPrice = document.getElementById('investigationPrice');
-const investigationSearch = document.getElementById('investigationSearch');
-
-const proceduresSelect = document.getElementById('procedures');
-const procedureDetails = document.getElementById('procedureDetails');
-const procedurePrice = document.getElementById('procedurePrice');
-const procedureSearch = document.getElementById('procedureSearch');
-
-
-const servicePrice = document.getElementById('servicePrice');
-const serviceSearch = document.getElementById('serviceSearch');
-
-// ----------------------
-// Data holders
-// ----------------------
-let investigations = {}; // { category: [tests] }
-let procedures = {};     // { category: [tests] }
-let services = {};       // { category: [tests] }
-let selectedInvestigations = [];
-let selectedProcedures = [];
-let selectedServices = [];
-document.getElementById('addInvestigationBtn').addEventListener('click', () => {
-  const option = investigationDetails.options[investigationDetails.selectedIndex];
-  if (!option) return;
-
-  selectedInvestigations.push({
-    name: option.value,
-    price: option.dataset.price,
-    category: option.dataset.category || investigationsSelect.value || 'Uncategorized'
-  });
-
-  renderSelectedList('investigationList', selectedInvestigations);
-});
-
-document.getElementById('addProcedureBtn').addEventListener('click', () => {
-  const option = procedureDetails.options[procedureDetails.selectedIndex];
-  if (!option) return;
-
-  selectedProcedures.push({
-    name: option.value,
-    price: option.dataset.price,
-    category: option.dataset.category || proceduresSelect.value || 'Uncategorized'
-  });
-
-  renderSelectedList('procedureList', selectedProcedures);
-});
-
-document.getElementById('addServiceBtn').addEventListener('click', () => {
-  const option = serviceDetails.options[serviceDetails.selectedIndex];
-  if (!option) return;
-
-  selectedServices.push({
-    name: option.value,
-    price: option.dataset.price,
-    category: option.dataset.category || servicesSelect.value || 'Uncategorized'
-  });
-
-  renderSelectedList('serviceList', selectedServices);
-});
-
-
-function renderSelectedList(listId, items) {
-  const container = document.getElementById(listId);
-  container.innerHTML = '';
-
-  let total = 0;
-
-  items.forEach((item, index) => {
-    total += Number(item.price) || 0;
-
-    const div = document.createElement('div');
-    div.className = 'selected-item';
-
-    const name = document.createElement('span');
-    name.textContent = `${item.name} - UGX ${Number(item.price).toLocaleString()}`;
-
-    const remove = document.createElement('button');
-    remove.className = 'remove-btn';
-    remove.textContent = '×';
-    remove.onclick = () => {
-      items.splice(index, 1);
-      renderSelectedList(listId, items);
-    };
-
-    div.appendChild(name);
-    div.appendChild(remove);
-    container.appendChild(div);
-  });
-
-  // Update total line
-  const totalLineId = listId.replace('List', 'Total');
-  const totalLine = document.getElementById(totalLineId);
-  if (totalLine) {
-    totalLine.textContent = `Total: UGX ${total.toLocaleString()}`;
-  }
-}
-
-// ----------------------
-
-onValue(testsRef, snapshot => {
-  const allTests = snapshot.val() || {};
-
-  // Reset category objects
-  investigations = {};
-  procedures = {};
-  services = {};
-
-  Object.values(allTests).forEach(test => {
-    if (test.type === 'investigations') {
-      if (!investigations[test.category]) investigations[test.category] = [];
-      investigations[test.category].push(test);
-    } else if (test.type === 'procedures') {
-      if (!procedures[test.category]) procedures[test.category] = [];
-      procedures[test.category].push(test);
-    } else if (test.type === 'services') {
-      if (!services[test.category]) services[test.category] = [];
-      services[test.category].push(test);
-    }
-  });
-
-  // Populate main dropdowns
-  populateMainDropdown(investigationsSelect, investigations, '-- Select Investigation --');
-  populateMainDropdown(proceduresSelect, procedures, '-- Select Procedure --');
-  populateMainDropdown(servicesSelect, services, '-- Select Service --');
-
-  // Reset sub-dropdowns & search
-  resetSubDropdown(investigationDetails, investigationPrice, investigationSearch);
-  resetSubDropdown(procedureDetails, procedurePrice, procedureSearch);
-  resetSubDropdown(serviceDetails, servicePrice, serviceSearch);
-});
-
-// ----------------------
-// Populate main category dropdown
-// ----------------------
-function populateMainDropdown(selectElement, dataObj, defaultText) {
-  selectElement.innerHTML = `<option value="">${defaultText}</option>`;
-  Object.keys(dataObj).forEach(cat => {
-    const option = document.createElement('option');
-    option.value = cat;
-    option.textContent = cat;
-    selectElement.appendChild(option);
-  });
-}
-
-// ----------------------
-// Reset sub-dropdowns
-// ----------------------
-function resetSubDropdown(subDropdown, priceElement, searchInput) {
-  subDropdown.innerHTML = '';
-  subDropdown.style.display = 'none';
-  priceElement.style.display = 'none';
-  searchInput.value = '';
-  searchInput.style.display = 'none';
-}
-
-// ----------------------
-// Handle sub-dropdown population
-// ----------------------
-function populateSubDropdown(subDropdown, priceElement, testsArray, highlightText = '') {
-  subDropdown.innerHTML = '';
-  priceElement.style.display = 'none';
-
-  if (testsArray && testsArray.length > 0) {
-    testsArray.forEach(test => {
-      const option = document.createElement('option');
-      option.value = test.name;
-
-      if (highlightText) {
-        const regex = new RegExp(`(${highlightText})`, 'gi');
-        option.innerHTML = test.name.replace(regex, '<mark>$1</mark>') + ` - UGX ${Number(test.cost).toLocaleString()}`;
-      } else {
-        option.textContent = `${test.name} - UGX ${Number(test.cost).toLocaleString()}`;
-      }
-
-      option.dataset.price = test.cost;
-      option.dataset.category = test.category; // <-- ADD THIS
-      subDropdown.appendChild(option);
-    });
-    subDropdown.style.display = 'block';
-  } else {
-    subDropdown.style.display = 'none';
-  }
-}
-
-
-// ----------------------
-// Show price when a test is selected
-// ----------------------
-[investigationDetails, procedureDetails, serviceDetails].forEach(subDropdown => {
-  subDropdown.addEventListener('change', () => {
-    const selectedOption = subDropdown.options[subDropdown.selectedIndex];
-    let priceElement;
-    if (subDropdown === investigationDetails) priceElement = investigationPrice;
-    else if (subDropdown === procedureDetails) priceElement = procedurePrice;
-    else priceElement = servicePrice;
-
-    if (selectedOption && selectedOption.dataset.price != null) {
-      priceElement.textContent = `Price: UGX ${Number(selectedOption.dataset.price).toLocaleString()}`;
-      priceElement.style.display = 'block';
-    } else {
-      priceElement.style.display = 'none';
-    }
-  });
-});
-
-// ----------------------
-// Category selection -> show search and populate sub-dropdown
-// ----------------------
-investigationsSelect.addEventListener('change', () => {
-  const selectedCategory = investigationsSelect.value;
-  investigationSearch.value = '';
-  investigationSearch.style.display = selectedCategory ? 'block' : 'none';
-  populateSubDropdown(investigationDetails, investigationPrice, investigations[selectedCategory] || []);
-});
-
-proceduresSelect.addEventListener('change', () => {
-  const selectedCategory = proceduresSelect.value;
-  procedureSearch.value = '';
-  procedureSearch.style.display = selectedCategory ? 'block' : 'none';
-  populateSubDropdown(procedureDetails, procedurePrice, procedures[selectedCategory] || []);
-});
-
-servicesSelect.addEventListener('change', () => {
-  const selectedCategory = servicesSelect.value;
-  serviceSearch.value = '';
-  serviceSearch.style.display = selectedCategory ? 'block' : 'none';
-  populateSubDropdown(serviceDetails, servicePrice, services[selectedCategory] || []);
-});
-
-// ----------------------
-// Search/filter functionality
-// ----------------------
-function filterSubDropdown(subDropdown, priceElement, searchInput, originalTests) {
-  const query = searchInput.value.toLowerCase();
-  const filtered = originalTests.filter(test => test.name.toLowerCase().includes(query));
-  populateSubDropdown(subDropdown, priceElement, filtered, query);
-}
-
-investigationSearch.addEventListener('input', () => {
-  const selectedCategory = investigationsSelect.value;
-  if (!selectedCategory) return;
-  filterSubDropdown(investigationDetails, investigationPrice, investigationSearch, investigations[selectedCategory]);
-});
-
-procedureSearch.addEventListener('input', () => {
-  const selectedCategory = proceduresSelect.value;
-  if (!selectedCategory) return;
-  filterSubDropdown(procedureDetails, procedurePrice, procedureSearch, procedures[selectedCategory]);
-});
-
-serviceSearch.addEventListener('input', () => {
-  const selectedCategory = servicesSelect.value;
-  if (!selectedCategory) return;
-  filterSubDropdown(serviceDetails, servicePrice, serviceSearch, services[selectedCategory]);
 });

@@ -44,8 +44,9 @@
             <img src="" alt="..." class="img-circle profile_img">
           </div>
           <div class="profile_info">
-            <span>Welcome,</span>
-            <h2></h2>
+            
+  <span>Welcome,</span>
+  <h2 id="profileName"></h2>
           </div>
         </div>
         <!-- /menu profile quick info -->
@@ -60,8 +61,8 @@
               <li><a><i class="fa fa-home"></i> Home <span class="fa fa-chevron-down"></span></a>
                 <ul class="nav child_menu">
                   <li><a href="index.html">Dashboard Management</a></li>
-            <!--     <li><a href="index2.html">Dashboard2</a></li>
-                  <li><a href="index3.html">Dashboard3</a></li>--> 
+              <li><a href="cashier.html">Cashier Desk</a></li>
+              <!--       <li><a href="index3.html">Dashboard3</a></li>--> 
                 </ul>
               </li>
               <li><a><i class="fa fa-edit"></i>Treatment<span class="fa fa-chevron-down"></span></a>
@@ -70,6 +71,10 @@
                   <li><a href="patients.html">Patients Reception</a></li>
                   <li><a href="odp.html">Patient's on Treatment</a></li>
                  <li><a href="doctors.html">Doctor's Room</a></li>
+                 <li><a href="dental.html">Dental Department</a></li>
+                 <li><a href="scan.html">Scan Department</a></li>
+                 <li><a href="babies.html">Babies Department</a></li>
+
 
                 </ul>
               </li>
@@ -170,6 +175,9 @@
           </a>
       <a data-toggle="tooltip" data-placement="top" title="Logout" href="#" id="closesession">
             <span  id="onlineStatus" aria-hidden="true"></span>
+          </a>
+          <a data-toggle="tooltip" data-placement="top" title="Logout" href="#" id=""></a>
+            <span class="glyphicon glyphicon-chevron-up" aria-hidden="true"></span>
           </a>
         </div> 
         <script>
@@ -361,12 +369,12 @@ fullscreenButton.addEventListener('click', function() {
           </div>
         </div>
       </div>
-
-      <div class="action-center">
-        <div class="chat-overlay" id="chatOverlay"></div>
+  <div class="chat-overlay" id="chatOverlay"></div>
         <div class="chat-button">
           <button id="openChatBtn"><i class="fas fa-comment"></i><span id="unreadMessageCount">0</span></button>
         </div>
+   
+       <!--    <div class="action-center">
         <div class="chat-container" id="chatContainer">
           <div class="action-header">Chat Room</div>
           <div id="chatBox"></div>
@@ -375,12 +383,11 @@ fullscreenButton.addEventListener('click', function() {
             <button id="sendMessageBtn"><i class="fas fa-paper-plane"></i></button>
           </div>
         </div>
-        <!-- Header of the action center -->
+       Header of the action center 
         <div class="action-header">Action Center</div>
         <span id="actionCenter"></span>
-        <!-- Button to send a message -->
       </div>
-
+-->
 
       
       <script>
@@ -405,7 +412,7 @@ fullscreenButton.addEventListener('click', function() {
 <script type="module" src="https://www.gstatic.com/firebasejs/9.0.2/firebase-app.js"></script>
 <script type="module" src="https://www.gstatic.com/firebasejs/9.0.2/firebase-database.js"></script>
 <script type="module" src="https://www.gstatic.com/firebasejs/9.0.2/firebase-auth.js"></script>
-<script type="module" src="staff.min.js">
+<script type="module" src="staff.js">
 
 </script>
 

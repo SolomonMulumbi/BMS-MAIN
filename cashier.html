@@ -51,13 +51,13 @@
         <!-- menu profile quick info -->
         <div class="profile clearfix">
           <div class="profile_pic">
-            <img id="profilePreview" src="" alt="..." class="img-circle profile_img">
+            <img src="" alt="..." class="img-circle profile_img">
           </div>
           <div class="profile_info">
+            
   <span>Welcome,</span>
   <h2 id="profileName"></h2>
-</div>
-
+          </div>
         </div>
         <!-- /menu profile quick info -->
 
@@ -181,7 +181,6 @@
           <a data-toggle="tooltip" data-placement="top" title="FullScreen">
             <span class="glyphicon glyphicon-fullscreen" aria-hidden="true"></span>
           </a>
-          
           <a data-toggle="tooltip" data-placement="top" title="Lock">
             <span class="glyphicon glyphicon-eye-close" aria-hidden="true"></span>
           </a>
@@ -228,31 +227,26 @@ fullscreenButton.addEventListener('click', function() {
     <!-- top navigation -->
     <div class="top_nav">
       <div class="nav_menu">
-        
         <nav>
-          
           <div class="nav toggle">
-            
             <a id="menu_toggle"><i class="fa fa-bars"></i></a>
-            
           </div>
 
           <ul class="nav navbar-nav navbar-right">
-            
             <li class="">
               <a href="javascript:;" class="user-profile dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
                 <img src="" alt="">
                 <span class=" fa fa-angle-down"></span>
               </a>
           <ul class="dropdown-menu dropdown-usermenu pull-right">
-                  <li><a href="javascript:;"> Profile</a></li>
+                 <!--   <li><a href="javascript:;"> Profile</a></li>
                 <li>
                   <a href="javascript:;">
                     <span class="badge bg-red pull-right">50%</span>
                     <span>Settings</span>
                   </a>
                 </li>
-                <li><a href="javascript:;">Help</a></li>
+                <li><a href="javascript:;">Help</a></li>-->
                 <li>
                   <a href="#" id="logoutButton">
                     <i class="fa fa-sign-out"></i> Log Out
@@ -273,7 +267,7 @@ fullscreenButton.addEventListener('click', function() {
                 <i class="fas fa-list" ></i>
                 <span id="listCount" class="badge bg-green" ></span>
               </a>
-
+              
               
             </li>
           </ul>
@@ -419,44 +413,6 @@ fullscreenButton.addEventListener('click', function() {
 </script>
 
       <section>
-   <!-- Profile Button -->
-<button style="display: none;" id="openProfileBtn" class="btn btn-danger">Profile</button>
-
-<!-- Profile Sidebar -->
-<div id="profileSidebar" class="profile-sidebar">
-  <div class="sidebar-header">
-    <h3>My Profile</h3>
-    <button id="closeProfileSidebar" class="close-sidebar">&times;</button>
-  </div>
-
-  <!-- Profile display -->
-  <div id="profileDisplay" class="profile-card">
-    <div class="profile-pic-container">
-      <img id="profilePreview" src="k.png" alt="Profile Photo" class="profile-photo">
-    </div>
-    <div class="profile-details">
-      <h2 id="displayName">User</h2>
-      <p id="displayEmail">user@example.com</p>
-      <p id="lastLogin">Last Login: N/A</p>
-      <button id="editProfileBtn" class="btn-edit">Edit Profile</button>
-    </div>
-  </div>
-
-  <!-- Profile edit form -->
-  <form id="profileForm" class="profile-form" style="display:none;">
-    <label>Display Name</label>
-    <input type="text" id="displayNameInput" placeholder="Enter name">
-    <label>Email (readonly)</label>
-    <input type="email" id="displayEmailInput" readonly>
-    <label>Profile Photo</label>
-    <input type="file" id="profilePhotoInput" accept="image/*">
-    <button type="submit" class="btn-save">Save</button>
-  </form>
-</div>
-
-<!-- Sidebar overlay -->
-<div id="sidebarOverlay" class="sidebar-overlay"></div>
-
         <button id="uploadBtn"><i class="fa fa-plus"></i>Register Patient</button>
         <div style="margin: auto;" class="search-container">
           <input type="text" id="searchInput" placeholder="Search by name or ID ...">
@@ -479,9 +435,9 @@ fullscreenButton.addEventListener('click', function() {
              <option value="expiry">Sort by Expiry Date</option>
               <option value="alphabetical">Sort Alphabetically</option>
             </select>
-          </div>--> 
-          
-<div class="dental-department-title">
+          </div>-->   
+               
+          <div class="dental-department-title">
   <!-- Hospital Logo + Name -->
   <div class="hospital-header">
     <img src="sanyu.png" alt="SANYU HOSPITAL  Logo" class="hospital-logo">
@@ -490,20 +446,18 @@ fullscreenButton.addEventListener('click', function() {
 
   <!-- Reception Desk Section -->
   <div class="reception-section">
-    <i class="fas fa-key"></i>
-    <span>Reception Desk</span>
+    <i class="fas fa-receipt"></i>
+    <span>Cashier's Desk</span>
   </div>
 </div>
-<div id="viewResultsPopup">
-  <div class="popup-content">
-    <h3 id="viewResultsHeader">Results</h3>  
-      <button class="close-popup-button">Close</button>
+<style>
 
-    <div id="viewResultsContainer"></div>
-  </div>
+
+</style>
+<div class="navigation">
+  <a href="#home"><i class="fas fa-arrow-up"></i> GO UP</a>
+  <a href="#about"><i class="fas fa-receipt"></i> RECEIPTS</a>
 </div>
-
-
 
           <!-- Add a div for pagination -->
             <div id="pagination" class="pagination">
@@ -533,11 +487,263 @@ fullscreenButton.addEventListener('click', function() {
                 </div>
               </div>
               <!-- Header of the action center -->
-              <div class="action-header">Action Center</div>
-              <span id="actionCenter"></span>
+              <div style="display: none;" class="action-header">Action Center</div>
+              <span style="display: none;" id="actionCenter"></span>
               <!-- Button to send a message -->
             </div>
             
+            <div class="dental-department-title">
+              <i class="fas fa-receipt"></i>
+              <span id="about">All Sales Receipts</span>
+              <!-- Add a span for displaying today's date -->
+              <span id="receipt-date" class="receipt-date"></span>
+              <div id="shift-countdown"></div>
+            </div>
+            
+              <!-- Button to open popup -->
+<div  style="margin-top: 30px;margin-bottom: 30px;" id="dailyExpenseContainer">
+  <h2 style="margin-top: 20px; color: white">Daily Expenses & Sales</h2>
+
+<button id="openPopupButton">View Daily Recepit Sales</button>
+<button id="saveDailySummaryBtn">💾 Save Today's Summary</button>
+
+<button id="launchExpensePanel">
+  <i class="fas fa-plus-circle"></i> Daily Expense
+</button>
+
+
+    <!-- Button to show the daily expense summary -->
+  <button id="showPopupButton">
+      <i class="fas fa-list-check" style="margin-right: 10px;"></i> Financial Summary
+  </button>
+ 
+</div>
+<div id="summaryPopup" class="summary-modal" style="display:none;">
+  <h3>Hospital Financial Summary</h3>  
+  <button class="close-button" id="closeSummaryBtn">Close</button>
+  
+  <div style="margin-bottom: 15px;">
+    <label for="startDate">Start Date:</label>
+    <input type="date" id="startDate">
+    <label for="endDate">End Date:</label>
+    <input type="date" id="endDate">
+    <button id="applyDateFilter">Apply Filter</button>
+    <button id="resetFilterBtn">Reset</button>
+    <button id="printRangeSummaryBtn">🖨️ Print Range</button>
+    <p id="filterError" style="color: red; display: none;">Please select both start and end dates.</p>
+  </div>
+
+  
+  <div id="summaryContent"></div>
+
+</div>
+
+<div id="summaryDimmer" class="screen-dimmer" style="display:none;"></div>
+
+
+<div class="overlay-bg" id="screenDimmer"></div>
+
+<div class="expense-container" id="expensePanel">
+  <h3>Add Daily Expense</h3>
+  <input type="text" placeholder="Expense Notes">
+  <input type="number" placeholder="Amount">
+  <select>
+    <option value="">Select Category</option>
+    <option value="Wellfare">Wellfare</option>
+    <option value="Medicine">Medicine</option>
+    <option value="Professional Allowance">Professional Allowance</option>
+    <option value="Electricity">Electricity</option>
+    <option value="Water">Water</option>
+    <option value="Cleaning Equipment">Cleaning Equipment</option>
+    <option value="Stationary">Stationary</option>
+    <option value="Technical Repair And Mantainance">Technical Repair And Mantainance</option>
+  </select>
+  <button id="saveExpenseBtn">Save</button>
+</div>
+
+<!-- Popup Modal -->
+<div id="popupModal" class="popup-modal" style="display: none;">
+  <div class="popup-content">
+    <h2>Daily Sales Summary</h2>
+
+    <!-- Date filter -->
+    <label for="dateFilter">Select Date:</label>
+    <input type="date" id="dateFilter" />
+    <div class="total-cards">
+      <div class="total-card">
+        <p><strong>Total Cash:</strong> UGX <span id="totalCash">0.00</span></p>
+      </div>
+      <div class="total-card">
+        <p><strong>Total Mobile Money:</strong> UGX <span id="totalMobileMoney">0.00</span></p>
+      </div>
+      <div class="total-card">
+        <p><strong>Total Insurance:</strong> UGX <span id="totalInsurance">0.00</span></p>
+      </div>
+      <div class="total-card">
+        <p><strong>Total Credit Card:</strong> UGX <span id="totalCreditCard">0.00</span></p>
+      </div>
+      <div class="total-card">
+        <p><strong>Total Merchant:</strong> UGX <span id="totalMerchant">0.00</span></p>
+      </div>
+      <div class="total-card grand-total">
+        <p><strong>Grand Total:</strong> UGX <span id="grandTotal2">0.00</span></p>
+      </div>
+    </div>
+<style>
+  /* Container for all total cards */
+.total-cards {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: space-evenly;
+}
+
+/* Style for each individual card */
+.total-card {
+  background-color: #f0f0f0;
+  padding: 10px;
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  width: 180px;
+  text-align: center;
+  font-size: 14px;
+}
+
+/* Style for the Grand Total card to make it stand out */
+.grand-total {
+  background-color: #c4ffb2;
+  color: #000;
+  box-shadow: 0 6px 8px rgba(0, 0, 0, 0.2);
+  font-size: small;
+}
+
+/* Ensure text inside each card is centered */
+.total-card p {
+  margin: 0;
+  padding: 5px 0;
+  font-size: 13px;
+  
+}
+
+/* Style for each card heading */
+.total-card strong {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+</style>    
+    <!-- Table to display receipts -->
+    <table id="receiptsTable">
+      <thead>
+        <tr>
+          <th>Receipt No</th>
+          <th>Patient ID</th>
+          <th>Department</th>
+          <th>Payment Mode</th>
+          <th>Total Amount</th>
+          <th>Amount Tendered</th>
+          <th>Balance</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Receipts will be dynamically inserted here -->
+      </tbody>
+    </table>
+
+    <!-- Close button -->
+    <button id="closePopupButton">Close</button>
+  </div>
+</div>
+
+             
+<div id="root">
+  <div class="container pt-5">
+    <div class="row align-items-stretch">
+      <!-- Available Cash -->
+      <div class="c-dashboardInfo col-lg-3 col-md-6">
+        <div class="wrap">
+          <h4 class="heading heading5 hind-font medium-font-weight c-dashboardInfo__title">Available Cash</h4>
+          <span class="hind-font caption-12 c-dashboardInfo__count" id="cashTotal">UGX. 0.00</span>
+        </div>
+      </div>
+
+      <!-- Mobile Money -->
+      <div class="c-dashboardInfo col-lg-3 col-md-6">
+        <div class="wrap">
+          <h4 class="heading heading5 hind-font medium-font-weight c-dashboardInfo__title">Mobile Money</h4>
+          <span class="hind-font caption-12 c-dashboardInfo__count" id="mobileMoneyTotal">UGX. 0.00</span>
+        </div>
+      </div>
+
+      <!-- Insurance -->
+      <div class="c-dashboardInfo col-lg-3 col-md-6">
+        <div class="wrap">
+          <h4 class="heading heading5 hind-font medium-font-weight c-dashboardInfo__title">Insurance</h4>
+          <span class="hind-font caption-12 c-dashboardInfo__count" id="insuranceTotal">UGX. 0.00</span>
+        </div>
+      </div>
+
+      <!-- Credit Card -->
+      <div class="c-dashboardInfo col-lg-3 col-md-6">
+        <div class="wrap">
+          <h4 class="heading heading5 hind-font medium-font-weight c-dashboardInfo__title">Credit Card</h4>
+          <span class="hind-font caption-12 c-dashboardInfo__count" id="creditCardTotal">UGX. 0.00</span>
+        </div>
+      </div>
+
+      <!-- Merchant -->
+      <div class="c-dashboardInfo col-lg-3 col-md-6">
+        <div class="wrap">
+          <h4 class="heading heading5 hind-font medium-font-weight c-dashboardInfo__title">Merchant</h4>
+          <span class="hind-font caption-12 c-dashboardInfo__count" id="merchantTotal">UGX. 0.00</span>
+        </div>
+      </div>
+
+      <!-- Grand Total -->
+      <div class="c-dashboardInfo col-lg-3 col-md-6">
+        <div class="wrap">
+          <h4 class="heading heading5 hind-font medium-font-weight c-dashboardInfo__title">Grand Total</h4>
+          <span class="hind-font caption-12 c-dashboardInfo__count" id="grandTotal">UGX. 0.00</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+              <script>
+
+              </script>
+
+            <div class="search-container">
+                <input type="text" id="receiptSearchBar" placeholder="Search by Receipt Number..." class="search-input" />
+              </div
+
+              
+              <h2 class="table-title"></h2>
+              <table id="salesReceiptsTable" class="table">
+  <thead>
+    <tr>
+      <th>Receipt No</th>
+      <th>Patient ID</th>
+      <th>Department</th>
+      <th>Payment Mode</th>
+      <th>Services Offered</th>
+      <th>Total Amount (UGX)</th>
+      <th>Amount Tendered</th>
+      <th>Balance</th>
+      <th>Date</th>
+      <th>Print</th>
+
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+
+
 
  <!-- The Modal -->
  <div id="callModal" class="modal">
@@ -669,6 +875,53 @@ fullscreenButton.addEventListener('click', function() {
   
 </div>
 
+<div id="medicinePaymentPopup" style="display: none;">
+    <div class="medicine-popup-header">
+      <button id="closeMedicinePopupBtn"> Close</button>
+      <h2>Approve Medicine Payment</h2>
+    </div>
+  
+    <!-- Payment Details Form -->
+    <div id="totalSection">
+      <label for="totalAmount">Total Amount:</label>
+      <span id="totalAmountValue"></span>
+    </div>
+  
+    <div id="paymentDetailsSection">
+      <label for="amountReceivedInput">Amount Received:</label>
+      <input type="number" id="amountReceivedInput" placeholder="Enter Amount">
+  
+      <label for="remainingBalanceInput">Remaining Balance:</label>
+      <input type="number" id="remainingBalanceInput" readonly>
+  
+      <label for="paymentDepartmentSelect">Department:</label>
+      <select id="paymentDepartmentSelect">
+        <option value="general">General</option>
+        <option value="dental">Dental</option>
+        <option value="scan">Scan</option>
+      </select>
+  
+      <label for="paymentMethodSelect">Payment Method:</label>
+      <select id="paymentMethodSelect">
+        <option value="Cash">Cash</option>
+        <option value="Mobile Money">Mobile Money</option>
+        <option value="Insurance">Insurance</option>
+      </select>
+    </div>
+  
+    <button id="confirmMedicinePaymentButton">Confirm Payment</button>
+  </div>
+  
+<!-- Overlay Loader -->
+<div id="overlayLoader" style="display:none;">
+  <div class="overlay-background">
+    <div class="spinner"></div>
+    <p>Processing Payment...</p>
+  </div>
+</div>
+
+
+
 <div id="confirmationPopup" class="confirmation-popup">
   <div class="popup-header">
     <span id="closePopupBtn" class="close-popup-btn">&times;</span>
@@ -687,34 +940,33 @@ fullscreenButton.addEventListener('click', function() {
 <input type="text" id="consumables" placeholder="Enter Total Cost" required>
 -->
   <label for="testsTaken">Services to be Offered:</label>
-  <input type="text" style="width: 100%;" id="testsTaken" readonly required>
-    <!-- Add more options as needed -->
-</input>
+<label for="testsTakenContainer">Services to be Offered (select the ones being paid for):</label>
+<div id="testsTakenContainer" style="max-height: 200px; overflow-y: auto; border: 1px solid #ccc; padding: 10px;"></div>
+
 <!-- Add the button -->
 <button id="calculateTotalButton">Calculate Total</button>
-
-  <label for="amount">Cash Tendered:</label>
+<!-- HTML -->
+<div class="payment-section">
+  <label for="amountInput">Cash Tendered:</label>
   <input type="text" id="amountInput" placeholder="Enter Cash Received" required>
-  <!-- Balance/Change Input -->
-  <label for="balance">Balance/Change:</label>
+
+  <label for="balanceInput">Change:</label>
   <input type="text" id="balanceInput" placeholder="Balance or Change" readonly required>
 
-  <label for="patientId">Patient ID/Reason of payment:</label>
+  <label for="patientIdInput">Patient ID/Reason of payment:</label>
   <input type="text" id="patientIdInput" placeholder="Enter Patient ID/Reason for payment" required>
 
-  <!-- Department Dropdown -->
   <label for="department">Department:</label>
   <select id="department" required>
     <option value="" disabled selected>Select a department</option>
-    <option value="Laboratory">Laboratory</option>
-    <option value="Dental">Dental</option>
-    <option value="Scan">Scan</option>
-    <option value="Theater">Theater</option>
-    <option value="General">General</option>
-    <option value="Maternity">Maternity</option>
+    <option value="laboratory">Laboratory</option>
+    <option value="dental">Dental</option>
+    <option value="scan">Scan</option>
+    <option value="theater">Theater</option>
+    <option value="general">General</option>
+    <option value="maternity">Maternity</option>
   </select>
 
-  <!-- Mode of Payment Dropdown -->
   <label for="paymentMode">Mode of Payment:</label>
   <select id="paymentMode" required>
     <option value="" disabled selected>Select a payment mode</option>
@@ -724,12 +976,19 @@ fullscreenButton.addEventListener('click', function() {
     <option value="Credit Card">Credit Card</option>
     <option value="Merchant">Merchant</option>
   </select>
-
+</div>
 
   <button type="submit" id="confirmPaymentBtn">Confirm Payment</button>
 </div>
 
+<div id="viewResultsPopup">
+  <div class="popup-content">
+    <h3 id="viewResultsHeader">Results</h3>  
+      <button class="close-popup-button">Close</button>
 
+    <div id="viewResultsContainer"></div>
+  </div>
+</div>
 
 
 <div id="confirmationPopupClone" class="confirmation-popup" >
@@ -771,6 +1030,111 @@ fullscreenButton.addEventListener('click', function() {
   <button type="submit" id="confirmPaymentBtnClone">Confirm Payment</button>
 </div>
 
+
+
+<script>
+  document.addEventListener('keydown', function(event) {
+    if (event.key === 'F7') {
+      const popup = document.getElementById('confirmationPopupClone');
+      if (popup.style.display === 'none' || popup.style.display === '') {
+        popup.style.display = 'block';
+      } else {
+        popup.style.display = 'none';
+      }
+    }
+  });
+
+  document.getElementById('closePopupBtnClone').addEventListener('click', function() {
+    document.getElementById('confirmationPopupClone').style.display = 'none';
+  });
+
+
+  // Make the popup draggable from the header
+  dragElement2(document.getElementById("confirmationPopupClone"));
+  dragElement(document.getElementById("confirmationPopup"));
+
+ 
+  function dragElement(element) {
+    var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+    const header = element.querySelector('.popup-header');
+    if (header) {
+      header.onmousedown = dragMouseDown;
+    } else {
+      element.onmousedown = dragMouseDown;
+    }
+
+    function dragMouseDown(e) {
+      e = e || window.event;
+      e.preventDefault();
+      // get the mouse cursor position at startup:
+      pos3 = e.clientX;
+      pos4 = e.clientY;
+      document.onmouseup = closeDragElement;
+      // call a function whenever the cursor moves:
+      document.onmousemove = elementDrag;
+    }
+
+    function elementDrag(e) {
+      e = e || window.event;
+      e.preventDefault();
+      // calculate the new cursor position:
+      pos1 = pos3 - e.clientX;
+      pos2 = pos4 - e.clientY;
+      pos3 = e.clientX;
+      pos4 = e.clientY;
+      // set the element's new position:
+      element.style.top = (element.offsetTop - pos2) + "px";
+      element.style.left = (element.offsetLeft - pos1) + "px";
+    }
+
+    function closeDragElement() {
+      // stop moving when mouse button is released:
+      document.onmouseup = null;
+      document.onmousemove = null;
+    }
+  }
+
+  
+  function dragElement2(element) {
+    var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+    const header = element.querySelector('.popup-header');
+    if (header) {
+      header.onmousedown = dragMouseDown;
+    } else {
+      element.onmousedown = dragMouseDown;
+    }
+
+    function dragMouseDown(e) {
+      e = e || window.event;
+      e.preventDefault();
+      // get the mouse cursor position at startup:
+      pos3 = e.clientX;
+      pos4 = e.clientY;
+      document.onmouseup = closeDragElement;
+      // call a function whenever the cursor moves:
+      document.onmousemove = elementDrag;
+    }
+
+    function elementDrag(e) {
+      e = e || window.event;
+      e.preventDefault();
+      // calculate the new cursor position:
+      pos1 = pos3 - e.clientX;
+      pos2 = pos4 - e.clientY;
+      pos3 = e.clientX;
+      pos4 = e.clientY;
+      // set the element's new position:
+      element.style.top = (element.offsetTop - pos2) + "px";
+      element.style.left = (element.offsetLeft - pos1) + "px";
+    }
+
+    function closeDragElement() {
+      // stop moving when mouse button is released:
+      document.onmouseup = null;
+      document.onmousemove = null;
+    }
+  }
+</script>
 
 
 
@@ -998,6 +1362,19 @@ bloodPressureInput.addEventListener('input', (event) => {
 </div>
 
     
+<div id="undoSnackbar" style="
+  display: none;
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  background: #2c3e50;
+  color: white;
+  padding: 12px 20px;
+  border-radius: 5px;
+  z-index: 99999;
+">
+  Expense deleted. <button id="undoBtn" style="margin-left: 10px; background: #16a085; color: white; border: none; padding: 6px 10px; cursor: pointer;">Undo</button>
+</div>
 
     
       
@@ -1020,7 +1397,7 @@ bloodPressureInput.addEventListener('input', (event) => {
  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.3.2/html2canvas.min.js"></script>
  <script src="https://cdn.jsdelivr.net/jsbarcode/3.6.0/JsBarcode.all.min.js"></script>
 
-<script type="module" src="patients.js">
+<script type="module" src="cashier.js">
 </script>
 <!-- Include the jQuery library -->
 <script src='https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js'></script>
@@ -1052,6 +1429,7 @@ bloodPressureInput.addEventListener('input', (event) => {
   });
 
 
+  
   const ageInput = document.getElementById('age');
 const dobInput = document.getElementById('dob');
 
@@ -1095,7 +1473,6 @@ dobInput.addEventListener('change', () => {
   age = Math.max(0, Math.min(120, age));
   ageInput.value = age;
 });
-
 </script>
 
 

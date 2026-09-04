@@ -43,8 +43,9 @@
             <img src="" alt="..." class="img-circle profile_img">
           </div>
           <div class="profile_info">
-            <span>Welcome,</span>
-            <h2></h2>
+            
+  <span>Welcome,</span>
+  <h2 id="profileName"></h2>
           </div>
         </div>
         <!-- /menu profile quick info -->
@@ -59,8 +60,8 @@
               <li><a><i class="fa fa-home"></i> Home <span class="fa fa-chevron-down"></span></a>
                 <ul class="nav child_menu">
                   <li><a href="index.html">Dashboard Management</a></li>
-            <!--     <li><a href="index2.html">Dashboard2</a></li>
-                  <li><a href="index3.html">Dashboard3</a></li>--> 
+                <li><a href="cashier.html">Cashier Desk</a></li>
+              <!--     <li><a href="index3.html">Dashboard3</a></li>--> 
                 </ul>
               </li>
               <li><a><i class="fa fa-edit"></i>Treatment<span class="fa fa-chevron-down"></span></a>
@@ -69,6 +70,10 @@
                   <li><a href="patients.html">Patients Reception</a></li>
                   <li><a href="odp.html">Patient's on Treatment</a></li>
                  <li><a href="doctors.html">Doctor's Room</a></li>
+                 <li><a href="dental.html">Dental Department</a></li>
+                 <li><a href="scan.html">Scan Department</a></li>
+                 <li><a href="babies.html">Babies Department</a></li>
+
 
                 </ul>
               </li>
@@ -1594,7 +1599,7 @@ totalPriceDiv.innerHTML = `Total Tests Revenue: UGX  ${totalPrice}.00`;
     headerRow.innerHTML = `
       <th>Patient</th>
       <th>Test ID</th>
-      <th>Tests Taken</th>
+      <th>Services Offered</th>
     
       <th>Date Taken</th>
       <th>Price (UGX)</th>
@@ -1640,7 +1645,7 @@ function fetchAndDisplayTests() {
       headerRow.innerHTML = `
         <th>Patient</th>
         <th>Test ID</th>
-        <th>Tests Taken</th>
+        <th>Services Offered</th>
         <th>Date Taken</th>
         <th>Price (UGX)</th>
       `;
@@ -2347,18 +2352,14 @@ const patientsRef = ref(database, 'medicine');
 // Show the loader
 loaderElement.classList.remove('hidden');
 
+// Fetch patient data from Firebase
 onValue(patientsRef, (snapshot) => {
-  const patientsData = snapshot.val();
-
-  if (patientsData) {
-    patients = Object.values(patientsData); // Update the patients variable
-    renderPatients(patients);
-  }
-
-  // Hide the loader
+  patientsData = snapshot.val() ? Object.values(snapshot.val()).reverse() : [];
+  // Update the pagination and render the patients
+  renderPatients();
   loaderElement.classList.add('hidden');
-});
 
+});
 // Get the online status element
 const onlineStatusElement = document.getElementById('onlineStatus');
 const overlayElement = document.getElementById('overlay');

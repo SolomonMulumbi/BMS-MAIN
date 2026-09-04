@@ -50,8 +50,9 @@
             <img src="" alt="..." class="img-circle profile_img">
           </div>
           <div class="profile_info">
-            <span>Welcome,</span>
-            <h2></h2>
+            
+  <span>Welcome,</span>
+  <h2 id="profileName"></h2>
           </div>
         </div>
         <!-- /menu profile quick info -->
@@ -66,8 +67,8 @@
               <li><a><i class="fa fa-home"></i> Home <span class="fa fa-chevron-down"></span></a>
                 <ul class="nav child_menu">
                   <li><a href="index.html">Dashboard Management</a></li>
-            <!--     <li><a href="index2.html">Dashboard2</a></li>
-                  <li><a href="index3.html">Dashboard3</a></li>--> 
+            <li><a href="cashier.html">Cashier Desk</a></li>
+                <!--       <li><a href="index3.html">Dashboard3</a></li>--> 
                 </ul>
               </li>
               <li><a><i class="fa fa-edit"></i>Treatment<span class="fa fa-chevron-down"></span></a>
@@ -76,6 +77,10 @@
                   <li><a href="patients.html">Patients Reception</a></li>
                   <li><a href="odp.html">Patient's on Treatment</a></li>
                  <li><a href="doctors.html">Doctor's Room</a></li>
+                 <li><a href="dental.html">Dental Department</a></li>
+                 <li><a href="scan.html">Scan Department</a></li>
+                 <li><a href="babies.html">Babies Department</a></li>
+
 
                 </ul>
               </li>
@@ -176,6 +181,9 @@
           </a>
      <a data-toggle="tooltip" data-placement="top" title="Logout" href="#" id="closesession">
             <span id="onlineStatus"  aria-hidden="true"></span>
+          </a>
+          <a data-toggle="tooltip" data-placement="top" title="Logout" href="#" id="closesession">
+            <span class="glyphicon glyphicon-chevron-up" aria-hidden="true"></span>
           </a>
         </div> 
         <script>
@@ -315,14 +323,127 @@ fullscreenButton.addEventListener('click', function() {
     </div>
       <section>
         <button style="display:none" id="uploadBtn"><i class="fa fa-plus"></i>Register New Patient</button>
+        <button id="appointment"><i class="fa fa-plus"></i>Register New Appointment</button>
+
         <div style="margin: auto;" class="search-container">
           <input type="text" id="searchInput" placeholder="Search by name or ID ...">
           <button id="searchButton"><i class="fas fa-search"></i> </button> 
         </div>
         
         </section>
-        
-   
+<!-- Popup modal -->
+<div id="Apopup" style="display: none;">
+  <h3>Register New Appointment</h3>
+  <form id="appointmentForm">
+    <!-- Appointment Name -->
+    <label for="appointmentName">Appointment Name / Reason:</label><br>
+    <input type="text" id="appointmentName" name="appointmentName" required><br><br>
+    
+    <!-- Date Picker -->
+    <label for="appointmentDate">Date:</label><br>
+    <input type="date" id="appointmentDate" name="appointmentDate" required><br><br>
+
+    <!-- Time Picker -->
+    <label for="appointmentTime">Time:</label><br>
+    <input type="time" id="appointmentTime" name="appointmentTime" required><br><br>
+
+    <!-- Select2 Dropdown -->
+    <label for="patientSelect">Select Patient:</label><br>
+    <select id="patientSelect" required style="width: 100%;">
+      <!-- Options will be dynamically populated -->
+    </select><br><br>
+    
+    <!-- Buttons -->
+    <button type="submit" class="btn submit-btn">Submit</button>
+    <button type="button" id="closeAppPopup" class="close-btn">Close</button>
+  </form>
+</div>
+
+
+<style>
+  /* Popup modal styles */
+#Apopup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 500px;
+  padding: 20px;
+  background: #fff;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  z-index: 1000;
+  font-family: Arial, sans-serif;
+}
+
+/* Button styles */
+.btn {
+  display: inline-block;
+  padding: 10px 15px;
+  font-size: 14px;
+  font-weight: bold;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: center;
+}
+
+/* Submit button */
+.submit-btn {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.submit-btn:hover {
+  background-color: #45a049;
+}
+
+/* Base styles for the Close button */
+.close-btn {
+  background-color: #f44336; /* Red background */
+  color: white; /* White text */
+  border: none; /* No border */
+  padding: 10px 20px; /* Padding for a comfortable click area */
+  font-size: 14px; /* Font size for readability */
+  font-weight: bold; /* Bold text */
+  border-radius: 4px; /* Rounded corners */
+  cursor: pointer; /* Pointer cursor on hover */
+  transition: background-color 0.3s ease, transform 0.2s ease; /* Smooth hover effect */
+}
+
+/* Hover effect */
+.close-btn:hover {
+  background-color: #d32f2f; /* Darker red on hover */
+  transform: scale(1.05); /* Slightly enlarge the button */
+}
+
+/* Active (pressed) state */
+.close-btn:active {
+  background-color: #b71c1c; /* Even darker red when pressed */
+  transform: scale(1); /* Return to original size */
+}
+
+/* Focus state for accessibility */
+.close-btn:focus {
+  outline: 2px solid #ffcccb; /* Light red focus outline */
+  outline-offset: 2px;
+}
+
+
+/* Input field styles (optional improvement) */
+form input[type="text"] {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+</style>
+
+<div id="overlay3"></div>
+
              <div id="overlay"></div>
 
         <div id="loader" class="loader"></div> <!--<div class="sort-container">
@@ -331,11 +452,30 @@ fullscreenButton.addEventListener('click', function() {
              <option value="expiry">Sort by Expiry Date</option>
               <option value="alphabetical">Sort Alphabetically</option>
             </select>
-          </div>-->  
+          </div>--> 
+          
+   <div class="dental-department-title">
+  <!-- Hospital Logo + Name -->
+  <div class="hospital-header">
+    <img src="sanyu.png" alt="SANYU HOSPITAL  Logo" class="hospital-logo">
+    <span class="hospital-name">Sanyu Hospital - Katooke (Wakiso)</span>
+  </div>
+
+  <!-- Reception Desk Section -->
+  <div class="reception-section">
+    <i class="fas fa-stethoscope"></i>
+    <span>Doctor's Room</span>
+  </div>
+</div>
+
+
+  
+          
+          <div id="pagination" class="pagination">
+            <!-- Pagination buttons will be rendered here -->
+          </div>
         <div id="patients" class="patients-container"></div>
-        <div id="pagination" class="pagination">
-          <!-- Pagination buttons will be rendered here -->
-        </div>
+
 
 
         <div class="action-center">
@@ -354,6 +494,44 @@ fullscreenButton.addEventListener('click', function() {
           <!-- Header of the action center -->
           <div class="action-header">Action Center</div>
           <span id="actionCenter"></span>
+          <h3>Upcoming Follow-Up Date & Time Appointments</h3>
+
+          <div id="futureFollowUpsContainer">
+            <!-- Future follow-up appointments will be displayed here -->
+          </div>
+          
+          <!-- Button to trigger displaying follow-ups -->
+          <button id="showFollowUpsButton">
+            <i class="fa fa-calendar-check" aria-hidden="true"></i> Show Future Follow-ups
+          </button>
+                    
+
+          
+          
+                <!-- Appointments Display Section -->
+                <div id="appointmentsContainer">
+                  <h3>Upcoming Scheduled Appointments</h3>
+                  <table id="appointmentsTable" border="1" style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                      <tr>
+                        <th>Appointment Name</th>
+                        <th>Patient Name</th>
+                        <th>Date</th>
+                        <th>Time</th>
+                        <th>Action</th> <!-- New column for the "Done" button -->
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <!-- Rows will be dynamically populated -->
+                    </tbody>
+                  </table>
+                
+                  
+                </div>
+                
+
+
+
           <!-- Button to send a message -->
         </div>
 
@@ -388,31 +566,27 @@ fullscreenButton.addEventListener('click', function() {
                 <label for="additionalNotes">Diagnosis:</label>
                 <input type="text" id="additionalNotes" required>
                 
-                <!-- Add this section to the existing form -->
-<div id="finalStatus">
-    <label for="finalStatus">Final Status of Patient:</label>
-    <div>
-      <input type="radio" id="discharged" name="finalStatus" value="Discharged">
-      <label for="discharged">Discharged</label>
-    </div>
-    <div>
-      <input type="radio" id="admitted" name="finalStatus" value="Admitted">
-      <label for="admitted">Admitted</label>
-    </div>
-    <div>
-      <input type="radio" id="opdClient" name="finalStatus" value="OPD Client">
-      <label for="opdClient">OPD Client</label>
-    </div>
-  </div>
-
-  <div id="extraServices">
-    <label for="Extra Services"></label>
-    
-  </div>
-
-  <label for="followUpDateTime">Follow-up Date/Time:</label>
-  <input type="datetime-local" id="followUpDateTime">
-  
+                <div id="finalStatus">
+                    <label>Final Status of Patient:</label>
+                    <div>
+                        <input type="radio" id="discharged" name="finalStatus" value="Discharged">
+                        <label for="discharged">Discharged</label>
+                    </div>
+                    <div>
+                        <input type="radio" id="admitted" name="finalStatus" value="Admitted">
+                        <label for="admitted">Admitted</label>
+                    </div>
+                    <div>
+                        <input type="radio" id="opdClient" name="finalStatus" value="OPD Client">
+                        <label for="opdClient">OPD Client</label>
+                    </div>
+                </div>
+                
+                <label for="followUpDateTime">Follow-up Date/Time:</label>
+                <input type="datetime-local" id="followUpDateTime">
+                
+                <button style="display: none;" type="button" id="saveAllButton">Save All</button>
+                
                 
                 <div id="totalCost"></div>
                 <button type="submit" id="submitMedicationButton">Submit</button>
@@ -559,13 +733,188 @@ fullscreenButton.addEventListener('click', function() {
               <label style="margin-top: 10px;" for="additionalNotes">Patient's Concerns (Complaints):</label>
               <input type="text" id="Concerns" required>
 
-              <label style="margin-top: 10px;" for="additionalNotes">Examination:</label>
-              <input type="text" id="examination" required>
-               <label for="testsTaken">Services to be Offered:</label>
+             <style>
+  .exam-btn {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 6px 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 14px;
+    transition: 0.2s;
+  }
+
+  .exam-btn.red {
+    background-color: #dc3545;
+  }
+
+  .exam-btn:hover {
+    opacity: 0.9;
+  }
+
+  textarea {
+    width: 100%;
+    min-height: 60px;
+    margin-top: 5px;
+    padding: 5px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    resize: vertical;
+  }
+</style>
+
+<div style="margin-top: 10px;">
+  <label for="examination"><strong>General Examination:</strong></label>
+  <textarea id="examination" placeholder="Enter general findings" required></textarea>
+</div>
+
+<!-- Container for dynamic sections -->
+<div id="extraExaminations" style="margin-top: 15px;"></div>
+
+<!-- Buttons for sections -->
+<div id="buttonsContainer" style="margin-top: 15px; display: flex; flex-wrap: wrap; gap: 6px;">
+  <button type="button" class="exam-btn">➕ Presenting Complaint</button>
+  <button type="button" class="exam-btn">➕ History of Presenting Complaint</button>
+  <button type="button" class="exam-btn">➕ Review of Systems</button>
+  <button type="button" class="exam-btn">➕ Past Medical History</button>
+  <button type="button" class="exam-btn">➕ Past Surgical History</button>
+  <button type="button" class="exam-btn">➕ Current Obstetric History</button>
+  <button type="button" class="exam-btn">➕ Past Obstetric History</button>
+  <button type="button" class="exam-btn">➕ Past Gynecological History</button>
+  <button type="button" class="exam-btn">➕ Family Social History</button>
+  <button type="button" class="exam-btn">➕ Immunisation History</button>
+  <button type="button" class="exam-btn">➕ Birth History</button>
+  <button type="button" class="exam-btn">➕ Nutritional History</button>
+  <button type="button" class="exam-btn">➕ Developmental History</button>
+
+  <!-- Systematic Examination -->
+  <button type="button" class="exam-btn">➕ New Born Examination</button>
+  <button type="button" class="exam-btn">➕ Musculoskeletal System</button>
+  <button type="button" class="exam-btn">➕ Cardiovascular System</button>
+  <button type="button" class="exam-btn">➕ Respiratory System</button>
+  <button type="button" class="exam-btn">➕ Gastrointestinal System</button>
+  <button type="button" class="exam-btn">➕ Dermatological System</button>
+  <button type="button" class="exam-btn">➕ Central Nervous System</button>
+  <button type="button" class="exam-btn">➕ Head, Ear, Eyes, Nose and Throat System</button>
+</div>
+
+<!-- Impression -->
+<div style="margin-top: 15px;">
+  <label for="impression"><strong>Impression:</strong></label>
+  <textarea id="impression" placeholder="Enter final impression"></textarea>
+</div>
+
+<script>
+  const buttons = document.querySelectorAll('.exam-btn');
+  const container = document.getElementById('extraExaminations');
+
+  buttons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const labelText = btn.textContent.replace(/^[➕✖]\s*/, '').trim(); // remove icon
+      const id = labelText.replace(/\s+/g, '_').toLowerCase();
+      const existing = document.getElementById(id);
+
+      if (existing) {
+        // remove section
+        existing.remove();
+        btn.textContent = `➕ ${labelText}`;
+        btn.classList.remove('red');
+        return;
+      }
+
+      // create wrapper
+      const wrapper = document.createElement('div');
+      wrapper.id = id;
+      wrapper.style.marginTop = '10px';
+
+      const label = document.createElement('label');
+      label.textContent = labelText + ':';
+      label.style.fontWeight = 'bold';
+      label.style.display = 'block';
+
+      const textarea = document.createElement('textarea');
+      textarea.placeholder = `Enter details for ${labelText.toLowerCase()}`;
+
+      wrapper.appendChild(label);
+      wrapper.appendChild(textarea);
+      container.appendChild(wrapper);
+
+      // change button to red with cross
+      btn.textContent = `✖ ${labelText}`;
+      btn.classList.add('red');
+    });
+  });
+</script>
+
+             <!--   <label  for="testsTaken">Services to be Offered:</label>
                    <select style="width: 100%;" id="testsTaken" multiple required>
                    
-                     <!-- Add more options as needed -->
-                   </select>
+                     Add more options as needed 
+                   </select>-->
+<div style="display:flex; gap:30px; flex-wrap:wrap;">
+  <!-- Investigations -->
+  <div>
+    <label for="investigations">Investigations:</label>
+    <select id="investigations" >
+      <option value="">-- Select Investigation --</option>
+    </select>
+
+    <input type="text" id="investigationSearch" placeholder="Search Investigation..." style="display:none; margin-top:5px;">
+
+    <select id="investigationDetails" style="display:none; margin-top:8px;"></select>
+    <p id="investigationPrice" style="font-weight:bold; color:green; display:none;"></p>
+<div class="selection-block">
+  <button id="addInvestigationBtn" type="button" class="add-btn">+ Add Investigation</button>
+  <div id="investigationList" class="selected-list"></div>
+  <div class="total-line" id="investigationTotal">Total: UGX 0</div>
+</div>
+
+    
+  </div>
+
+  <!-- Procedures -->
+  <div>
+    <label for="procedures">Procedures:</label>
+    <select id="procedures" >
+      <option value="">-- Select Procedure --</option>
+    </select>
+
+    <input type="text" id="procedureSearch" placeholder="Search Procedure..." style="display:none; margin-top:5px;">
+
+    <select id="procedureDetails" style="display:none; margin-top:8px;"></select>
+    <p id="procedurePrice" style="font-weight:bold; color:green; display:none;"></p>
+<!-- Procedures -->
+<div class="selection-block">
+  <button id="addProcedureBtn" type="button" class="add-btn">+ Add Procedure</button>
+  <div id="procedureList" class="selected-list"></div>
+  <div class="total-line" id="procedureTotal">Total: UGX 0</div>
+</div>
+
+  </div>
+
+  <!-- Services -->
+  <div>
+    <label for="services">Services:</label>
+    <select id="services" >
+      <option value="">-- Select Service --</option>
+    </select>
+
+    <input type="text" id="serviceSearch" placeholder="Search Service..." style="display:none; margin-top:5px;">
+
+    <select id="serviceDetails" style="display:none; margin-top:8px;"></select>
+    <p id="servicePrice" style="font-weight:bold; color:green; display:none;"></p>
+<div class="selection-block">
+  <button id="addServiceBtn" type="button" class="add-btn">+ Add Service</button>
+  <div id="serviceList" class="selected-list"></div>
+  <div class="total-line" id="serviceTotal">Total: UGX 0</div>
+</div>
+
+  </div>
+</div>
 
               
            <!--   <label for="resultsObtained">Results Obtained:</label>
@@ -587,7 +936,14 @@ fullscreenButton.addEventListener('click', function() {
 
 
 
+<div id="viewResultsPopup">
+  <div class="popup-content">
+    <h3 id="viewResultsHeader">Results</h3>  
+      <button class="close-popup-button">Close</button>
 
+    <div id="viewResultsContainer"></div>
+  </div>
+</div>
         <button id="fetchPatientCountBtn"> <i class="fas fa-sync-alt"></i>
               Fetch New Patient Count</button>
         <div class="popup-overlay" id="popupOverlay">
@@ -599,8 +955,12 @@ fullscreenButton.addEventListener('click', function() {
               <label for="name">Full Name:</label>
               <input type="text" id="name" required>
               
-              <label for="dob">Date of Birth:</label>
-              <input type="date" id="dob" required>
+              <label for="age">Age:</label>
+<input type="number" id="age" min="0" max="120" placeholder="Enter age">
+
+<label for="dob">Date of Birth:</label>
+<input type="date" id="dob" required>
+
               
               <label for="parents">Telephone Contact or Email:</label>
               <input type="tel" id="parents" required>

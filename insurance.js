@@ -3,16 +3,16 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.2/firebase
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.0.2/firebase-storage.js";
 import { getDatabase, ref, remove, push, get, update, onValue, child, set } from "https://www.gstatic.com/firebasejs/9.0.2/firebase-database.js";
 import { getAuth, onAuthStateChanged,sendPasswordResetEmail , signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/9.0.2/firebase-auth.js";
- const firebaseConfig = {
-    apiKey: "AIzaSyCi_hufIZTzsYtdPGQtvtmKmAkkrydmn_A",
-  authDomain: "abbah-83a7b.firebaseapp.com",
-  databaseURL: "https://abbah-83a7b-default-rtdb.firebaseio.com",
-  projectId: "abbah-83a7b",
-  storageBucket: "abbah-83a7b.appspot.com",
-  messagingSenderId: "379729759051",
-  appId: "1:379729759051:web:e75528d61b02d1e4f536ce",
-  measurementId: "G-H41J2WMR6S"
-  };
+const firebaseConfig = {
+  apiKey: "AIzaSyCi_hufIZTzsYtdPGQtvtmKmAkkrydmn_A",
+authDomain: "abbah-83a7b.firebaseapp.com",
+databaseURL: "https://abbah-83a7b-default-rtdb.firebaseio.com",
+projectId: "abbah-83a7b",
+storageBucket: "abbah-83a7b.appspot.com",
+messagingSenderId: "379729759051",
+appId: "1:379729759051:web:e75528d61b02d1e4f536ce",
+measurementId: "G-H41J2WMR6S"
+};
 
   const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
@@ -566,7 +566,7 @@ patients.forEach(patient => {
   const residenceCell = createTableCell(patient.residence);
   const paymentCell = createTableCell(patient.payment);
   const sexCell = createTableCell(patient.sex);
-  const patientIdCell = createTableCell('PI - ' + patient.patientId);
+  const patientIdCell = createTableCell('PI- ' + patient.patientId);
   const parentsCell = createHiddenDigitsTableCell(patient.parents, 3);
   const dobCell = createTableCell(patient.dob);
   
@@ -1691,11 +1691,11 @@ recordElement.appendChild(recordKeyElement);
   // Create the table rows for record details
   const recordKeyRow = createTableRow('Record Key:', recordKey);
   const dateTakenRow = createTableRow('Date Taken:', new Date(parseInt(record.dateTaken)).toLocaleString());
-  const testsTakenRow = createTableRow('Tests Taken:', record.testsTaken);
+  const testsTakenRow = createTableRow('Services Offered:', record.testsTaken);
   const priceRow = createTableRow('Price:', record.price ? `UGX ${record.price.toFixed(2)}` : 'Please Contact Company');
 
   // Create the payment status row
-  const paymentStatusRow = createTableRow('Test Payment:', record.paymentstatus || 'Not Paid');
+  const paymentStatusRow = createTableRow('Service Payment:', record.paymentstatus || 'Not Paid');
   if (record.paymentstatus === 'payment received') {
     paymentStatusRow.classList.add('payment-received'); // Add class for blue color
   } else {
@@ -1722,7 +1722,7 @@ recordElement.appendChild(recordKeyElement);
   recordElement.appendChild(table);
 // Create payment status element
 const paymentStatusElement = document.createElement('p');
-paymentStatusElement.textContent = 'Test Payment: ' + (record.paymentstatus || 'Not Paid');
+paymentStatusElement.textContent = 'Service Payment: ' + (record.paymentstatus || 'Not Paid');
 paymentStatusElement.classList.add('payment-status'); // Add the CSS class
 //recordElement.appendChild(paymentStatusElement);
 
@@ -1741,7 +1741,7 @@ checkIcon.classList.add('fas', 'fa-check-circle');
 // Set the inner HTML of the approve button
 approveButton.innerHTML = '';
 approveButton.appendChild(checkIcon);
-approveButton.innerHTML += ' Approve Test payment';
+approveButton.innerHTML += ' Approve Service Payment';
 
 // Add click event listener to the approve button
 approveButton.addEventListener('click', () => {
@@ -2331,18 +2331,14 @@ const loaderElement = document.getElementById('loader');
 // Show the loader
 loaderElement.classList.remove('hidden');
 
+// Fetch patient data from Firebase
 onValue(patientsRef, (snapshot) => {
-  const patientsData = snapshot.val();
-
-  if (patientsData) {
-    patients = Object.values(patientsData); // Update the patients variable
-    renderPatients(patients);
-  }
-
-  // Hide the loader
+  patientsData = snapshot.val() ? Object.values(snapshot.val()).reverse() : [];
+  // Update the pagination and render the patients
+  renderPatients();
   loaderElement.classList.add('hidden');
-});
 
+});
 
 // Function to calculate the total based on inputs
 const calculateTotal = () => {

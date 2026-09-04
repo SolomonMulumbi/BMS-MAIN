@@ -352,6 +352,478 @@ function logOut() {
       console.error('Error signing out:', error);
     });
 }
+// ---------------- Toggle Buttons ----------------
+const toggleMedicineBtn = document.getElementById('toggleMedicineBtn');
+const toggleHistoryBtn = document.getElementById('toggleHistoryBtn');
+const historyContainer = document.getElementById('inventoryHistory');
+
+toggleMedicineBtn.addEventListener('click', () => {
+  patientsContainer.style.display = 'block';
+  historyContainer.style.display = 'none';
+});
+
+toggleHistoryBtn.addEventListener('click', async () => {
+  // Ask for password before showing history
+  const REQUIRED_PASSWORD = 'sanyu44'; // set your password here
+  const userPassword = prompt('Enter password to view inventory history:');
+
+  if (userPassword !== REQUIRED_PASSWORD) {
+    alert('❌ Incorrect password.');
+    return;
+  }
+
+  // Password correct — show history
+  patientsContainer.style.display = 'none';
+  historyContainer.style.display = 'block';
+  await loadInventoryHistory();
+});
+
+
+function formatFirebaseTimestamp(ts) {
+  // Replace the last part with proper colons for time
+  // Example: 2025-10-25T13-33-31-886Z -> 2025-10-25T13:33:31.886Z
+  const iso = ts.replace(/T(\d{2})-(\d{2})-(\d{2})-(\d+)/, 'T$1:$2:$3.$4');
+  return new Date(iso).toLocaleString();
+}
+
+
+// ---------- Add filter section above cards ----------
+const filterHTML = `
+  <div id="filterSection" style="
+      display:flex; flex-wrap:wrap; gap:10px; justify-content:flex-start;
+      margin-bottom:20px; padding:15px; background:#fff;
+      border-radius:8px; box-shadow:0 4px 8px rgba(0,0,0,0.1); align-items:center;
+  ">
+    <label for="startDate">Start Date:</label>
+    <input type="date" id="startDate" style="padding:5px; border-radius:4px; border:1px solid #ccc;" />
+    <label for="endDate">End Date:</label>
+    <input type="date" id="endDate" style="padding:5px; border-radius:4px; border:1px solid #ccc;" />
+    <button id="filterPeriodBtn" style="
+        padding:5px 10px; border:none; border-radius:5px; background:#007bff; color:#fff; cursor:pointer;
+        transition: background 0.3s;
+      " 
+      onmouseover="this.style.background='#0056b3'" 
+      onmouseout="this.style.background='#007bff'">
+      Apply Filter
+    </button>
+  </div>
+`;
+historyContainer.insertAdjacentHTML('beforebegin', filterHTML);
+
+// ---------- Filter button ----------
+document.getElementById('filterPeriodBtn').addEventListener('click', () => {
+  const startDate = document.getElementById('startDate').value;
+  const endDate = document.getElementById('endDate').value;
+  loadInventoryHistory(startDate, endDate);
+});
+
+// ---------- Load Inventory History ----------
+async function loadInventoryHistory(startDate, endDate) {
+  historyContainer.innerHTML = 'Loading...';
+  try {
+    const dbSnapshot = await get(ref(database, 'InventoryHistory'));
+    const medSnapshot = await get(ref(database, 'medicine'));
+
+    if (!dbSnapshot.exists()) {
+      historyContainer.innerHTML = '<p>No inventory history available.</p>';
+      return;
+    }
+
+    const historyData = dbSnapshot.val();
+    const medicineData = medSnapshot.exists() ? medSnapshot.val() : {};
+
+    // ---------- Compute totals ----------
+    let totalStock = 0, totalRevenue = 0, estimatedIncome = 0;
+    const medicineSales = {};
+
+    Object.keys(medicineData).forEach(medName => {
+      const stock = Number(medicineData[medName]?.parents) || 0;
+      totalStock += stock;
+      const keahPrice = medicineData[medName]?.insurancePrices?.keah || 0;
+      estimatedIncome += stock * keahPrice;
+    });
+
+    Object.keys(historyData).forEach(medName => {
+      const medHistory = historyData[medName];
+      let soldQty = 0;
+      const keahPrice = medicineData[medName]?.insurancePrices?.keah || 0;
+
+      Object.keys(medHistory).forEach(ts => {
+        const sales = medHistory[ts].sales || {};
+        Object.values(sales).forEach(sale => {
+          const saleDate = new Date(sale.date);
+          let include = true;
+          if (startDate) include = include && (saleDate >= new Date(startDate));
+          if (endDate) include = include && (saleDate <= new Date(endDate + 'T23:59:59'));
+          if (include) soldQty += Number(sale.quantity) || 0;
+        });
+      });
+
+      medicineSales[medName] = soldQty;
+      totalRevenue += soldQty * keahPrice;
+    });
+
+    // ---------- Top Selling ----------
+    const topSelling = Object.keys(medicineSales)
+      .sort((a,b) => medicineSales[b]-medicineSales[a])
+      .slice(0,3);
+
+    // ---------- Display Summary Cards ----------
+    let cardsHTML = `
+      <div style="display:flex; gap:20px; margin-bottom:20px; flex-wrap:wrap;">
+        <div style="flex:1; min-width:200px; padding:15px; background:#f0f8ff; border-radius:8px; box-shadow:0 4px 6px rgba(0,0,0,0.1); text-align:center;">
+          <div style="font-size:30px;">📦</div>
+          <h3>Total Stock</h3>
+          <p style="font-size:20px; font-weight:bold;">${totalStock}</p>
+        </div>
+        <div style="flex:1; min-width:200px; padding:15px; background:#f9f9f9; border-radius:8px; box-shadow:0 4px 6px rgba(0,0,0,0.1); text-align:center;">
+          <div style="font-size:30px;">💰</div>
+          <h3>Total Revenue Dispensed</h3>
+          <p style="font-size:20px; font-weight:bold;">UG.SHS ${totalRevenue.toLocaleString()}</p>
+        </div>
+        <div style="flex:1; min-width:200px; padding:15px; background:#fff8dc; border-radius:8px; box-shadow:0 4px 6px rgba(0,0,0,0.1); text-align:center;">
+          <div style="font-size:30px;">📈</div>
+          <h3>Estimated Income</h3>
+          <p style="font-size:20px; font-weight:bold;">UG.SHS ${estimatedIncome.toLocaleString()}</p>
+        </div>
+        <div style="flex:1; min-width:200px; padding:15px; background:#e6f7ff; border-radius:8px; box-shadow:0 4px 6px rgba(0,0,0,0.1); text-align:center;">
+          <div style="font-size:30px;">🏆</div>
+          <h3>Top Selling</h3>
+          <ul style="list-style:none; padding:0; margin:0;">`;
+    topSelling.forEach(med => {
+      cardsHTML += `<li style="margin:5px 0; font-weight:bold;">${med} - ${medicineSales[med]} sold</li>`;
+    });
+    cardsHTML += `</ul></div></div>`;
+
+    historyContainer.innerHTML = cardsHTML;
+
+    // ---------- Render Table ----------
+    let tableHTML = `
+      <table border="1" cellpadding="5" cellspacing="0" style="width:100%; border-collapse:collapse;">
+        <thead style="background:#f2f2f2;">
+          <tr>
+            <th>Medicine Name</th>
+            <th>Number of History Entries</th>
+            <th>Quantity Sold</th>
+            <th>Highly Selling Rate</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>`;
+
+    const sortedMeds = Object.keys(medicineSales).sort((a,b) => medicineSales[b]-medicineSales[a]);
+
+    sortedMeds.forEach(medName => {
+      const medHistory = historyData[medName];
+      if (!medHistory) return;
+      const filteredSnapshots = Object.keys(medHistory).filter(ts => {
+        const sales = medHistory[ts].sales || {};
+        return Object.values(sales).some(sale => {
+          const saleDate = new Date(sale.date);
+          let include = true;
+          if (startDate) include = include && (saleDate >= new Date(startDate));
+          if (endDate) include = include && (saleDate <= new Date(endDate + 'T23:59:59'));
+          return include;
+        });
+      });
+
+      const totalSold = medicineSales[medName];
+      const days = startDate && endDate ? (new Date(endDate)-new Date(startDate))/(1000*60*60*24)+1 : 1;
+      const dailyRate = (totalSold/days).toFixed(2);
+      let color = 'green';
+      if (dailyRate > 50) color='red';
+      else if (dailyRate > 20) color='orange';
+
+      tableHTML += `
+        <tr>
+          <td>${medName}</td>
+          <td>${filteredSnapshots.length}</td>
+          <td>${totalSold}</td>
+          <td style="color:${color}; font-weight:bold;">${dailyRate}/day</td>
+          <td><button class="view-history-btn" data-med="${medName}">VIEW</button></td>
+        </tr>`;
+    });
+
+    tableHTML += '</tbody></table>';
+    historyContainer.innerHTML += tableHTML;
+
+  } catch(err){
+    console.error('Error loading inventory history:', err);
+    historyContainer.innerHTML = '<p>Error loading inventory history.</p>';
+  }
+}
+
+
+
+// ---------------- View History Details (Snapshot + Sales Table) ----------------
+historyContainer.addEventListener('click', async (e) => {
+  if (!e.target.classList.contains('view-history-btn')) return;
+  const medName = e.target.dataset.med;
+
+  try {
+    const snapshot = await get(ref(database, `InventoryHistory/${medName}`));
+    if (!snapshot.exists()) {
+      alert('No history found for this medicine.');
+      return;
+    }
+
+    const medHistory = snapshot.val();
+
+    // ---------------- Build popup HTML ----------------
+    let detailsHTML = `
+      <div style="text-align:center;">
+        <img src="sanyu.png" alt="Hospital Logo" style="width:120px; margin-bottom:10px;">
+        <h2>Inventory History Report: ${medName}</h2>
+        <p>Print Date: ${new Date().toLocaleString()}</p>
+      </div>
+    `;
+   // Add print & close buttons
+    detailsHTML += `<div style="text-align:center; margin-top:10px;">
+                      <button id="printHistoryBtn">Print</button>
+                      <button id="closePopupBtn">Close</button>
+                    </div>`;
+    Object.keys(medHistory).forEach(timestamp => {
+      const entry = medHistory[timestamp];
+
+      // Format timestamp safely
+      let formattedDate;
+      try {
+ formattedDate = formatFirebaseTimestamp(timestamp);
+      } catch {
+        formattedDate = timestamp;
+      }
+
+      detailsHTML += `
+        <div class="snapshot-container" style="border:1px solid #ccc; margin-bottom:10px; border-radius:5px; overflow:hidden;">
+          <div class="snapshot-header" style="background:#f2f2f2; padding:8px; cursor:pointer; font-weight:bold;">
+            Snapshot: ${formattedDate} (click to toggle)
+          </div>
+          <div class="snapshot-body" style="padding:10px; max-height:1000px; overflow:hidden; transition:max-height 0.3s ease;">
+      `;
+
+ // Mapping for friendly column names
+const columnLabels = {
+  'name': 'Medicine Name',
+  'dob': 'Date of Expiry',
+  'dos': 'Date of Stock',
+  'parents': 'Parents',
+  'supplier': 'Supplier',
+  'measurement': 'Measurement',
+  'costPrice': 'Cost Price',
+  'insurancePrices.apa': 'APA Price',
+  'insurancePrices.ga': 'GA Price',
+  'insurancePrices.keah': 'KEAH Price'
+};
+
+// Flatten object (skip sales)
+const flattened = {};
+const flattenObject = (obj, parentKey = '') => {
+  Object.entries(obj).forEach(([key, value]) => {
+    const newKey = parentKey ? `${parentKey}.${key}` : key;
+    if (typeof value === 'object' && value !== null && key !== 'sales') {
+      flattenObject(value, newKey);
+    } else if (key !== 'sales') {
+      flattened[newKey] = value;
+    }
+  });
+};
+flattenObject(entry);
+
+// Generate table with friendly headers
+detailsHTML += `<table border="1" cellpadding="5" cellspacing="0" style="width:100%; border-collapse:collapse; margin-bottom:10px;">
+                  <tr style="background:#f2f2f2;">`;
+
+Object.keys(flattened).forEach(col => {
+  const label = columnLabels[col] || col; // use mapping, fallback to original key
+  detailsHTML += `<th>${label}</th>`;
+});
+
+detailsHTML += `</tr><tr>`;
+Object.values(flattened).forEach(val => {
+  detailsHTML += `<td>${val}</td>`;
+});
+detailsHTML += `</tr></table>`;
+
+
+      // Sales table
+      if (entry.sales) {
+        detailsHTML += `<h4>Sales:</h4>
+          <table border="1" cellpadding="5" cellspacing="0" style="width:100%; border-collapse:collapse; margin-bottom:20px;">
+            <tr style="background:#d9edf7;">
+              <th>Date</th>
+              <th>Provider</th>
+              <th>Quantity</th>
+              <th>Unit Price</th>
+              <th>Total Cost</th>
+            </tr>`;
+        Object.values(entry.sales).forEach(sale => {
+          detailsHTML += `<tr>
+                            <td>${sale.date}</td>
+                            <td>${sale.provider}</td>
+                            <td>${sale.quantity}</td>
+                            <td>${sale.unitPrice}</td>
+                            <td>${sale.totalCost}</td>
+                          </tr>`;
+        });
+        detailsHTML += `</table>`;
+      }
+
+      detailsHTML += `</div></div>`; // close snapshot-body & container
+    });
+
+ 
+
+    // ---------------- Create popup with fade-in ----------------
+    const popup = document.createElement('div');
+    popup.style.position = 'fixed';
+    popup.style.top = '0';
+    popup.style.left = '0';
+    popup.style.width = '100%';
+    popup.style.height = '100%';
+    popup.style.background = 'rgba(0,0,0,0.5)';
+    popup.style.display = 'flex';
+    popup.style.justifyContent = 'center';
+    popup.style.alignItems = 'center';
+    popup.style.opacity = '0';
+    popup.style.zIndex = '99999'; // ensures popup is on top of everything
+    popup.style.transition = 'opacity 0.3s ease';
+    popup.innerHTML = `<div style="background:#fff; padding:20px; border:1px solid #000; max-height:95vh; overflow-y:auto; width:95%;">${detailsHTML}</div>`;
+    document.body.appendChild(popup);
+    requestAnimationFrame(() => popup.style.opacity = '1'); // fade in
+
+    // Close popup
+    document.getElementById('closePopupBtn').addEventListener('click', () => {
+      popup.style.opacity = '0';
+      setTimeout(() => document.body.removeChild(popup), 300);
+    });
+
+    // Collapse/expand snapshots
+    popup.querySelectorAll('.snapshot-header').forEach(header => {
+      header.addEventListener('click', () => {
+        const body = header.nextElementSibling;
+        if (!body.style.maxHeight || body.style.maxHeight === '0px') {
+          body.style.maxHeight = body.scrollHeight + 'px';
+        } else {
+          body.style.maxHeight = '0px';
+        }
+      });
+    });
+// ---------------- Print independent ----------------
+document.getElementById('printHistoryBtn').addEventListener('click', async () => {
+  try {
+    const snapshot = await get(ref(database, `InventoryHistory/${medName}`));
+    if (!snapshot.exists()) {
+      alert('No history found for printing.');
+      return;
+    }
+    const medHistory = snapshot.val();
+
+    // Mapping for friendly column names
+    const columnLabels = {
+      'name': 'Medicine Name',
+      'dob': 'Date of Expiry',
+      'dos': 'Date of Stock',
+      'parents': 'Parents',
+      'supplier': 'Supplier',
+      'measurement': 'Measurement',
+      'costPrice': 'Cost Price',
+      'insurancePrices.apa': 'APA Price',
+      'insurancePrices.ga': 'GA Price',
+      'insurancePrices.keah': 'KEAH Price'
+    };
+
+    // Prepare independent print HTML
+    let printHTML = `
+      <html><head><title>Inventory History - ${medName}</title>
+      <style>
+        body { font-family: Arial, sans-serif; padding:20px; }
+        table { border-collapse: collapse; width:100%; margin-bottom:15px; }
+        th, td { border:1px solid #000; padding:5px; text-align:left; }
+        th { background:#f2f2f2; }
+        .sales-table th { background:#d9edf7; }
+        h1,h2,h3,h4 { margin:5px 0; }
+      </style>
+      </head><body>
+      <div style="text-align:center;">
+        <img src="sanyu.png" alt="Hospital Logo" style="width:120px; margin-bottom:10px;">
+        <h1>SANYU HOSPITAL </h1>
+        <h2>Inventory History Report: ${medName}</h2>
+        <p>Print Date: ${new Date().toLocaleString()}</p>
+      </div>
+    `;
+
+    // Loop through snapshots
+    Object.keys(medHistory).forEach(timestamp => {
+      const entry = medHistory[timestamp];
+      let formattedDate;
+      try { 
+ formattedDate = formatFirebaseTimestamp(timestamp);
+      } catch { 
+        formattedDate = timestamp; 
+      }
+
+      // Flatten non-sales data
+      const flattened = {};
+      const flattenObject = (obj, parentKey='') => {
+        Object.entries(obj).forEach(([key, value]) => {
+          const newKey = parentKey ? `${parentKey}.${key}` : key;
+          if (typeof value === 'object' && value !== null && key !== 'sales') {
+            flattenObject(value, newKey);
+          } else if (key !== 'sales') {
+            flattened[newKey] = value;
+          }
+        });
+      };
+      flattenObject(entry);
+
+      // Medicine table
+      printHTML += `<h3>Snapshot: ${formattedDate}</h3>`;
+      printHTML += `<table border="1" cellpadding="5" cellspacing="0"><tr>`;
+      Object.keys(flattened).forEach(col => {
+        const label = columnLabels[col] || col; // use friendly label
+        printHTML += `<th>${label}</th>`;
+      });
+      printHTML += `</tr><tr>`;
+      Object.values(flattened).forEach(val => printHTML += `<td>${val}</td>`);
+      printHTML += `</tr></table>`;
+
+      // Sales table
+      if(entry.sales){
+        printHTML += `<h4>Sales:</h4>
+          <table border="1" cellpadding="5" cellspacing="0" class="sales-table">
+            <tr><th>Date</th><th>Provider</th><th>Quantity</th><th>Unit Price</th><th>Total Cost</th></tr>`;
+        Object.values(entry.sales).forEach(sale => {
+          printHTML += `<tr>
+                          <td>${sale.date}</td>
+                          <td>${sale.provider}</td>
+                          <td>${sale.quantity}</td>
+                          <td>${sale.unitPrice}</td>
+                          <td>${sale.totalCost}</td>
+                        </tr>`;
+        });
+        printHTML += `</table>`;
+      }
+    });
+
+    printHTML += `</body></html>`;
+
+    const printWindow = window.open('', '', 'width=1000,height=800');
+    printWindow.document.write(printHTML);
+    printWindow.document.close();
+    printWindow.print();
+
+  } catch(err){
+    console.error('Error printing inventory history:', err);
+    alert('Error generating printout.');
+  }
+});
+
+  } catch (err) {
+    console.error('Error fetching history details:', err);
+    alert('Error fetching history details.');
+  }
+});
+
 
 
 
@@ -359,45 +831,67 @@ const form = document.querySelector('.popup-form');
 const submitButton = document.querySelector('.popup-form button');
 const patientsContainer = document.getElementById('patients');
 let patients = []; // Declare patients variable outside the event listener
-
-form.addEventListener('submit', function(e) {
+form.addEventListener('submit', async function (e) {
   e.preventDefault();
-  
-  // Get form input values
-  const name = document.getElementById('name').value;
-  const dob = document.getElementById('dob').value;
-  const parents = document.getElementById('parents').value;
-  const dos = document.getElementById('dos').value;
-  const price = document.getElementById('price').value;
-  //const pricepergram = document.getElementById('pricepergram').value;
-  const measurement = document.querySelector('input[name="measurement"]:checked').value; // Get selected grams per piece value
-  const medicineType = document.getElementById('medicineType').value;
-  
-  // Create medicine data object
-  const medicineData = {
-      name: name,
-      dob: dob,
-      parents: parents,
-      dos: dos,
-      price: price,
-     // pricepergram: pricepergram,
-      measurement: measurement,
-      medicineType: medicineType
+
+  // ✅ Collect form inputs
+  const name = document.getElementById('name').value.trim();
+  const dob = document.getElementById('dob').value.trim();
+  const parents = document.getElementById('parents').value.trim();
+  const dos = document.getElementById('dos').value.trim();
+  const supplier = document.getElementById('supplier').value.trim();
+  const measurement = document.querySelector('input[name="measurement"]:checked')?.value || '';
+
+  // ✅ Insurance prices
+  const keah = parseFloat(document.getElementById('keahPrice').value) || 0;
+  const apa = parseFloat(document.getElementById('apaPrice').value) || 0;
+  const ga = parseFloat(document.getElementById('gaPrice').value) || 0;
+
+  // ✅ Data to update
+  const updatedData = {
+    name,
+    dob,
+    parents,
+    dos,
+    supplier,
+    measurement,
+    insurancePrices: {
+      apa,
+      ga,
+      keah
+    }
   };
 
-  // Upload medicine data to Firebase
-  const medicineRef = ref(database, 'medicine');
-  const newMedicineRef = child(medicineRef, name); // Use medicine name as the key
+  const medRef = ref(database, 'medicine/' + name);
 
-  set(newMedicineRef, medicineData)
-      .then(() => {
-          form.reset();
-          showMessage('Medicine details uploaded successfully!');
-      })
-      .catch(() => {
-          showMessage('Error uploading medicine details. Please try again.');
-      });
+  try {
+    const snapshot = await get(medRef);
+
+    if (snapshot.exists()) {
+      const existingData = snapshot.val();
+
+      // ✅ 1️⃣ Backup existing node into /history/
+      const timestamp = new Date().toISOString().replace(/[.:]/g, '-');
+      const historyRef = ref(database, `medicine/${name}/history/${timestamp}`);
+      await set(historyRef, existingData);
+
+      // ✅ 2️⃣ Update only changed fields (non-destructive)
+      await update(medRef, updatedData);
+
+      showMessage('✅ Medicine updated without overwriting. Old version saved in history.');
+    } else {
+      // ✅ Create new record if it doesn’t exist
+      await set(medRef, updatedData);
+      showMessage('✅ New medicine added successfully.');
+    }
+
+    form.reset();
+  } catch (error) {
+    console.error('Error saving medicine:', error);
+    showMessage('❌ Failed to save medicine. Try again.');
+  }
 });
+
 
 
 // Add event listener to search button
@@ -459,14 +953,21 @@ renderPatients(filteredPatients);
 
 // Add event listener to search input for live search
 searchInput.addEventListener('input', () => {
-const searchTerm = searchInput.value.trim(); // Get the search term
-const patientsRef = ref(database, 'medicine');
-onValue(patientsRef, (snapshot) => {
-  const patientsData = snapshot.val();
-  const patients = patientsData ? Object.values(patientsData) : [];
-  filterPatients(patients, searchTerm);
+  const searchTerm = searchInput.value.trim().toLowerCase();
+
+  // Get all table rows except the header
+  const tableRows = patientsContainer.querySelectorAll('table tr:not(:first-child)');
+
+  tableRows.forEach(row => {
+    const patientName = row.querySelector('td').textContent.toLowerCase();
+    if (patientName.includes(searchTerm)) {
+      row.style.display = ''; // show row
+    } else {
+      row.style.display = 'none'; // hide row
+    }
+  });
 });
-});
+
 
 // Define the sellProductForm variable outside the renderPatients function
 
@@ -481,7 +982,7 @@ const table = document.createElement('table');
 table.classList.add('patient-table');
 
 // Create table headers
-const headers = ['Name','Add', 'Rmg Stock', 'Expiry', 'Stock lvl', 'D.O.S','Price @Piece', 'Initial Stock', 'Est. Revenue', 'Actions'];
+const headers = ['Name','Add', 'Rmg Stock', 'Expiry', 'Stock lvl', 'D.O.S', 'Initial Stock','Cost Price (Ugx)','Price @Piece',   'Est. Revenue','Supplier', 'Actions'];
 const headerRow = document.createElement('tr')
 headers.forEach((headerText) => {
   const th = document.createElement('th');
@@ -525,39 +1026,79 @@ remainingStock = initialStock;
 const remainingStockCell = document.createElement('td');
 remainingStockCell.textContent = `${remainingStock} pcs`;
 remainingStockCell.classList.add('remaining-stock-cell')
-
-// Create the cell for the "Add More Stock" button
 const addStockCell = document.createElement('td');
 
 // Create the "Add More Stock" button
 const addMoreStockButton = document.createElement('button');
 addMoreStockButton.textContent = 'Add';
 addMoreStockButton.classList.add('add-stock-button'); // Add a class for styling if needed
+addMoreStockButton.addEventListener('click', async function () {
+  const password = prompt('Enter password to proceed:');
+  const correctPassword = 'sanyu44'; // replace with your actual password
 
-// Add click event listener to the button
-addMoreStockButton.addEventListener('click', function() {
-  // Get the medicine name from the corresponding cell in the same row
-  const medicineName = row.querySelector('td:nth-child(1)').textContent; // Adjust the index as needed
+  if (password !== correctPassword) {
+    alert('❌ Incorrect password. Action canceled.');
+    return; // stop execution
+  }
 
-    // Set the value of the name input field to the medicine name
-    document.getElementById('name').value = medicineName;
-  // Log the medicine name to the console
-  console.log('Medicine Name:', medicineName);
+  const medicineName = row.querySelector('td:nth-child(1)').textContent.trim();
+  const database = getDatabase();
+  const medicineRef = ref(database, 'medicine/' + medicineName);
 
-  // Open the popup
-  popupOverlay.style.visibility = 'visible';
-  popupOverlay.style.opacity = '1';
+  try {
+    const snapshot = await get(medicineRef);
+
+    if (!snapshot.exists()) {
+      showMessage('❌ No details found for this medicine.');
+      return;
+    }
+
+    const data = snapshot.val();
+
+    // ---------------- Save copy under global "InventoryHistory" node ----------------
+    const timestamp = new Date().toISOString().replace(/[.:]/g, '-'); // safe Firebase key
+    const historyRef = ref(database, `InventoryHistory/${medicineName}/${timestamp}`);
+    await set(historyRef, data);
+
+    // ---------------- Fill form with current medicine details ----------------
+    document.getElementById('name').value = data.name || '';
+    document.getElementById('dob').value = data.dob || '';
+    document.getElementById('parents').value = data.parents || '';
+    document.getElementById('dos').value = data.dos || '';
+    document.getElementById('supplier').value = data.supplier || '';
+    document.getElementById('costPrice').value = data.costPrice || '';
+
+    if (data.measurement) {
+      const measurementRadio = document.querySelector(`input[name="measurement"][value="${data.measurement}"]`);
+      if (measurementRadio) measurementRadio.checked = true;
+    }
+
+    if (data.insurancePrices) {
+      document.getElementById('keahPrice').value = data.insurancePrices.keah || '';
+      document.getElementById('apaPrice').value = data.insurancePrices.apa || '';
+      document.getElementById('gaPrice').value = data.insurancePrices.ga || '';
+    }
+
+    // ---------------- Open popup ----------------
+    popupOverlay.style.visibility = 'visible';
+    popupOverlay.style.opacity = '1';
+
+    showMessage('✅ Medicine details loaded and snapshot saved in InventoryHistory.');
+  } catch (error) {
+    console.error('Error fetching medicine details:', error);
+    showMessage('❌ Error fetching medicine details.');
+  }
 });
 
 // Append the button to the cell
 addStockCell.appendChild(addMoreStockButton);
 
 // Add click event listener to the popup close button
-popupClose.addEventListener('click', function() {
-  // Close the popup
+popupClose.addEventListener('click', function () {
   popupOverlay.style.visibility = 'hidden';
   popupOverlay.style.opacity = '0';
 });
+
 
 
 
@@ -630,33 +1171,94 @@ if (remainingStock === 0) {
 }
 
 
+// --- Date of Stock ---
+const dosCell = document.createElement('td');
+dosCell.textContent = patient.dos || '-';
+row.appendChild(dosCell);
 
-  // Date of Stock
-  const dosCell = document.createElement('td');
-  dosCell.textContent = patient.dos;
-  row.appendChild(dosCell);
+// --- Initial Stock ---
+const initialStockCell = document.createElement('td');
+initialStockCell.textContent = `${initialStock} pcs`;
+initialStockCell.classList.add('stock-cell');
+row.appendChild(initialStockCell);
 
-  // Price @pc
-  const priceCell = document.createElement('td');
-  priceCell.textContent = `${patient.price}.00`;
-  priceCell.classList.add('price-per-piece-cell'); // Add this line to set the class
-  row.appendChild(priceCell);
+// --- Get selected provider from localStorage or default to 'keah' ---
+const providerSelect = document.getElementById('providerSelect');
+let selectedProvider = localStorage.getItem('selectedProvider') || 'keah';
+providerSelect.value = selectedProvider;
+
+
+const costPriceCell = document.createElement('td');
+costPriceCell.textContent = patient.costPrice || '—';
+row.appendChild(costPriceCell);
+
+// --- Price Per Piece ---
+const priceCell = document.createElement('td');
+priceCell.classList.add('price-per-piece-cell');
+
+// Save all price variants in dataset (match DB keys)
+priceCell.dataset.keah = patient.insurancePrices?.keah || 0;
+priceCell.dataset.apa = patient.insurancePrices?.apa || 0;
+priceCell.dataset.ga = patient.insurancePrices?.ga || 0;
+
+// Display selected provider price by default
+const defaultPrice = parseFloat(priceCell.dataset[selectedProvider]) || 0;
+priceCell.textContent = `${defaultPrice}.00`;
+row.appendChild(priceCell);
+
+// --- Estimated Revenue ---
+const revenueCell = document.createElement('td');
+revenueCell.classList.add('revenue-cell');
+
+const estimatedRevenue = initialStock * defaultPrice;
+revenueCell.textContent = `${estimatedRevenue.toLocaleString('en')}.00`;
+row.appendChild(revenueCell);
+
+function updatePrices(provider) {
+  document.querySelectorAll('.price-per-piece-cell').forEach((cell) => {
+    // Show spinner first
+    cell.innerHTML = '<span class="spinner"></span>';
+
+    const row = cell.closest('tr');
+    const stockCell = row.querySelector('.stock-cell');
+    const revenueCell = row.querySelector('.revenue-cell');
+
+    if (stockCell && revenueCell) {
+      // Show spinner in revenue too
+      revenueCell.innerHTML = '<span class="spinner"></span>';
+
+      // Simulate async update (optional, or just use setTimeout for UI effect)
+      setTimeout(() => {
+        const newPrice = parseFloat(cell.dataset[provider]) || 0;
+        cell.textContent = `${newPrice}.00`;
+
+        const stock = parseFloat(stockCell.textContent) || 0;
+        const newRevenue = stock * newPrice;
+        revenueCell.textContent = `${newRevenue.toLocaleString('en')}.00`;
+      }, 200); // 200ms delay for effect
+    }
+  });
+}
+
+
+// --- Event listener ---
+providerSelect.addEventListener('change', (e) => {
+  const newProvider = e.target.value;
+  localStorage.setItem('selectedProvider', newProvider);
+  updatePrices(newProvider);
+});
+
+// --- Apply saved/default provider on page load ---
+updatePrices(selectedProvider);
+
+
+
+ // Date of Stock
+  const supplier = document.createElement('td');
+  supplier.textContent = patient.supplier;
+  row.appendChild(supplier);
 
   
-  
-
-  // Initial Stock
-  const initialStockCell = document.createElement('td');
-  initialStockCell.textContent = `${patient.parents} pcs`;
-  row.appendChild(initialStockCell);
-
-  // Estimated Revenue
-  const estimatedRevenue = initialStock * patient.price;
-  const formattedRevenue = estimatedRevenue.toLocaleString('en');
-  const revenueCell = document.createElement('td');
-  revenueCell.textContent = `${formattedRevenue}.00`;
-  row.appendChild(revenueCell);
-
   // Actions
   const actionsCell = document.createElement('td');
   const viewButton = document.createElement('button');
@@ -668,92 +1270,117 @@ if (remainingStock === 0) {
   });
   actionsCell.appendChild(viewButton);
 
+
+// Create "Delete" Button
+const deleteButton = document.createElement("button");
+deleteButton.textContent = "Delete";
+deleteButton.classList.add("delete-button");
+
+// Style the button
+deleteButton.style.backgroundColor = "#d9534f"; // Red color for delete button
+deleteButton.style.color = "white";
+deleteButton.style.border = "none";
+deleteButton.style.padding = "5px 10px";
+deleteButton.style.borderRadius = "5px";
+deleteButton.style.cursor = "pointer";
+
+// Use patient.name as the ID
+deleteButton.addEventListener("click", function () {
+  if (!patient.name) {
+    console.error("Error: patient.name is undefined");
+    return;
+  }
+
+  console.log("Delete button clicked for Medicine ID (Patient Name):", patient.name); // Debugging log
+
+  // Ask for a password before deleting
+  const password = prompt("Enter the password to confirm deletion:");
+
+  if (password === "sanyu44") { // Replace with your actual password
+    if (confirm(`Are you sure you want to delete ${patient.name}'s medicine?`)) {
+      deleteMedicine(patient.name);  // Pass the patient name as the ID
+    }
+  } else {
+    alert("Incorrect password. Deletion cancelled.");
+  }
+});
+
+
+actionsCell.appendChild(deleteButton);
+
+const deleteMedicine = (patientName) => {
+  if (!patientName) {
+    console.error("Error: patientName is undefined or null");
+    return;
+  }
+
+  console.log("Deleting medicine record for:", patientName); // Debugging log
+
+  const medicineRef = ref(database, `medicine/${patientName}`); // Use patientName as the key
+
+  remove(medicineRef)
+    .then(() => {
+      alert(`Medicine record for ${patientName} deleted successfully.`);
+      //location.reload(); // Refresh the page to update the list
+    })
+    .catch((error) => {
+      console.error("Error deleting medicine record:", error);
+      alert("Error deleting medicine. Please try again.");
+    });
+};
+
   const sellButton = document.createElement('button');
 sellButton.textContent = 'Sell';
 sellButton.classList.add('sell-button');
 // Define a variable to store the "Grams Per Piece" value
 let gramsPerPieceValue;
-// Event listener for opening the sell popup
 sellButton.addEventListener('click', function(event) {
-if (daysRemaining < 0) {
-  // Show alert for expired medicine
-  alert(`The medicine ${patient.name} has expired!`);
-} else if (remainingStock === 0) {
-  // Show alert for out of stock medicine
-  alert(`The medicine ${patient.name} is out of stock!`);
-} else {
+  if (daysRemaining < 0) return alert(`${patient.name} has expired!`);
+  if (remainingStock === 0) return alert(`${patient.name} is out of stock!`);
+
   const sellPopupOverlay = document.getElementById('sellPopupOverlay2');
   sellPopupOverlay.style.display = 'block';
-// Capture the price per piece
-const pricePerPieceCell = event.target.parentElement.parentElement.querySelector('.price-per-piece-cell');
-const pricePerPiece = parseFloat(pricePerPieceCell.textContent.split(' ')[0]);
 
-// Capture the remaining stock
-const remainingStockCell = event.target.parentElement.parentElement.querySelector('.remaining-stock-cell');
-const remainingStockValue = parseInt(remainingStockCell.textContent.split(' ')[0]);
+  const pricePerPiece = parseFloat(row.querySelector('.price-per-piece-cell').textContent);
+  const remainingStockValue = parseInt(row.querySelector('.remaining-stock-cell').textContent);
 
-// Capture the input fields for this specific medicine
-const sellFormPatientName = document.getElementById('sellFormPatientName');
-const sellPiecesInput = document.getElementById('sellPieces');
-const sellTotalInput = document.getElementById('totalCost');
+  const sellFormPatientName = document.getElementById('sellFormPatientName');
+  const sellPiecesInput = document.getElementById('sellPieces');
+  const sellTotalInput = document.getElementById('totalCost');
 
-// Set the patient name
-sellFormPatientName.value = patient.name;
+  sellFormPatientName.value = patient.name;
 
-// Event listener for updating the pieces and total cost input fields
-sellPiecesInput.addEventListener('input', function () {
+  // Prefill from existing cart
+  const existingItem = cartItemsArray.find(item => item.patientName === patient.name);
+  if (existingItem) {
+    sellPiecesInput.value = existingItem.pieces;
+    sellTotalInput.value = existingItem.totalCost.toFixed(2);
+  } else {
+    sellPiecesInput.value = '';
+    sellTotalInput.value = '';
+  }
+
+  sellPiecesInput.oninput = function() {
     const pieces = parseFloat(sellPiecesInput.value);
-
     if (!isNaN(pieces) && pieces > 0) {
-        // Calculate the total cost based on the number of pieces and the price per piece
-        const total = pieces * pricePerPiece;
-
-        // Update the "totalCost" input field
-        sellTotalInput.value = total.toFixed(2);
-
-        // Check if pieces are more than remaining stock
-        if (pieces > remainingStockValue) {
-            // Disable the "Add to Cart" button
-            addToCartButton.disabled = true;
-            addToCartButton.style.cursor = "disabled";
-            addToCartButton.style.backgroundColor = "lightblue";
-            // Show a message in the popup
-            const sellPopupMessage = document.getElementById('sellPopupMessage');
-            sellPopupMessage.textContent = 'Pieces are more than remaining stock';
-        } else {
-            // Enable the "Add to Cart" button
-            addToCartButton.disabled = false;
-            addToCartButton.style.cursor = "pointer";
-            addToCartButton.style.backgroundColor = "orange";
-            // Clear the message in the popup
-            const sellPopupMessage = document.getElementById('sellPopupMessage');
-            sellPopupMessage.textContent = '';
-        }
+      const total = pieces * pricePerPiece;
+      sellTotalInput.value = total.toFixed(2);
+      addToCartButton.disabled = pieces > remainingStockValue;
+      document.getElementById('sellPopupMessage').textContent = pieces > remainingStockValue ? 
+        'Pieces are more than remaining stock' : '';
     } else {
-        // Clear the "totalCost" input field when input values are invalid
-        sellTotalInput.value = '';
+      sellTotalInput.value = '';
     }
-});
+  };
 
-
-  // Event listener for closing the sell popup
-  const sellPopupClose = document.getElementById('sellPopupClose2');
-  sellPopupClose.addEventListener('click', function() {
-    const sellPopupOverlay = document.getElementById('sellPopupOverlay2');
+  // Close popup
+  document.getElementById('sellPopupClose2').onclick = function() {
     sellPopupOverlay.style.display = 'none';
-    
-    // Reset the "Grams Per Piece" value when the popup is closed
-    gramsPerPieceValue = null;
-// Clear the message in the popup
-    const sellPopupMessage = document.getElementById('sellPopupMessage');
-    sellPopupMessage.textContent = '';
-
-    // Clear the input fields for this specific medicine
     sellFormPatientName.value = '';
     sellPiecesInput.value = '';
-   // totalCostInput.value = '';
-  });
-}
+    sellTotalInput.value = '';
+    document.getElementById('sellPopupMessage').textContent = '';
+  };
 });
 
 actionsCell.appendChild(sellButton);
@@ -789,237 +1416,135 @@ closeCartPopup();
 function closeCartPopup() {
 cartPopup.style.display = 'none';
 }
-// Function to generate a receipt and open a print window
 function generateAndPrintReceipt(cartItemsArray) {
-// Create a receipt HTML content
-const receiptContent = generateReceiptContent(cartItemsArray);
+  // Get the selected billing mode text
+  const providerSelect = document.getElementById('providerSelect');
+  const selectedProviderText = providerSelect.options[providerSelect.selectedIndex].text;
 
-// Create a new window for printing
-const printWindow = window.open('', '', 'width=700,height=700');
-printWindow.document.open();
-printWindow.document.write(receiptContent);
-printWindow.document.close();
+  // Generate receipt content with billing mode
+  const receiptContent = generateReceiptContent(cartItemsArray, selectedProviderText);
 
-// Print the receipt
-printWindow.print();
+  // Open a new print window
+  const printWindow = window.open('', '', 'width=800,height=700');
+  printWindow.document.open();
+  printWindow.document.write(`
+    <html>
+      <head>
+        <title>Receipt</title>
+        <style>
+          /* Optional: you can include your receipt CSS here for better print formatting */
+          body { margin: 0; padding: 0; font-family: 'Open Sans', sans-serif; }
+        </style>
+      </head>
+      <body>
+        ${receiptContent}
+      </body>
+    </html>
+  `);
+  printWindow.document.close();
+
+  // Automatically trigger print
+  printWindow.focus();
+  printWindow.print();
+
+  // Optionally close the print window after printing
+  //printWindow.close();
 }
-// Function to generate the HTML content for the receipt
-function generateReceiptContent(cartItemsArray) {
-// Create the receipt header with hospital information
-const hospitalInfo = `
-<!-- Updated HTML structure with the hospital logo -->
-<div class="hospital-info">
-  <div class="hospital-logo">
-    <img src="sanyu.png" alt="Hospital Logo">
+
+function generateReceiptContent(cartItemsArray, billingMode) {
+  // Compute total cost
+  const totalCost = cartItemsArray.reduce((total, item) => total + item.totalCost, 0);
+
+  // Create receipt header with hospital info
+  const hospitalInfo = `
+  <div class="hospital-info">
+    <div class="hospital-logo">
+      <img src="sanyu.png" alt="Hospital Logo">
+    </div>
+    <div class="hospital-details">
+      <h1>SANYU HOSPITAL </h1>
+      <p>Address: Located at Katooke-Wakiso District</p>
+      <p>Phone: +256 782 477 517</p>
+      <p>Email: info@keahmedicals.com</p>
+    </div>
   </div>
-  <div class="hospital-details">
-    <h1>SANYU HOSPITAL</h1>
-    <p>Address: Katooke Wakiso District (Uganda)</p>
-    <p>Phone: +256 708 657 717</p>
-    <p>Email: sanyuhospital@gmail.com</p>
-  </div>
-</div>
-<div class="watermark">
-  <img src="sanyu.png" alt="Watermark" class="watermark-image">
-</div>
 
   <style>
-  /* Updated CSS styles for larger receipt content */
-  /* Use the "Open Sans" font */
-  @import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@300&display=swap');
-  
-  /* Updated CSS styles for larger receipt content */
-  .receipt {
-    font-family: 'Anton', sans-serif;
-        max-width: 100%; /* Fit to the paper width */
-    margin: 0 auto;
-    padding: 20px; /* Increased padding */
-    font-weight: 50px
-  }
-  .hospital-info {
-    display: flex;
-    align-items: center;
-    margin-bottom: 20px; /* Increased margin */
-  }
-  /* Add styles for the watermark */
-  .watermark {
-    position: absolute;
-    top: 50%; /* Position at the vertical center of the receipt */
-    left: 50%; /* Position at the horizontal center of the receipt */
-    transform: translate(-50%, -50%); /* Center the watermark */
-    z-index: -1; /* Place it behind the receipt content */
-    opacity: 0.2; /* Adjust opacity to your preference */
-  }
-  
-  .watermark-image {
-    width: 100%; /* Make the watermark cover the entire receipt */
-    height: auto;
-  }
-  
-  .hospital-info h1 {
-    font-size: 32px; /* Increased font size */
-    margin: 0;
-  }
-  
-  .hospital-details {
-    flex-grow: 1;
-    text-align: right;
-  }
-  
-  .hospital-details p {
-    font-size: 20px; /* Increased font size */
-    margin: 10px; /* Increased margin */
-  }
-  
-  .receipt-header h2 {
-    font-size: 26px; /* Increased font size */
-    text-align: center;
-    margin: 0;
-  }
-  
-  .receipt-header p {
-    font-size: 18px; /* Increased font size */
-    text-align: left;
-    margin: 10px;
-  }
-  
-  .receipt-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 20px; /* Increased margin */
-  }
-  
-  .receipt-table th,
-   .receipt-table td {
-    padding: 15px; /* Increased padding */
-    border: none; /* Remove borders */
-    font-size: 20px; /* Increased font size */
-    text-align: left;
-  }
-  
-  .receipt-footer {
-    text-align: right;
-    margin-top: 20px; /* Increased margin */
-  }
-  
-  .disclaimer {
-    font-size: 18px; /* Increased font size */
-    text-align: center;
-    margin-top: 30px; /* Increased margin */
-    font-style: italic;
-  }
-  
-  /* Updated CSS styles with hospital logo */
-  .hospital-info {
-    display: flex;
-    align-items: center;
-    margin-bottom: 20px; /* Increased margin */
-  }
-  
-  .hospital-logo {
-    margin-right: 20px; /* Add margin to separate the logo from hospital details */
-  }
-  
-  .hospital-logo img {
-    max-width: 180px; /* Adjust the max width as needed */
-    height: auto;
-  }
-  
-  .hospital-info h1 {
-    font-size: 32px; /* Increased font size */
-    margin: 0;
-  }
-  
-  .hospital-details {
-    flex-grow: 1;
-    text-align: right;
-  }
-  
-  .hospital-details p {
-    font-size: 24px; /* Increased font size */
-    margin: 10px; /* Increased margin */
-  }
+    @import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@300&display=swap');
+    .receipt { font-family: 'Open Sans', sans-serif; max-width: 100%; margin: 0 auto; padding: 15px; }
+    .hospital-logo img { width: 45%; display: block; margin: 0 auto; }
+    .hospital-info, .hospital-details { text-align: center; margin: 0; padding: 0; }
+    .hospital-details h1 { font-size: 22px; margin: 0; }
+    .hospital-details p { font-size: 18px; margin: 1px 0; }
+    .receipt-header { margin-top: 10px; }
+    .receipt-header h2 { text-align: center; font-size: 20px; }
+    .receipt-header p { font-size: 16px; margin: 3px 0; }
+    .receipt-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    .receipt-table th, .receipt-table td { padding: 10px; border: 1px solid #ccc; font-size: 16px; text-align: left; }
+    .receipt-footer { text-align: right; margin-top: 20px; font-size: 18px; font-weight: bold; }
+    .billing-mode { margin-top: 10px; text-align: left; font-size: 16px; }
+    .note { font-size: 14px; text-align: center; margin-top: 25px; font-style: italic; }
+  </style>
+  `;
 
-  .receipt-table {
-    width: 100%;
-    border-collapse: collapse;
-  }
+  // Create receipt header with date, time, and billing mode
+  const receiptHeader = `
+    <div class="receipt-header">
+      <h2>Medicine Purchase Receipt</h2>
+      <p>Date: ${new Date().toLocaleDateString()}</p>
+      <p>Time: ${new Date().toLocaleTimeString()}</p>
+      <p class="billing-mode"><strong>Billing Mode:</strong> ${billingMode}</p>
+    </div>
+  `;
 
-  .receipt-table th, .receipt-table td {
-    padding: 10px; /* Increased padding */
-    border: 1px solid #ccc;
-    font-size: 16px; /* Increased font size */
-  }
+  // Receipt table for items
+  const receiptTable = `
+    <table class="receipt-table">
+      <thead>
+        <tr>
+          <th>Medicine</th>
+          <th>Pieces</th>
+          <th>Cost (UGX)</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${cartItemsArray.map(item => `
+          <tr>
+            <td>${item.patientName}</td>
+            <td>${item.pieces}</td>
+            <td>UGX ${item.totalCost.toLocaleString()}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
 
-  .receipt-footer {
-    text-align: right;
-  }
+  // Receipt footer with total cost
+  const receiptFooter = `
+    <div class="receipt-footer">
+      Total Cost: UGX ${totalCost.toLocaleString()}
+    </div>
+  `;
 
-  .disclaimer {
-    font-size: 14px; /* Increased font size */
-    text-align: center;
-    margin-top: 20px; /* Increased margin */
-    font-style: italic;
-  }
+  // Advisory note for patient
+  const note = `
+    <div class="note">
+      Please take your medicine as prescribed by your healthcare provider.
+    </div>
+  `;
 
-  
-</style>
+  // Combine everything
+  const receiptContent = `
+    <div class="receipt">
+      ${hospitalInfo}
+      ${receiptHeader}
+      ${receiptTable}
+      ${receiptFooter}
+      ${note}
+    </div>
+  `;
 
-
-`;
-
-// Create a receipt header
-const receiptHeader = `
-  <div class="receipt-header">
-    <h2>Medicine Purchase Receipt</h2>
-    <p>Date: ${new Date().toLocaleDateString()}</p>
-    <p>Time: ${new Date().toLocaleTimeString()}</p>
-  </div>
-`;
-
-// Create a table for receipt items
-const receiptTable = `
-  <table class="receipt-table">
-    <thead>
-      <tr>
-        <th>Medicine</th>
-        <th>Pieces</th>
-        <th>Cost</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${generateReceiptRows(cartItemsArray)}
-    </tbody>
-  </table>
-`;
-
-// Create a receipt footer with a disclaimer
-const disclaimer = `
-  <div class="disclaimer">
-    <p>Goods once sold are not returnable.</p>
-  </div>
-`;
-
-// Create a receipt footer with the total cost
-const totalCost = cartItemsArray.reduce((total, item) => total + item.totalCost, 0);
-const receiptFooter = `
-  <div class="receipt-footer">
-    <p>Total Cost: Ug.shs. ${totalCost}.00</p>
-  </div>
-`;
-
-// Combine all the receipt sections into the receipt content
-const receiptContent = `
-  <div class="receipt">
-    ${hospitalInfo}
-    ${receiptHeader}
-    ${receiptTable}
-    ${disclaimer}
-    ${receiptFooter}
-  </div>
-`;
-
-return receiptContent;
+  return receiptContent;
 }
 
 // Function to generate receipt rows from cart items
@@ -1032,202 +1557,196 @@ return cartItemsArray.map((item) => `
   </tr>
 `).join('');
 }
-
-
-// Function to show the cart popup and populate it with items
 function showCartPopup() {
-cartPopup.style.display = 'block';
+  cartPopup.style.display = 'block';
 
-// Clear the popup items container
-popupItems.innerHTML = '';
+  // Clear previous content
+  popupItems.innerHTML = '';
 
-// Create a title for the cart
-const cartTitle = document.createElement('h2');
-cartTitle.textContent = 'Cart Items';
-popupItems.appendChild(cartTitle);
+  // --- Billing Mode Display ---
+  const billingWrapper = document.createElement('div');
+  billingWrapper.classList.add('billing-mode-wrapper');
 
-// Create a table element
-const cartTable = document.createElement('table');
-cartTable.classList.add('cart-table');
+  const billingLabel = document.createElement('span');
+  billingLabel.textContent = 'Billing Mode: ';
 
-// Create a table header
-const tableHeader = document.createElement('thead');
-const headerRow = document.createElement('tr');
-const headers = ['Medicine','Pieces', 'Total Cost', 'Action'];
-headers.forEach((headerText) => {
-  const headerCell = document.createElement('th');
-  headerCell.textContent = headerText;
-  headerRow.appendChild(headerCell);
-});
-tableHeader.appendChild(headerRow);
-cartTable.appendChild(tableHeader);
+  const selectedProvider = document.getElementById('providerSelect').value;
+  const providerText = document.querySelector(`#providerSelect option[value="${selectedProvider}"]`).textContent;
 
-// Create a table body
-const tableBody = document.createElement('tbody');
+  const billingValue = document.createElement('strong');
+  billingValue.textContent = providerText;
 
-// Initialize total cost
-let cartTotalCost = 0;
+  billingWrapper.appendChild(billingLabel);
+  billingWrapper.appendChild(billingValue);
+  popupItems.appendChild(billingWrapper);
 
-// Loop through the cart items and add rows to the table
-for (const item of cartItemsArray) {
-const row = document.createElement('tr');
+  // --- Cart Title ---
+  const cartTitle = document.createElement('h2');
+  cartTitle.textContent = 'Cart Items';
+  cartTitle.classList.add('cart-title');
+  popupItems.appendChild(cartTitle);
 
-// Add columns for item details
-const patientNameCell = document.createElement('td');
-patientNameCell.textContent = item.patientName;
+  // --- Cart Table ---
+  const cartTable = document.createElement('table');
+  cartTable.classList.add('cart-table');
 
-const piecesCell = document.createElement('td');
-piecesCell.textContent = item.pieces;
-
-const totalCostCell = document.createElement('td');
-totalCostCell.textContent = item.totalCost;
-
-// Add a "Sell" button column
-const sellCell = document.createElement('td');
-const sellButton = document.createElement('button');
-sellButton.textContent = 'Sell';
-sellButton.addEventListener('click', function () {
-  handleSellForMedicine(item);
-});
-// sellCell.appendChild(sellButton);
-
-// Add a "Delete" button column
-const deleteCell = document.createElement('td');
-const deleteButton = document.createElement('button');
-deleteButton.innerHTML = '<i class="fas fa-trash-alt"></i>'; 
-deleteButton.addEventListener('click', function () {
-deleteCartItem(item);
-});
-sellCell.appendChild(deleteButton);
-
-// Append all cells to the row
-row.appendChild(patientNameCell);
-row.appendChild(piecesCell);
-row.appendChild(totalCostCell);
-row.appendChild(sellCell);
-// row.appendChild(deleteCell);
-
-// Append the row to the table body
-tableBody.appendChild(row);
-
-// Update the total cost
-cartTotalCost += item.totalCost;
-}
-
-// Append the table body to the table
-cartTable.appendChild(tableBody);
-
-// Append the table to the popup items container
-popupItems.appendChild(cartTable);
-
-// Create a total row at the end of the table
-const totalRow = document.createElement('tr');
-const totalCell = document.createElement('td');
-totalCell.colSpan = 4;
-totalCell.textContent = 'Overall Total Cost:';
-totalRow.appendChild(totalCell);
-
-const totalCostCell = document.createElement('td');
-totalCostCell.textContent = cartTotalCost;
-totalRow.appendChild(totalCostCell);
-
-// Append the total row to the table body
-tableBody.appendChild(totalRow);
-// Create a "Sell" button below the table
-const sellButton = document.createElement('button');
-sellButton.classList.add('add-to-cart-button');
-sellButton.innerHTML = '<i class="fas fa-receipt"></i> Sell & Print Receipt';
-popupItems.appendChild(sellButton);
-
-sellButton.addEventListener('click', function () {
-// Disable the button to prevent multiple clicks during the process
-sellButton.disabled = true;
-sellButton.textContent = 'Selling...';
-// Generate and print the receipt
-generateAndPrintReceipt(cartItemsArray);
-sellMedicinesInCart(cartItemsArray)
-  .then(() => {
-    // All items have been sold
-    sellButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
-    sellButton.disabled = false;
-    itemCount.innerHTML = '0'
-  })
-  .catch((error) => {
-    // Handle errors and restore the button state
-    console.error('Error while selling:', error);
-    sellButton.textContent = '<i class="fas fa-receipt"></i> Sell & Print Receipt';
-    sellButton.disabled = false;
+  const thead = document.createElement('thead');
+  const headerRow = document.createElement('tr');
+  const headers = ['Medicine', 'Pieces', 'Total Cost (UGX)', 'Action'];
+  headers.forEach(text => {
+    const th = document.createElement('th');
+    th.textContent = text;
+    headerRow.appendChild(th);
   });
-});
+  thead.appendChild(headerRow);
+  cartTable.appendChild(thead);
 
-popupItems.appendChild(sellButton);
+  const tbody = document.createElement('tbody');
+  let cartTotalCost = 0;
 
+  cartItemsArray.forEach(item => {
+    const row = document.createElement('tr');
 
-// Update the cart count
-cartCount = cartItemsArray.length;
-itemCount.textContent = cartCount;
-}
+    // Medicine Name
+    const nameCell = document.createElement('td');
+    nameCell.textContent = item.patientName;
+    row.appendChild(nameCell);
 
+    // Pieces
+    const piecesCell = document.createElement('td');
+    piecesCell.textContent = item.pieces;
+    row.appendChild(piecesCell);
 
+    // Total Cost
+    const costCell = document.createElement('td');
+    costCell.textContent = `UGX ${item.totalCost.toLocaleString()}`;
+    row.appendChild(costCell);
 
-// Function to delete a cart item
-function deleteCartItem(item) {
-// Find the index of the item in the cartItemsArray
-const index = cartItemsArray.indexOf(item);
-if (index !== -1) {
-  // Remove the item from the array
-  cartItemsArray.splice(index, 1);
+    // Action Buttons
+    const actionCell = document.createElement('td');
+    const deleteButton = document.createElement('button');
+    deleteButton.classList.add('delete-btn');
+    deleteButton.innerHTML = '<i class="fas fa-trash-alt"></i>';
+    deleteButton.addEventListener('click', () => deleteCartItem(item));
+    actionCell.appendChild(deleteButton);
+    row.appendChild(actionCell);
 
-  // Update the cart display
-  showCartPopup();
-}
-}
+    tbody.appendChild(row);
 
-// Add an event listener to the "Add to Cart" button in the sell popup
-addToCartButton.addEventListener('click', function () {
-// Get the item details
-const patientName = document.getElementById('sellFormPatientName').value;
-const pieces = parseFloat(document.getElementById('sellPieces').value);
-const totalCost = parseFloat(document.getElementById('totalCost').value);
-const sellPopupClose = document.getElementById('sellPopupClose2');
-// Check if the values are valid
-if (!isNaN(pieces) && !isNaN(totalCost) && pieces > 0) {
-  // Create an object to represent the item
-  const item = {
-    patientName: patientName,
-    pieces: pieces,
-    totalCost: totalCost,
-  };
+    cartTotalCost += item.totalCost;
+  });
 
-  // Add the item to the cart
-  cartItemsArray.push(item); // Add the item to the cart items collection
+  // --- Total Row ---
+  const totalRow = document.createElement('tr');
+  totalRow.classList.add('total-row');
 
-  // Display the cart items count
+  const totalLabelCell = document.createElement('td');
+  totalLabelCell.colSpan = 2;
+  totalLabelCell.textContent = 'Overall Total Cost:';
+  totalRow.appendChild(totalLabelCell);
+
+  const totalCostCell = document.createElement('td');
+  totalCostCell.colSpan = 2;
+  totalCostCell.textContent = `UGX ${cartTotalCost.toLocaleString()}`;
+  totalRow.appendChild(totalCostCell);
+
+  tbody.appendChild(totalRow);
+  cartTable.appendChild(tbody);
+  popupItems.appendChild(cartTable);
+
+  // --- Sell & Print Button ---
+  const sellAllButton = document.createElement('button');
+  sellAllButton.classList.add('sell-all-btn');
+  sellAllButton.innerHTML = '<i class="fas fa-receipt"></i> Sell & Print Receipt';
+  popupItems.appendChild(sellAllButton);
+
+  sellAllButton.addEventListener('click', () => {
+    sellAllButton.disabled = true;
+    sellAllButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+
+    // Pass billing mode to receipt
+    generateAndPrintReceipt(cartItemsArray, selectedProvider);
+
+    sellMedicinesInCart(cartItemsArray)
+      .then(() => {
+        sellAllButton.innerHTML = '<i class="fas fa-check"></i> Sold!';
+        cartItemsArray.length = 0;
+        itemCount.textContent = '0';
+        showCartPopup();
+      })
+      .catch(err => {
+        console.error('Error while selling:', err);
+        sellAllButton.innerHTML = '<i class="fas fa-receipt"></i> Sell & Print Receipt';
+        sellAllButton.disabled = false;
+      });
+  });
+
+  // --- Update Cart Count ---
   cartCount = cartItemsArray.length;
   itemCount.textContent = cartCount;
-  addToCartButton.innerHTML = '<i class="fas fa-check-circle"></i> Added';
-  addToCartButton.style.backgroundColor = 'orange';
-  addToCartButton.disabled = true;
-  
-  
-  // Revert the effect after 2 seconds
-  setTimeout(() => {
-    addToCartButton.innerHTML = '<i class="fas fa-shopping-cart"></i> Add to Cart';
-    addToCartButton.style.backgroundColor = ''; // Revert to the original background color
-    addToCartButton.disabled = false;
-
-   // Click the sellPopupClose button
-   const sellPopupClose = document.getElementById('sellPopupClose2');
-   sellPopupClose.click();
- }, 1000); // 2000 milliseconds = 2 seconds
-
-  // Update cart total
-  cartTotal += totalCost;
-  cartTotalElement.textContent = `$${cartTotal}`;
-} else {
-  alert('Please fill in valid values before adding to the cart.');
 }
+
+// --- Delete Function ---
+function deleteCartItem(item) {
+  const index = cartItemsArray.indexOf(item);
+  if (index !== -1) {
+    cartItemsArray.splice(index, 1);
+    showCartPopup();
+  }
+}
+
+
+addToCartButton.addEventListener('click', function () {
+  // Get the item details
+  const patientName = document.getElementById('sellFormPatientName').value;
+  const pieces = parseFloat(document.getElementById('sellPieces').value);
+  const totalCost = parseFloat(document.getElementById('totalCost').value);
+  const sellPopupClose = document.getElementById('sellPopupClose2');
+
+  // Validate input
+  if (!isNaN(pieces) && !isNaN(totalCost) && pieces > 0) {
+
+    // Check if the item already exists in the cart
+    const existingItem = cartItemsArray.find(item => item.patientName === patientName);
+
+    if (existingItem) {
+      // Increment pieces and total cost
+      existingItem.pieces += pieces;
+      existingItem.totalCost += totalCost;
+    } else {
+      // Add new item to cart
+      cartItemsArray.push({
+        patientName: patientName,
+        pieces: pieces,
+        totalCost: totalCost
+      });
+    }
+
+    // Update cart count and total
+    cartCount = cartItemsArray.length;
+    itemCount.textContent = cartCount;
+
+    cartTotal += totalCost;
+    cartTotalElement.textContent = `UGX ${cartTotal.toLocaleString()}`;
+
+    // Feedback animation
+    addToCartButton.innerHTML = '<i class="fas fa-check-circle"></i> Added';
+    addToCartButton.style.backgroundColor = 'orange';
+    addToCartButton.disabled = true;
+
+    setTimeout(() => {
+      addToCartButton.innerHTML = '<i class="fas fa-shopping-cart"></i> Add to Cart';
+      addToCartButton.style.backgroundColor = '';
+      addToCartButton.disabled = false;
+
+      if (sellPopupClose) sellPopupClose.click();
+    }, 500);
+
+  } else {
+    alert('Please fill in valid values before adding to the cart.');
+  }
 });
+
 
 row.appendChild(actionsCell);
   table.appendChild(row);
@@ -1344,90 +1863,79 @@ sellMedicinesInCart(cart);
 
 
 function handleSellForMedicine(item) {
-// Get the input values from the form
-const sellFormPatientName = item.patientName;
-const piecesSold = item.pieces; // Assuming you want to sell the same number of pieces as in the cart item
+  // Get the input values from the form / cart item
+  const sellFormPatientName = item.patientName;
+  const piecesSold = item.pieces; // pieces from cart item
+  const totalCost = item.totalCost || 0; // total cost from cart item
 
-// Assuming you already have access to the patients array
-const patient = patients.find((p) => p.name === sellFormPatientName);
+  // Compute unit price (guard against divide-by-zero)
+  const unitPrice = piecesSold && piecesSold > 0 ? parseFloat((totalCost / piecesSold).toFixed(2)) : 0;
 
-if (!patient) {
-  // Patient not found, handle the error or show a message
-  console.error('Medicine not found.');
-  return;
-}
+  // Billing provider selected in UI (fallback to 'keah')
+  const selectedProvider = document.getElementById('providerSelect')?.value || 'keah';
 
-// Convert patient.parents from string to number (initial stock)
-const initialStock = parseInt(patient.parents);
+  // Find medicine record in local patients array
+  const patient = patients.find((p) => p.name === sellFormPatientName);
 
-// Check if the patient has a sales node
-if (patient.hasOwnProperty('sales')) {
-  // Get the sales node of the current patient
-  const salesNode = patient.sales;
+  if (!patient) {
+    console.error('Medicine not found.');
+    return;
+  }
 
-  // Calculate the total sales quantity for the current patient
-  let totalSalesQuantity = 0;
+  // Convert patient.parents from string to number (initial stock)
+  const initialStock = parseInt(patient.parents);
 
-  // Loop through the properties of the sales node
-  for (const saleKey in salesNode) {
-    // Assuming each saleNode has a "quantity" property representing the sales quantity
-    const saleQuantity = parseInt(salesNode[saleKey].quantity);
-    if (!isNaN(saleQuantity)) {
-      totalSalesQuantity += saleQuantity;
+  // Check remaining stock using existing sales node if any
+  if (patient.hasOwnProperty('sales')) {
+    const salesNode = patient.sales;
+    let totalSalesQuantity = 0;
+    for (const saleKey in salesNode) {
+      const saleQuantity = parseInt(salesNode[saleKey].quantity);
+      if (!isNaN(saleQuantity)) totalSalesQuantity += saleQuantity;
+    }
+    const remainingStock = initialStock - totalSalesQuantity;
+    if (piecesSold > remainingStock) {
+      alert('Cannot sell beyond remaining stock.');
+      return;
     }
   }
 
-  // Calculate the remaining stock for the current patient
-  const remainingStock = initialStock - totalSalesQuantity;
+  // Proceed with adding the sale data to the database
+  const patientSalesRef = push(ref(database, `medicine/${sellFormPatientName}/sales`));
+  const saleId = patientSalesRef.key;
 
-  if (piecesSold > remainingStock) {
-    alert('Cannot sell beyond remaining stock.');
-    return;
-  }
+  // Timestamp, date and time
+  const currentTime = new Date();
+  const saleDate = `${(currentTime.getMonth() + 1).toString().padStart(2, '0')}/${currentTime.getDate().toString().padStart(2, '0')}/${currentTime.getFullYear().toString().slice(2)}`;
+  const saleTime = new Date(currentTime).toLocaleTimeString();
+
+  // Sale payload now includes price details and provider
+  const salePayload = {
+    saleId: saleId,
+    quantity: piecesSold,
+    unitPrice: unitPrice,
+    totalCost: totalCost,
+    provider: selectedProvider,
+    date: saleDate,
+    time: saleTime
+  };
+
+  set(patientSalesRef, salePayload)
+    .then(() => {
+      const successMessage = document.getElementById('sellSuccessMessage');
+      successMessage.textContent = `Sale recorded successfully! (${piecesSold} pcs @ ${unitPrice} — Total: ${totalCost})`;
+      successMessage.style.display = 'block';
+
+      setTimeout(() => {
+        successMessage.style.display = 'none';
+        cartPopup.style.display = 'none';
+      }, 2000);
+    })
+    .catch((error) => {
+      console.error('Failed to add sale data:', error);
+      alert('Error adding sale. Please try again.');
+    });
 }
-
-// Proceed with adding the sale data to the database
-const patientSalesRef = push(ref(database, `medicine/${sellFormPatientName}/sales`));
-
-// Generate a unique sale ID using the `key` method
-const saleId = patientSalesRef.key;
-
-// Get the current timestamp
-const currentTime = new Date();
-
-// Format the timestamp into MM/DD/YY format
-const saleDate = `${(currentTime.getMonth() + 1).toString().padStart(2, '0')}/${currentTime.getDate().toString().padStart(2, '0')}/${currentTime.getFullYear().toString().slice(2)}`;
-
-const saleTime = new Date(currentTime).toLocaleTimeString();
-
-// Set the value of the new sale node including the quantity, date, and time
-set(patientSalesRef, { saleId: saleId, quantity: piecesSold, date: saleDate, time: saleTime })
-  .then(() => {
-    // Success: Sale data added to the database
-    //console.log('Sale added successfully with ID:', saleId);
-
-    // Display a success message with the sale details
-    const successMessage = document.getElementById('sellSuccessMessage');
-    successMessage.textContent = `Sale recorded with successfully!`;
-    successMessage.style.display = 'block';
-
-    setTimeout(() => {
-      successMessage.style.display = 'none';
-      cartPopup.style.display = 'none';
-    }, 2000); // Hide the success message after 5 seconds and close the cart popup
-  })
-  .catch((error) => {
-    // Error occurred while adding sale data
-    console.error('Failed to add sale data:', error);
-    alert('Error adding sale. Please try again.');
-  });
-}
-
-
-
-
-
-
 
 
 
@@ -1753,58 +2261,61 @@ if (patientsData) {
 // Hide the loader
 loaderElement.classList.add('hidden');
 });
-
 const uploadForm = document.getElementById('addPatientForm');
+
 uploadForm.addEventListener('submit', (e) => {
-e.preventDefault();
+  e.preventDefault();
 
-// Assuming you have already initialized Firebase
-const nameInput = document.getElementById('name');
-const dobInput = document.getElementById('dob');
-const parentsInput = document.getElementById('parents');
+  // Get form input values
+  const name = document.getElementById('name').value.trim();
+  const dob = document.getElementById('dob').value.trim();
+  const parents = document.getElementById('parents').value.trim();
+  const dos = document.getElementById('dos').value.trim();
+  const supplier = document.getElementById('supplier').value.trim();
+  const measurement = document.querySelector('input[name="measurement"]:checked').value;
 
-const database = getDatabase();
+  // New: Cost price input
+  const costPrice = document.getElementById('costPrice').value.trim();
 
-// Save patient data to Firebase
-const savePatientData = () => {
-const name = nameInput.value;
-const dob = dobInput.value;
-const parents = parentsInput.value;
+  // Insurance provider price inputs
+  const keah = document.getElementById('keahPrice').value.trim();
+  const apa = document.getElementById('apaPrice').value.trim();
+  const ga = document.getElementById('gaPrice').value.trim();
 
-const patientsRef = ref(database, 'medicine');
-const newPatientRef = child(patientsRef, name); // Use patient name as the key
+  // Create the medicine data object
+  const medicineData = {
+    name: name,
+    dob: dob,
+    parents: parents,
+    dos: dos,
+    supplier: supplier,
+    measurement: measurement,
+    costPrice: parseFloat(costPrice) || 0, // ✅ added cost price
+    insurancePrices: {
+      apa: parseFloat(apa) || 0,
+      ga: parseFloat(ga) || 0,
+      keah: parseFloat(keah) || 0
+    }
+  };
 
-set(newPatientRef, {
-  name: name,
-  dob: dob,
-  parents: parents
-})
-  .then(() => {
-    nameInput.value = '';
-    dobInput.value = '';
-    parentsInput.value = '';
+  // Initialize Firebase DB
+  const database = getDatabase();
+  const medicinesRef = ref(database, 'medicine');
+  const newMedicineRef = child(medicinesRef, name); // Use medicine name as key
 
-    showMessage('Medicine details uploaded successfully!');
-  })
-  .catch((error) => {
-    console.error('Error uploading medicine details:', error);
-    showMessage('Error uploading medicine details. Please try again.');
-  });
-};
-
-const showMessage = (message) => {
-const messageElement = document.getElementById('message');
-messageElement.textContent = message;
-messageElement.style.display = 'block';
-
-setTimeout(() => {
-  messageElement.style.display = 'none';
-}, 3000);
-};
-
-
-
+  // Upload to Firebase
+  set(newMedicineRef, medicineData)
+    .then(() => {
+      showMessage('Medicine details uploaded successfully!');
+      uploadForm.reset();
+    })
+    .catch((error) => {
+      console.error('Error uploading medicine details:', error);
+      showMessage('Error uploading medicine details. Please try again.');
+    });
 });
+
+
 
 // Get the online status element
 const onlineStatusElement = document.getElementById('onlineStatus');
@@ -1840,4 +2351,3 @@ window.addEventListener('load', function () {
     }, 500); // Change this duration to control how long the splash screen is shown (in milliseconds)
   });
 
- 

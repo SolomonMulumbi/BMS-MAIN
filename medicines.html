@@ -44,8 +44,9 @@
             <img src="" alt="..." class="img-circle profile_img">
           </div>
           <div class="profile_info">
-            <span>Welcome,</span>
-            <h2></h2>
+            
+  <span>Welcome,</span>
+  <h2 id="profileName"></h2>
           </div>
         </div>
         <!-- /menu profile quick info -->
@@ -60,8 +61,8 @@
               <li><a><i class="fa fa-home"></i> Home <span class="fa fa-chevron-down"></span></a>
                 <ul class="nav child_menu">
                   <li><a href="index.html">Dashboard Management</a></li>
-            <!--     <li><a href="index2.html">Dashboard2</a></li>
-                  <li><a href="index3.html">Dashboard3</a></li>--> 
+              <li><a href="cashier.html">Cashier Desk</a></li>
+               <!--      <li><a href="index3.html">Dashboard3</a></li>--> 
                 </ul>
               </li>
               <li><a><i class="fa fa-edit"></i>Treatment<span class="fa fa-chevron-down"></span></a>
@@ -70,6 +71,10 @@
                   <li><a href="patients.html">Patients Reception</a></li>
                   <li><a href="odp.html">Patient's on Treatment</a></li>
                  <li><a href="doctors.html">Doctor's Room</a></li>
+                 <li><a href="dental.html">Dental Department</a></li>
+                 <li><a href="scan.html">Scan Department</a></li>
+                 <li><a href="babies.html">Babies Department</a></li>
+
 
                 </ul>
               </li>
@@ -170,6 +175,9 @@
           </a>
        <a data-toggle="tooltip" data-placement="top" title="Logout" href="#" id="closesession">
             <span id="onlineStatus" aria-hidden="true"></span>
+          </a>
+          <a data-toggle="tooltip" data-placement="top" title="Logout" href="#" id=""></a>
+            <span class="glyphicon glyphicon-chevron-up" aria-hidden="true"></span>
           </a>
         </div> 
         <script>
@@ -293,6 +301,9 @@ fullscreenButton.addEventListener('click', function() {
 </div>
 </div>
     <section>
+
+
+
         <button id="uploadBtn"><i class="fa fa-plus"></i>Add Medicine</button>
         <div style="margin: auto;" class="search-container">
           <input type="text" id="searchInput" placeholder="Search medicine...">
@@ -323,9 +334,40 @@ fullscreenButton.addEventListener('click', function() {
         </div>
         
   
-  
+  <div class="dental-department-title">
+  <!-- Hospital Logo + Name -->
+  <div class="hospital-header">
+    <img src="sanyu.png" alt="SANYU HOSPITAL  Logo" class="hospital-logo">
+    <span class="hospital-name">Sanyu Hospital - Katooke (Wakiso)</span>
+  </div>
+  <!-- Reception Desk Section -->
+  <div class="reception-section">
+<i class="fas fa-pills"></i>
+    <span>Medicine (Phamarcy)</span>
+  </div>
+  </div>
+
+      <div class="provider-select-wrapper">
+  <label for="providerSelect">Billing Mode:</label>
+  <select id="providerSelect" class="provider-select">
+    <option value="keah" selected>SANYU HOSPITAL </option>
+    <option value="apa">APA INSURANCE</option>
+    <option value="ga">GA INSURANCE</option>
+  </select>
+</div>
         <div id="loader" class="loader"></div>
-        <div id="patients" class="patients-container"></div>
+
+<!-- Toggle buttons -->
+<div style="margin-bottom:10px;">
+  <button id="toggleMedicineBtn">Show Medicines</button>
+  <button id="toggleHistoryBtn">Show Inventory History</button>
+</div>
+
+<!-- Containers -->
+<div id="patients" class="patients-container"></div> <!-- Your existing medicine table -->
+
+<div id="inventoryHistory" class="inv-history-container" style="display:none;"></div>
+        
         <!-- Popup Overlay -->
         <div class="popup-overlay" id="popupOverlay1">
           <div class="popup">
@@ -413,43 +455,128 @@ fullscreenButton.addEventListener('click', function() {
             <form class="popup-form" id="addPatientForm">
               <label for="name">Name of Medicine:</label>
               <input type="text" id="name" required>
-            
+          
+
               <label for="dob">Date of Expiry:</label>
               <input type="date" id="dob" required>
             
               <fieldset id="measurement">
-                <legend>Mg/Ml/g/Btl per Piece:</legend>
-                <label><input type="radio" name="measurement" value="mg" required> Mg</label><br>
-                <label><input type="radio" name="measurement" value="ml" required> Ml</label><br>
-                <label><input type="radio" name="measurement" value="g" required> Grams</label><br>
-                <label><input type="radio" name="measurement" value="btl" required> Bottle</label>
-              </fieldset>
+  <legend>Medicine Measurement:</legend>
+  <label><input type="radio" name="measurement" value="mg" required> Mg</label>
+  <label><input type="radio" name="measurement" value="ml" required> Ml</label>
+  <label><input type="radio" name="measurement" value="g" required> Grams</label>
+  <label><input type="radio" name="measurement" value="btl" required> Bottle</label>
+  <label><input type="radio" name="measurement" value="tab" required> Tablet</label>
+  <label><input type="radio" name="measurement" value="cap" required> Capsule</label>
+  <label><input type="radio" name="measurement" value="vial" required> Vial</label>
+  <label><input type="radio" name="measurement" value="sachet" required> Sachet</label>
+  <label><input type="radio" name="measurement" value="patch" required> Patch</label>
+  <label><input type="radio" name="measurement" value="suppository" required> Suppository</label>
+  <label><input type="radio" name="measurement" value="ampoule" required> Ampoule</label>
+  <label><input type="radio" name="measurement" value="drop" required> Drop</label>
+  <label><input type="radio" name="measurement" value="tube" required> Ointment/Tube</label>
+  <label><input type="radio" name="measurement" value="strip" required> Strip</label>
+  <label><input type="radio" name="measurement" value="box" required> Box</label>
+</fieldset>
+
               
             
               <label for="parents">Number of Pieces:</label>
               <input type="number" id="parents" required>
             
-              <label for="price">Price Per Piece (Ugx):</label>
-              <input type="number" data-cost-per-piece="" id="price" required>
+             <style>
+  .form-group {
+    margin-bottom: 1.5rem;
+  }
+
+  .form-group label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 8px;
+    color: #333;
+  }
+
+  .insurance-prices {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+  }
+
+  .insurance-item {
+    background: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    padding: 15px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    transition: box-shadow 0.2s ease;
+  }
+
+  .insurance-item:hover {
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  }
+
+  .insurance-item label {
+    display: block;
+    margin-bottom: 6px;
+    color: #555;
+    font-weight: 600;
+  }
+
+  .insurance-item input {
+    width: 100%;
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    font-size: 15px;
+  }
+
+  .insurance-item input:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 4px rgba(0, 123, 255, 0.3);
+  }
+</style>
+<div class="form-group">
+  <label for="costPrice">Cost Price (Ugx):</label>
+  <input 
+    type="number" 
+    id="costPrice" 
+    data-cost-per-piece="costPrice" 
+    placeholder="Enter cost price" 
+    required
+  >
+</div>
+
+<div class="form-group">
+  <label>Price Per Piece (Ugx) — By Insurance Provider:</label>
+
+  <div class="insurance-prices">
+    <div class="insurance-item">
+      <label for="keah">SANYU HOSPITAL:</label>
+      <input type="number" id="keahPrice" data-cost-per-piece="keahPrice" placeholder="Enter price" required>
+    </div>
+
+    <div class="insurance-item">
+      <label for="apa">APA:</label>
+      <input type="number" id="apaPrice" data-cost-per-piece="apaPrice" placeholder="Enter price" required>
+    </div>
+
+    <div class="insurance-item">
+      <label for="ga">GA:</label>
+      <input type="number" id="gaPrice" data-cost-per-piece="gaPrice" placeholder="Enter price" required>
+    </div>
+  </div>
+</div>
+
             
               <label for="dos">Date of Stock:</label>
               <input type="date" id="dos" required>
             
-              <label for="medicineType">Type of Medicine:</label>
-              <select id="medicineType" required>
-                <option value="" disabled selected>Select medicine type</option>
-                <option value="capsule">Capsule</option>
-                <option value="tablet">Tablet</option>
-                <option value="syrup">Syrup</option>
-                <option value="injection">Injection</option>
-                <option value="cream">Cream</option>
-                <option value="eyedrop">EyeDrop</option>
-                <option value="eardrop">EarDrop</option>
-                <option value="spray">Spray</option>
-                <option value="bottle">Bottle</option>
-                <!-- Add more options as needed -->
-              </select>
-            
+             
+
+              <label for="name">Supplier:</label>
+              <input type="text" id="supplier" required>
+              
               <button type="submit">Submit</button>
             </form>
             

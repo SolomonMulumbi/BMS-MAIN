@@ -2,9 +2,12 @@
   "dependencies": {
     "@green-api/whatsapp-api-client": "^0.3.37",
     "@toast-ui/calendar": "^2.1.3",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
     "fullcalendar-scheduler": "^6.1.9",
     "jsbarcode": "^3.11.5",
-    "openai": "^4.12.3"
+    "openai": "^4.12.3",
+    "serialport": "^13.0.0"
   },
   "name": "bibo-medical-systems-main",
   "version": "1.0.0",

@@ -3,34 +3,35 @@
 <head>
   <meta charset="UTF-8">
   <title>Bibo Medical Systems </title>
-   <!-- Include the jQuery library -->
+  <meta name="theme-color" content="#ffffff">
+  <link href="BMS logo only.png" rel="icon">
+  <!-- Include spin.js from a CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/spin.js/2.3.2/spin.min.js"></script>
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.9/index.global.min.js'></script>   <!-- Include the jQuery library -->
    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-
- <script src="./jspdf/dist/jspdf.umd.min.js"></script>
- <script src="./jspdf-autotable/dist/jspdf.plugin.autotable.js"></script>
- <link href="BMS logo only.png" rel="icon">
- <!-- Include the html2canvas library -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.3.2/html2canvas.min.js"></script>
-
    <!-- Include the Select2 CSS and JS files -->
    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-   
+   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
    <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap.min.css'>
 <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/gentelella/1.3.0/css/custom.css'>
 <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css'><link rel="stylesheet" href="./portal.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.0.2/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/date-fns/2.25.0/date_fns.min.js"></script>
+  <link rel="manifest" href="manifest.json">
+  <script src="https://apis.google.com/js/client.js"></script>
 </head>
 
 <!-- partial:index.partial.html -->
 <body class="nav-md">
 <!-- Splash screen content -->
 <div id="splashScreen">
+  <div id="spinner"></div>
   <div id="logo"></div>
   <div id="loadingText"></div>
 </div>
+
 <div class="container body">
   <div class="main_container">
     <div class="col-md-3 left_col">
@@ -50,116 +51,123 @@
             <img src="" alt="..." class="img-circle profile_img">
           </div>
           <div class="profile_info">
-            <span>Welcome,</span>
-            <h2></h2>
+            
+  <span>Welcome,</span>
+  <h2 id="profileName"></h2>
           </div>
         </div>
         <!-- /menu profile quick info -->
 
         <br />
 
-        <!-- sidebar menu -->
-        <div id="sidebar-menu" class="main_menu_side hidden-print main_menu">
-          <div class="menu_section">
-            <h3>General</h3>
-            <ul class="nav side-menu">
-              <li><a><i class="fa fa-home"></i> Home <span class="fa fa-chevron-down"></span></a>
-                <ul class="nav child_menu">
-                  <li><a href="#">Dashboard</a></li>
-            <!--     <li><a href="index2.html">Dashboard2</a></li>
-                  <li><a href="index3.html">Dashboard3</a></li>--> 
+             <!-- sidebar menu -->
+             <div id="sidebar-menu" class="main_menu_side hidden-print main_menu">
+              <div class="menu_section">
+                <h3>General</h3>
+                <ul class="nav side-menu">
+                  <li><a><i class="fa fa-home"></i> Home <span class="fa fa-chevron-down"></span></a>
+                    <ul class="nav child_menu">
+                      <li><a href="index.html">Dashboard Management</a></li>
+                  <li><a href="cashier.html">Cashier Desk</a></li>
+                  <!--       <li><a href="index3.html">Dashboard3</a></li>--> 
+                    </ul>
+                  </li>
+                  <li><a><i class="fa fa-edit"></i>Management<span class="fa fa-chevron-down"></span></a>
+                    <ul class="nav child_menu">
+                      <li><a href="laboratory.html">Laboratory</a></li>
+                      <li><a href="patients.html">Patients Reception</a></li>
+                      <li><a href="odp.html">Patient's on Treatment</a></li>
+                     <li><a href="doctors.html">Doctor's Room</a></li>
+                     <li><a href="dental.html">Dental Department</a></li>
+                     <li><a href="scan.html">Scan Department</a></li>
+                     <li><a href="babies.html">Babies Department</a></li>
+    
+    
+                    </ul>
+                  </li>
+                  <li><a><i class="fa fa-medkit"></i>Medicine<span class="fa fa-chevron-down"></span></a>
+                    <ul class="nav child_menu">
+                     <li><a href="medicines.html">Medicine Store</a></li>
+                    <!--   <li><a href="media_gallery.html">Media Gallery</a></li>
+                      <li><a href="typography.html">Typography</a></li>
+                      <li><a href="icons.html">Icons</a></li>
+                      <li><a href="glyphicons.html">Glyphicons</a></li>
+                      <li><a href="widgets.html">Widgets</a></li>
+                      <li><a href="invoice.html">Invoice</a></li>
+                      <li><a href="inbox.html">Inbox</a></li>
+                      <li><a href="calendar.html">Calendar</a></li>
+                    </ul>
+                  </li>
+                  <li><a><i class="fa fa-table"></i> Tables <span class="fa fa-chevron-down"></span></a>
+                    <ul class="nav child_menu">
+                      <li><a href="tables.html">Tables</a></li>
+                      <li><a href="tables_dynamic.html">Table Dynamic</a></li>-->
+                    </ul>
+                  </li>
+                  <li><a><i class="fa fa-bar-chart-o"></i> Data Analytics <span class="fa fa-chevron-down"></span></a>
+                    <ul class="nav child_menu">
+                      <li><a href="sales.html">Data Entry</a></li>
+                   <!--    <li><a href="revenue.html"> Data Entry Analytics</a></li>
+                  <li><a href="tests.html">Tests</a></li>
+                        <li><a href="echarts.html">ECharts</a></li>
+                      <li><a href="other_charts.html">Other Charts</a></li>-->
+                    </ul>
+                  </li>
+                <li><a><i class="fa fa-clone"></i>Management<span class="fa fa-chevron-down"></span></a>
+                    <ul class="nav child_menu">
+                      <li><a href="staff.html">Hospital Staff</a></li>
+                   <li><a href="insurance.html">Insurance </a></li>              
+                  
+                  
+                    </ul>
+                  </li>
                 </ul>
-              </li>
-              <li><a><i class="fa fa-edit"></i>Management <span class="fa fa-chevron-down"></span></a>
-                <ul class="nav child_menu">
-                  <li><a href="index.html">Laboratory</a></li>
-                  <li><a href="#">Patients Reception</a></li>
-                 <li><a href="#">Hospital Staff</a></li>
-                 <li><a href="#">Doctor's Room</a></li>
-                 <!--   <li><a href="form_upload.html">Form Upload</a></li>
-                  <li><a href="form_buttons.html">Form Buttons</a></li>-->
-                </ul>
-              </li>
-              <li><a><i class="fa fa-medkit"></i>Medicine<span class="fa fa-chevron-down"></span></a>
-                <ul class="nav child_menu">
-                 <li><a href="#">Medicine Store</a></li>
-                <!--   <li><a href="media_gallery.html">Media Gallery</a></li>
-                  <li><a href="typography.html">Typography</a></li>
-                  <li><a href="icons.html">Icons</a></li>
-                  <li><a href="glyphicons.html">Glyphicons</a></li>
-                  <li><a href="widgets.html">Widgets</a></li>
-                  <li><a href="invoice.html">Invoice</a></li>
-                  <li><a href="inbox.html">Inbox</a></li>
-                  <li><a href="calendar.html">Calendar</a></li>
-                </ul>
-              </li>
-              <li><a><i class="fa fa-table"></i> Tables <span class="fa fa-chevron-down"></span></a>
-                <ul class="nav child_menu">
-                  <li><a href="tables.html">Tables</a></li>
-                  <li><a href="tables_dynamic.html">Table Dynamic</a></li>-->
-                </ul>
-              </li>
-              <li><a><i class="fa fa-bar-chart-o"></i> Data Analytics <span class="fa fa-chevron-down"></span></a>
-                <ul class="nav child_menu">
-                  <li><a href="#">Data Entry</a></li>
-                <li><a href="#"> Data Entry Analytics</a></li>
-              <!--   <li><a href="tests.html">Tests</a></li>
-                    <li><a href="echarts.html">ECharts</a></li>
-                  <li><a href="other_charts.html">Other Charts</a></li>-->
-                </ul>
-              </li>
-             <!-- <li><a><i class="fa fa-clone"></i>Layouts <span class="fa fa-chevron-down"></span></a>
-                <ul class="nav child_menu">
-                  <li><a href="fixed_sidebar.html">Fixed Sidebar</a></li>
-               <li><a href="fixed_footer.html">Fixed Footer</a></li>
-                </ul>
-              </li>
-            </ul>-->
-          </div>
-       <div class="menu_section">
-            <ul class="nav side-menu">
-              <li><a><i class="fa fa-bug"></i>Tests & Prescription<span class="fa fa-chevron-down"></span></a>
-               <ul class="nav child_menu">
-                  <li><a href="#">Clinical Tests  & Prescriptions</a></li>
-               <!--   <li><a href="projects.html">Projects</a></li>
-                  <li><a href="project_detail.html">Project Detail</a></li>
-                  <li><a href="contacts.html">Contacts</a></li>
-                  <li><a href="profile.html">Profile</a></li>
-                </ul>
-              </li>
-              <li><a><i class="fa fa-windows"></i> Extras <span class="fa fa-chevron-down"></span></a>
-                <ul class="nav child_menu">
-                  <li><a href="page_403.html">403 Error</a></li>
-                  <li><a href="page_404.html">404 Error</a></li>
-                  <li><a href="page_500.html">500 Error</a></li>
-                  <li><a href="plain_page.html">Plain Page</a></li>
-                  <li><a href="login.html">Login Page</a></li>
-                  <li><a href="pricing_tables.html">Pricing Tables</a></li>
-                </ul>
-              </li>
-              <li><a><i class="fa fa-sitemap"></i> Multilevel Menu <span class="fa fa-chevron-down"></span></a>
-                <ul class="nav child_menu">
-                  <li><a href="#level1_1">Level One</a>
-                    <li><a>Level One<span class="fa fa-chevron-down"></span></a>
-                      <ul class="nav child_menu">
-                        <li class="sub_menu"><a href="level2.html">Level Two</a>
+              </div>
+           <div class="menu_section">
+                <ul class="nav side-menu">
+                  <li><a><i class="fa fa-bug"></i>Tests & Prescription<span class="fa fa-chevron-down"></span></a>
+                   <ul class="nav child_menu">
+                      <li><a href="clinical.html">Clinical Tests  & Prescriptions</a></li>
+                   <!--   <li><a href="projects.html">Projects</a></li>
+                      <li><a href="project_detail.html">Project Detail</a></li>
+                      <li><a href="contacts.html">Contacts</a></li>
+                      <li><a href="profile.html">Profile</a></li>
+                    </ul>
+                  </li>
+                  <li><a><i class="fa fa-windows"></i> Extras <span class="fa fa-chevron-down"></span></a>
+                    <ul class="nav child_menu">
+                      <li><a href="page_403.html">403 Error</a></li>
+                      <li><a href="page_404.html">404 Error</a></li>
+                      <li><a href="page_500.html">500 Error</a></li>
+                      <li><a href="plain_page.html">Plain Page</a></li>
+                      <li><a href="login.html">Login Page</a></li>
+                      <li><a href="pricing_tables.html">Pricing Tables</a></li>
+                    </ul>
+                  </li>
+                  <li><a><i class="fa fa-sitemap"></i> Multilevel Menu <span class="fa fa-chevron-down"></span></a>
+                    <ul class="nav child_menu">
+                      <li><a href="#level1_1">Level One</a>
+                        <li><a>Level One<span class="fa fa-chevron-down"></span></a>
+                          <ul class="nav child_menu">
+                            <li class="sub_menu"><a href="level2.html">Level Two</a>
+                            </li>
+                            <li><a href="#level2_1">Level Two</a>
+                            </li>
+                            <li><a href="#level2_2">Level Two</a>
+                            </li>
+                          </ul>
                         </li>
-                        <li><a href="#level2_1">Level Two</a>
-                        </li>
-                        <li><a href="#level2_2">Level Two</a>
-                        </li>
-                      </ul>
+                        <li><a href="#level1_2">Level One</a>
+                        </li>-->
+                    </ul>
                     </li>
-                    <li><a href="#level1_2">Level One</a>
-                    </li>-->
+                    <li><a href="javascript:void(0)"><i class="fa fa-laptop"></i> Landing Page <span class="label label-success pull-right">Coming Soon</span></a></li>
                 </ul>
-                </li>
-                <li><a href="javascript:void(0)"><i class="fa fa-laptop"></i> Landing Page <span class="label label-success pull-right">Coming Soon</span></a></li>
-            </ul>
-          </div>
-
-        </div>
-        <!-- /sidebar menu -->
+              </div>
+    
+            </div>
+            <!-- /sidebar menu -->
+    
 
      
         <div class="sidebar-footer hidden-small">
@@ -172,8 +180,11 @@
           <a data-toggle="tooltip" data-placement="top" title="Lock">
             <span class="glyphicon glyphicon-eye-close" aria-hidden="true"></span>
           </a>
-          <a data-toggle="tooltip" data-placement="top" title="Logout" href="#" id="closesession">
+        <a data-toggle="tooltip"  data-placement="top" title="Logout" href="#" id="closesession">
             <span id="onlineStatus" aria-hidden="true"></span>
+          </a>
+          <a data-toggle="tooltip" data-placement="top" title="Logout" href="#" id=""></a>
+            <span class="glyphicon glyphicon-chevron-up" aria-hidden="true"></span>
           </a>
         </div> 
         <script>
@@ -238,20 +249,7 @@ fullscreenButton.addEventListener('click', function() {
                   </a>
                 </li>              </ul>
             </li>
-                <li><!-- HTML element to display the count of not yet done messages -->
-                
-              
 
-
-                </li>
-                <li role="presentation" class="dropdown">
-                  <a id="envelope-icon" href="javascript:;" class="dropdown-toggle info-number" data-toggle="dropdown" aria-expanded="false">
-                    <i class="fa fa-envelope-o" ></i>
-                    <span id="notDoneCount" class="badge bg-green" ></span>
-                  </a>
-                  
-                  
-                </li>
           </ul>
         </nav>
       </div>
@@ -260,353 +258,793 @@ fullscreenButton.addEventListener('click', function() {
  </div>
     <!-- page content -->
 
+    <div class="right_col" role="main"><div id="sellSuccessMessage"></div>
 
-     <div style="z-index: 10000;" id="message"></div>
-     
-  
-    <div class="right_col" role="main">  
-      
-      <div id="loginoverlay">  <div id="errorContainer" class="error-message" style="color: red;"></div>
-    </div>
+
+<div id="loginoverlay">
+<div id="errorContainer" class="error-message" style="color: red;"></div>
+</div>
+<div id="installPopup" class="install-popup">
+  <div class="popup-content2">
+    <p>Install Bibo Medical Systems app!</p>
+    <button id="installButton">
+      <i class="fas fa-arrow-circle-down"></i> Install
+    </button>
     
-        <!-- Add the container for error messages -->
-    
-    <div id="loginpopup" class="loginpopup">
-    
-      <div class="login-container">
-      <div class="login-form">
-        <h2 style="color: white;">Enter your credentials</h2>
-        <!-- Use a form to handle form submission -->
-        <form id="loginForm">
-          <label style="color: white;" for="email">Email:</label>
-          <input type="email" id="email" required>
-          <label style="color: white;" for="password">Password:</label>
-          <input type="password" id="password" required>
-          <button type="submit"  id="submitBtn">Submit</button>
-          <!-- Add a link for Forgot Password -->
-          <a href="#" id="forgotPasswordLink" style="color: white;">Forgot Password?</a>
-        </form>
-      </div>
-      <!-- Details about Bibo Medical Systems -->
-      <div class="bibo-details">
-        <h3 style="color: rgb(255, 255, 255);" class="title">
-          <i class="fas fa-hospital"></i> Bibo Medical Systems | Your Healthcare Assistant
-        </h3>
-        <p style="color: rgb(255, 255, 255);">
-          Bibo Medical Systems is a state-of-the-art Hospital Management System that aims to revolutionize healthcare services. With cutting-edge technology and a team of dedicated healthcare professionals, we provide comprehensive medical solutions to enhance patient care and streamline hospital operations.
-        </p>
-        <p style="color: rgb(255, 255, 255);">
-          Our advanced system offers features such as electronic health records (EHR), patient billing, pharmacy management, and more. We prioritize data security and ensure that patient information remains confidential and protected.
-        </p>
-    <!--   <p style="color: rgb(255, 255, 255);">
-          At Bibo Medical Systems, we focus on patient-centric care, providing personalized treatment plans and fostering a compassionate environment for healing. Our hospital management system optimizes workflows, reduces administrative burdens, and empowers healthcare providers to deliver efficient and effective services.
-        </p>--> 
-        <p style="color: rgb(255, 255, 255);">
-          Whether you're a patient seeking top-notch medical care or a healthcare professional looking to streamline hospital operations, Bibo Medical Systems is your reliable healthcare assistant.
-        </p>
-        <p style="color: rgb(255, 255, 255);">
-          Experience the future of healthcare management with Bibo Medical Systems. Your well-being is our priority, and we are committed to delivering excellence in healthcare services every step of the way.
-        </p>
-      </div>
-    </div>
-    </div>
-      <section>
-      <!-- <button id="uploadBtn"><i class="fa fa-plus"></i>Register New Patient</button>--> 
-        <div style="margin: auto;" class="search-container">
-          <input type="text" id="searchInput" placeholder="Search by name or ID ...">
-          <button id="searchButton"><i class="fas fa-search"></i> </button> 
-
-        </div>
-        
-        </section>
-        
-       
-      <div id="overlay"></div>
-
-        <div id="loader" class="loader"></div><!-- Add this section for the lab requests popup -->
-<div class="dental-department-title">
-          <i class="fas fa-flask"></i>
-          <span>Laboratory</span>
-        </div>
-
- <div id="pagination" class="pagination"></div>
-       
-        <div id="patients" class="patients-container"></div>
-       
-
-        <div class="action-center">
-          <div class="chat-overlay" id="chatOverlay"></div>
-          <div class="chat-button">
-            <button id="openChatBtn"><i class="fas fa-comment"></i><span id="unreadMessageCount">0</span></button>
-          </div>
-          <div class="chat-container" id="chatContainer">
-            <div class="action-header">Chat Room</div>
-            <div id="chatBox"></div>
-            <div class="message-input-container">
-              <input type="text" id="messageInput" placeholder="Type your message...">
-              <button id="sendMessageBtn"><i class="fas fa-paper-plane"></i></button>
-            </div>
-          </div>
-          <!-- Header of the action center -->
-          <div class="action-header">Action Center</div>
-          <span id="actionCenter"></span>
-          <!-- Button to send a message -->
-        </div>
-
-        <!-- Popup Overlay -->
-        <div class="popup-overlay" id="popupOverlay1">
-          <div class="popup">
-            <span class="popup-close" id="popupClose1">&times;</span>  
-            <div id="patientDetails"></div>
- <button style="display: none;" id="addMedicationBtn"><i class="fa fa-plus"></i>Add Record</button>
-
- <input type="text" id="testSearch" placeholder="Search tests by record key">
- <h2 style=" margin-bottom: 30px;">Medical History</h2>
-
-            <div id="patientHistory"></div>
-          </div>
-        </div>
-
-
-        <div class="popup-overlay" id="addMedicationPopupOverlay">
-          <div class="popup">
-            <span class="popup-close" id="addMedicationPopupClose">&times;</span>
-        
-            <h2>Add Test Results</h2>
-            <form id="addMedicationForm" data-patient-name="">
-              <label for="resultsObtained">Results Obtained:</label>
-              <input type="text" id="resultsObtained" required>
-              <label for="medicationTaken">Medication Given:</label>
-              <div id="medication">
-                <div class="medication-row" id="medicationInputsContainer"></div>
-              </div>
-              
-              
-              <button id="addMedicationButton" type="button">+ Add</button>
-              <label for="additionalNotes">Additional Notes:</label>
-              <input type="text" id="additionalNotes" required>
-              <div id="totalCost"></div>
-              <button type="submit" id="submitMedicationButton">Submit</button>
-
-
-            </form>
-          </div>
-        </div>
-        
-
-
-       <!-- Your HTML code for the lab requests popup -->
-<div id="labRequestsPopupOverlay">
-  <div id="labRequestsPopup">
-    <span id="labRequestsPopupClose">&times;</span>
-    <h2>Laboratory Requests</h2>
-    <!-- Add these buttons where you want them to appear -->
-<button id="notDoneBtn" class="filter-button"> <i class="fas fa-eye-slash"></i>Not Yet Done</button>
-<button id="completedBtn" class="filter-button"><i class="fas fa-check-circle"></i>Completed</button>
-
-    <ul id="labRequestsList"></ul>
-
   </div>
 </div>
-       <!-- The popup overlay -->
-<div id="popup-overlay4" class="popup-overlay4">
-  <div class="popup-content4" id="popup-content4">
-    <h2>Triage History</h2>
-    <div id="allVisitsData">
-      <table class="table2">
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th>Clinician's Name</th>
-            <th>Temperature (&deg;C)</th>
-            <th>BP (mmHg)</th>
-            <th>RR</th>
-            <th>HR</th>
-            <th>SpO2</th>
-            <th>WT (Kg)</th>
-            <th>HT (cm)</th>
-            <th>BMI</th>
-            <th>MUAC</th>
-            <th>WT for Age Z score</th>
-            <th>Disability</th>
-            <th>Known Chronic Illness</th>
-            <th>Any Drug Abuse</th>
-            <th>Allergies</th>
-          </tr>
-        </thead>
-        <tbody id="tableBody">
-        </tbody>
-      </table>    <div id="trendAnalysisDiv"></div>
-     <canvas id="visitTrendChart" style="max-width: 100%; margin-top: 20px;"></canvas>
 
-    </div>
-    <button id="closePopupBtn4">Close</button>
+    <!-- Add the container for error messages -->
+
+<div id="loginpopup" class="loginpopup">
+
+  <div class="login-container">
+  <div class="login-form">
+    <h2 style="color: white;">Enter your credentials</h2>
+    <!-- Use a form to handle form submission -->
+    <form id="loginForm">
+      <label style="color: white;" for="email">Email:</label>
+      <input type="email" id="email" required>
+      <label style="color: white;" for="password">Password:</label>
+      <input type="password" id="password" required>
+      <button type="submit"  id="submitBtn">Submit</button>
+      <!-- Add a link for Forgot Password -->
+      <a href="#" id="forgotPasswordLink" style="color: white;">Forgot Password?</a>
+
+    </form>
+ <!-- Install popup -->
 
   </div>
-  
-</div> 
-        <!-- Popup Overlay -->
-        <div tabindex="-1" role="dialog" aria-hidden="true" class="popup-overlay" id="addRecordPopupOverlay">
-          <div class="popup">
-            <span class="popup-close" id="addRecordPopupClose">&times;</span>
-            <h2>Add Medical Record</h2>
-            <form id="addRecordForm" data-patient-name="">
-               <label for="testsTaken">Test Taken:</label>
-                   <select style="width: 100%;" id="testsTaken"  required>
-                   
-                     <!-- Add more options as needed -->
-                   </select>
+  <!-- Details about Bibo Medical Systems -->
+  <div class="bibo-details">
+    <h3 style="color: rgb(255, 255, 255);" class="title">
+      <i class="fas fa-hospital"></i> Bibo Medical Systems | Your Healthcare Assistant
+    </h3>
+    <p style="color: rgb(255, 255, 255);">
+      Bibo Medical Systems is a state-of-the-art Hospital Management System that aims to revolutionize healthcare services. With cutting-edge technology and a team of dedicated healthcare professionals, we provide comprehensive medical solutions to enhance patient care and streamline hospital operations.
+    </p>
+    <p style="color: rgb(255, 255, 255);">
+      Our advanced system offers features such as electronic health records (EHR), patient billing, pharmacy management, and more. We prioritize data security and ensure that patient information remains confidential and protected.
+    </p>
+<!--   <p style="color: rgb(255, 255, 255);">
+      At Bibo Medical Systems, we focus on patient-centric care, providing personalized treatment plans and fostering a compassionate environment for healing. Our hospital management system optimizes workflows, reduces administrative burdens, and empowers healthcare providers to deliver efficient and effective services.
+    </p>--> 
+    <p style="color: rgb(255, 255, 255);">
+      Whether you're a patient seeking top-notch medical care or a healthcare professional looking to streamline hospital operations, Bibo Medical Systems is your reliable healthcare assistant.
+    </p>
+    <p style="color: rgb(255, 255, 255);">
+      Experience the future of healthcare management with Bibo Medical Systems. Your well-being is our priority, and we are committed to delivering excellence in healthcare services every step of the way.
+    </p>
+  </div>
+</div>
+</div>
 
-              
-             <!-- <label for="resultsObtained">Results Obtained:</label>
-              <input type="text" id="resultsObtained" required>
-              <label for="medicationTaken">Medication Given:</label>
-              <div id="medicationInputsContainer">
-                 <div id="medication"></div>
-                <button id="addMedicationButton" type="button">+ Add</button>
 
-              </div>
-              
-              
-              <label for="additionalNotes">Additional Notes:</label>
-              <input type="text" id="additionalNotes" required>
-              <div id="totalCost"></div>-->
-              <button type="submit">Submit</button>
-            </form>
-          </div>
-        </div>
-        <div class="popup-overlay" id="popupOverlay">
-          <div class="popup">
-            <span class="popup-close" id="popupClose">&times;</span>
-            <h2>Register New Patient</h2>
-            <form class="popup-form" id="addPatientForm">
-              <label for="name">Full Name:</label>
-              <input type="text" id="name" required>
-              
-              <label for="dob">Date of Birth:</label>
-              <input type="date" id="dob" required>
-              
-              <label for="parents">Telephone Contact or Email:</label>
-              <input type="tel" id="parents" required>
-              
-              <label for="residence">Place of Residence:</label>
-              <input type="text" id="residence" required>
-              
-              <label for="payment">Payment Terms:</label>
-              <select id="payment" required>
-                <option value="cash">Cash</option>
-                <option value="insurance">Insurance</option>
-                <option value="other">Other</option>
-              </select>
-              
-              <label for="sex">Sex:</label>
-              <select id="sex" required>
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-                <option value="other">Other</option>
-              </select>
-              
-          <!--   <label for="patientId">Patient ID:</label>
-              <input type="text" id="patientId" required readonly>
-              --> 
-              
-              <button type="submit">Submit</button>
-             
-            </form>
-            
-            
-          </div>
-     
-        </div>
-      </div>
+
+
+<section class="welcome">
+  <div>
+    <h2 class="wel-head">
+      <span id="home" class="icon">&#128202;</span> Welcome to the Dashboard
+    </h2>
+   
+
+  </div>
+   <div id="greeting"></div>
+  </section>
+
+<!-- Navigation -->
+<div class="navigation">
+  <a href="#home"><i class="fas fa-arrow-up"></i> GO UP</a>
+  <a href="#sales"><i class="fas fa-receipt"></i> Sales Per Department</a>
+  <a href="#expenses"><i class="fas fa-hospital"></i> Hospital Expenses</a>
+  <a href="#analytics"><i class="fas fa-chart-line"></i> Test's Analytics</a>
+</div>
+
+<h2>Hospital Survey</h2>
+  <section class="intro">
+    <div class="survey-item">
+      <i style="color: green;" class="fa fa-user-md"></i>
+      <span class="count2" id="staffCount">0</span>
+      <h3>Staff</h3>
+    </div>
+    <div class="survey-item">
+      <i style="color: brown;" class="fa fa-users"></i>
+      <span class="count2" id="patientsCount">0</span>
+      <h3>Patients</h3>
+    </div>
+    <div class="survey-item">
+      <i style="color: #ff5733;" class="fas fa-hospital"></i> <!-- Example color: orange -->
+      <span class="count2" id="admittedPatientsCount">0</span>
+      <h3>Admitted</h3>
+    </div>
+    <div class="survey-item">
+      <i style="color: blue;" class="fas fa-stethoscope"></i>
+      <span class="count2" id="opdClientsCount">0</span>
+      <h3>OPD</h3>
+    </div>
     
-<style>
+    <div class="survey-item">
+      <i style="color: orange;" class="fa fa-shopping-cart"></i>
+      <span class="count2" id="salesCount">0</span>
+      <h3>Sales Count</h3>
+    </div>
+    
+  </section>
 
-th, td {
+  <!-- Overlay -->
+<div id="popupOverlay3" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 9999;"></div>
+
+
+<!-- Report Details Popup -->
+<div id="reportDetailsPopup" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 400px; padding: 20px; background: #fff; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); border-radius: 8px; z-index: 10000;">
+  <h3 id="reportTitlePopup"></h3>
+  <!--<strong>Description:</strong></p>-->
+  <p id="reportDescriptionPopup"></p>
+  <p><strong>Date:</strong> <span id="reportDatePopup"></span></p>
+  <p><strong>Total Patients Registered:</strong> <span id="totalPatientsPopup"></span></p>
+  <p><strong>Total Tests Done Today:</strong> <span id="totalTestsPopup"></span></p>
+  <p><strong>Follow-up Appointments Scheduled:</strong> <span id="followUpAppointmentsPopup"></span></p>
+  <p><strong>Additional Notes:</strong> <span id="additionalNotesPopup"></span></p>
+  <button type="button" id="closeReportDetails" class="btn btn-close-popup">Close</button>
+</div>
+
+  
+  <div id="registrationRate" class="registration-rate">
+
+    Loading registration rate...
+  </div>
+  <div id="reportsContainer" style="margin-top: 20px;">
+    <h3>Reports</h3>
+    <div id="reportsList" class="reports-grid">
+      <!-- Reports will be dynamically added here -->
+    </div>
+  </div>
+
+ <section>
+                <h1  style="color: white; text-decoration: none;" > Medicine sale's  analytics</h1>
+                <div>
+                <label style="color: white;" for="start-date">Start Date:</label>
+            <input type="date" id="start-date">
+      </div>
+      <div>
+            <label style="color: white;" for="start-date">End Date:</label>
+      <input type="date" id="end-date"></div>
+      <button id="filter-button"><i class="fas fa-filter"></i> Filter</button>
+      <button id="clear-filter-button"><i class="fas fa-refresh"></i> Refresh Filter</button>
+    
+    </section>
+   <div class="search-container">
+          <h2 style="margin-top: 20px;" >Search Medicine</h2>
+          <input type="text" id="medicineInput" placeholder="Enter medicine name">
+          <button id="searchMedicineButton">Search</button>   
+         
+              </div>
+                   <div id="loader" class="loader"></div>
+                
+      
+
+
+
+  <canvas id="salesChart"></canvas>
+
+  <div class="text">
+    <h3 class="trend">Revenue collected from medicine.</h3>
+    <div id="overallCostDisplay"></div>
+    <div style="background-color: #fff; padding: 15px; border-radius: 10px; width: fit-content;" id="totalAmount"></div>
+    
+    
+       <div>
+    <h3 class="trend"><span class="icon">&#128202;</span> Top Medicines  </h3>
+    <div id="topsells"></div>
+    </div> 
+    </div>
+
+  <canvas id="salesTrendChart"></canvas>
+ <!-- <section  style="color: white; width: fit-content; margin-top: 90px;">
+    <h1  style="color: white; text-decoration: none;" >Table of Sales Made Over Days</h1>
+   </section>-->
+        <div id="patients" class="patients-container"></div>
+        <div id="salesContainer"></div>
+
+            <div id="noResultsMessage"></div>
+   
+        
+      
+  <div id="overlay"></div>
+<div id="message"></div>
+
+
+<!-- Popup for displaying daily expenses details -->
+<!-- Popup for displaying daily expenses details -->
+<div class="details-popup" id="detailsPopup"> <button id="closeDetailsButton">Close</button>
+  <h2 id="popupTitle">Expenses made on [date]</h2>
+  <p>You can drag this popup to any desired position.</p>
+  <div id="dailyExpensesDetails"></div>
+ 
+  <button style="display: none;" id="searchByDateButton">Search by Date</button>
+</div>
+
+<script>
+  // JavaScript for making the details popup draggable
+const popupTitle = document.getElementById('detailsPopup');
+let isDragging = false;
+let offsetX, offsetY;
+
+popupTitle.addEventListener('mousedown', (e) => {
+  isDragging = true;
+  offsetX = e.clientX - detailsPopup.getBoundingClientRect().left;
+  offsetY = e.clientY - detailsPopup.getBoundingClientRect().top;
+});
+
+document.addEventListener('mousemove', (e) => {
+  if (!isDragging) return;
+
+  const x = e.clientX - offsetX;
+  const y = e.clientY - offsetY;
+
+  detailsPopup.style.left = `${x}px`;
+  detailsPopup.style.top = `${y}px`;
+});
+
+document.addEventListener('mouseup', () => {
+  isDragging = false;
+});
+
+// Close the details popup
+document.getElementById('closeDetailsButton').addEventListener('click', () => {
+  detailsPopup.style.display = 'none';
+});
+
+</script>
+<!-- The popup div -->
+<div id="popupContainer" class="popup-container4" >
+  <div>
+    <span class="close-button" id="closeButton">&times;</span>
+   
+    <label for="expense">Expense Type:</label>
+<select id="expense" required>
+  <option value="" disabled selected>Select an expense</option>
+  <option value="Food">Food</option>
+  <option value="Transportation">Transportation</option>
+  <option value="Utilities">Utilities</option>
+  <option value="Professional Allowance">Professional Allowance</option>
+  <option value="Weekly Allowance">Weekly Allowance</option>
+  <option value="Medical Equipment Maintainance Fee">Medical Equipment Maintainance Fee</option>
+  <option value="Medical Consumables">Medical Consumables</option>
+  <option value="others">Others</option>
+
+  <!-- Add more options as needed -->
+</select>
+
+    <label for="amount">Amount (UGX):</label>
+    <input type="number" id="amount" required>
+
+    <label for="reason">Reason:</label>
+    <input type="text" id="reason" required>
+
+    <button id="saveExpenseButton">Save</button>
+  </div>
+</div><!-- Button with an "add" icon -->
+
+<!-- The overlay -->
+<div id="schemeOverlay"></div>
+
+<!-- The popup div for schemed expenses -->
+<div id="schemePopupContainer" class="popup-container4">
+  <div>
+    <span class="close-button" id="schemeCloseButton">&times;</span>
+    <h2>Upload Schemed Expense</h2>
+    <label for="schemeExpense">Expense:</label>
+    <input type="text" id="schemeExpense" required>
+    <label for="schemeAmount">Amount (UGX):</label>
+    <input type="number" id="schemeAmount" required>
+    <label for="schemePayment">Scheme of Payment:</label>
+    <select id="schemePayment">
+      <option value="monthly">Monthly</option>
+      <option value="yearly">Yearly</option>
+      <option value="after_2_years">After 2 years</option>
+      <option value="after_3_years">After 3 years</option>
+      <option value="after_5_years">After 5 years</option>
+    </select>
+    <button id="saveSchemeExpenseButton">Save</button>
+  </div>
+</div>
+
+    <section>
+      <h1 style="color: white; text-decoration: none;">Hospital Expenses</h1>
+
+    <div id="dailyExpenseContainer">
+    <h2 style="margin-top: 20px; color: white">Daily Expenses</h2>
+
+
+<button id="openPopupButton">
+   <i class="fas fa-plus-circle"></i> Daily Expense
+  </button> 
+      <!-- Button to show the daily expense summary -->
+    <button id="showPopupButton">
+        <i class="fas fa-list-check" style="margin-right: 10px;"></i>Summary
+    </button>
+   
+ </div>
+    </section>
+<div id="ExpenseSummaryPopupOverlay"></div>
+    <!-- Popup Content -->
+    <div class="ExpenseSummaryPopup" id="ExpenseSummaryPopup">
+        <h2>Daily Expense Summary</h2>
+               <div id="totalSum"></div>
+<section>
+  <!-- Filter by Date -->
+  <h2 style="color: white; margin-right: 50px;">Filter Expenses</h2>
+
+  <div>
+  <label style="color: white;" for="startDate">Start Date:</label>
+  <input style=" margin-right: 50px;" type="date" id="dailystartDate"></div>
+  <div>
+  <label style="color: white" for="endDate">End Date:</label>
+  <input  style=" margin-left: 50px;" type="date" id="dailyendDate"></div>
+  <button id="filterByDateButton"><i class="fas fa-filter"></i> Filter</button>
+  <div>
+  <button id="clear-filter-details"><i class="fas fa-refresh"></i> Refresh Filter</button></div>
+</section>
+
+<div id="totalAmountSum" class="total-amount-sum">
+  Table Summation: <span id="totalAmountSum">0 UGX</span>
+  <i class="fa fa-money-bill"></i>
+</div>
+        <!-- Date range inputs 
+        <label for="startDate">Start Date:</label>
+        <input type="date" id="startDate">
+        <label for="endDate">End Date:</label>
+        <input type="date" id="endDate">-->
+        
+        <!-- Table to display daily expenses -->
+        <table>
+          <thead>
+              <tr>
+                  <th><i style="color: green;" class="fas fa-calendar-day"></i> Date</th>
+                  <th><i style="color: green;" class="fas fa-file-invoice-dollar"></i> Number of Expenses</th>
+                  <th><i style="color: darkblue;" class="fas fa-money-bill-alt"></i> Total Amount (UGX)</th>
+                  <th><i style="color: blue;" class="fas fa-cogs"></i> Actions</th>
+              </tr>
+          </thead>
+          <tbody id="dailyExpensesBody">
+              <!-- Expenses will be displayed here -->
+          </tbody>
+      </table>
+      
+        <!-- Close button -->
+        <button id="closePopupButton">Close</button>
+    </div>
+
+    <!-- The container for the daily expenses table 
+
+    <div id="dailyExpensesContainer">
+        <h2>Latest Date's Expense</h2>
+        <table id="dailyExpensesTable" class="expense-table">
+            <thead>
+                <tr>
+                    <th><i style="color: green;" class="fas fa-file-invoice-dollar"></i> Expense</th>
+                    <th><i style="color: darkblue;" class="fas fa-money-bill-alt"></i> Amount (UGX)</th>
+                    <th><i style="color: green;" class="fas fa-calendar-day"></i> Date</th>
+                    <th><i style="color: blue;" class="fas fa-cogs"></i> Actions</th>
+                </tr>
+            </thead>
+            <tbody id="dailyExpensesBody">
+                
+            </tbody>
+        </table>
+    </div>
+-->
+    <!-- Add this div to display the total sum -->
+
+
+<!-- The container for the schemed expenses table -->
+<div id="schemedExpensesContainer">
+  <h2 style="margin-top: 20px; color: white">Schemed Expenses</h2>
+    <button id="openSchemePopupButton">
+  <i class="fas fa-plus-circle"></i> Schemed Expense
+</button>
+  <h2 style="margin-top: 20px; color: white">Schemed Expense Billing  Rate</h2>
+
+  <div class="total-sums-container">
+    <div class="total-sum-card" id="totalSumMonthly"></div>
+    <div class="total-sum-card" id="totalSumYearly"></div>
+    <div class="total-sum-card" id="totalSumAfter2Years"></div>
+    <div class="total-sum-card" id="totalSumAfter3Years"></div>
+    <div class="total-sum-card" id="totalSumAfter5Years"></div>
+
+    
+  </div>    
+    <div id="expensesContainer">
+      <div id="expensesInfo">
+        <!-- Your existing expense information here -->
+      </div>
+      <canvas id="expensesPieChart" width="400" height="400"></canvas>
+    </div>
+  <h2 style="margin-top: 20px; color: white">Schemed Expense Overview</h2>
+  <table id="schemedExpensesTable" class="expense-table">
+    <thead>
+      <tr>
+        <th><i style="color: green;" class="fas fa-file-invoice-dollar"></i> Expense</th>
+        <th><i style="color: darkblue;" class="fas fa-money-bill-alt"></i> Amount (UGX)</th>
+        <th><i style="color: maroon;" class="fas fa-calendar-alt"></i> Scheme of Payment</th>
+        <th><i style="color: green;" class="fas fa-calendar-day"></i> Start Date</th>
+        <th><i style="color: purple;" class="fas fa-calendar-check"></i> Due Date</th>
+        <th><i style="color: orange;" class="fas fa-hourglass-half"></i> Days Left</th>
+        <th><i style="color: blue;" class="fas fa-cogs"></i> Actions</th>
+      </tr>
+    </thead>
+    <tbody id="schemedExpensesBody">
+      <!-- Schemed expenses rows will be added here -->
+    </tbody>
+  </table>
+</div>
+
+ 
+  <section  style="color: white;">
+    <h1  style="color: white; text-decoration: none;" >Sales Per<br> Department </h1> 
+  <div class="date-filter">
+    <label style="color: white; margin-top: 5px;" for="startDate5">Start Date:</label>
+    <input type="date" id="startDate5">
+    <label style="color: white; margin-top: 5px;" for="startDate5" for="endDate5">End Date:</label>
+    <input type="date" id="endDate5">
+    <button id="filterButton5">Filter</button>
+    <button style="background-color: rgb(215, 0, 0); margin-top: 5px;" for="startDate5" id="refreshButton5">Refresh</button>
+  </div>
+    <div id="countdown"></div>
+   </section>   
+  
+
+ <h2 class="summary-heading">Summary of Sales</h2>
+
+  
+  <div id="paginationControls">
+  <button id="prevPageBtn">Previous</button>
+  <span id="pageIndicator">Page 1</span>
+  <button id="nextPageBtn">Next</button>
+</div>
+<div id="salesReceiptsContainer"></div>
+
+
+
+  <h2>Summary of Earnings</h2>
+  <div id="summaryContainer"></div>
+  <canvas id="earningsChart" width="400" height="200"></canvas>
+
+  <div class="action-center">
+    <div class="chat-overlay" id="chatOverlay"></div>
+    <div class="chat-button">
+      <button id="openChatBtn"><i class="fas fa-comment"></i><span id="unreadMessageCount">0</span></button>
+    </div>
+    <div class="chat-container" id="chatContainer">
+      <div class="action-header">Chat Room</div>
+      <div id="chatBox"></div>
+      <div class="message-input-container">
+        <input type="text" id="messageInput" placeholder="Type your message...">
+        <button id="sendMessageBtn"><i class="fas fa-paper-plane"></i></button>
+      </div>
+    </div>
+    <!-- Header of the action center -->
+    <div class="action-header">Action Center</div>
+    <span id="actionCenter"></span>
+    <!-- Button to send a message -->
+  </div>
+
+
+  
+  <style>
+
+
+
+/* Specific style for the show more button */
+.show-more {
+  background-color: #28a745; /* Green background for Show More */
+}
+
+.show-more:hover {
+  background-color: #218838; /* Darker green on hover */
+}
+
+/* Specific style for the show less button */
+.show-less {
+  background-color: #dc3545; /* Red background for Show Less */
+}
+
+.show-less:hover {
+  background-color: #c82333; /* Darker red on hover */
+}
+.table-title {
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 28px;
+  color: #333;
+}
+
+.pagination button {
+  padding: 8px 12px;
+  margin: 0 20px;
+  cursor: pointer;
+  background-color: transparent; /* Set background to transparent */
+  color: #3498db; /* Text color */
+  border: 2px solid #3498db; /* Add a border with the desired color */
+  border-radius: 3px;
+  margin-bottom: 30px; /* Adjust margin-bottom to your preference */
+  transition: background-color 0.3s, color 0.3s; /* Smooth transition for background color and text color */
+}
+
+.pagination button:hover {
+  background-color: #3498db; /* Background color on hover */
+  color: #fff; /* Text color on hover */
+}
+
+
+/* The overlay */
+#schemeOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  z-index: 1;
+  display: none;
+}
+
+/* The popup div for schemed expenses */
+#schemePopupContainer {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  padding: 20px;
+  z-index: 2;
+  display: none;
+}
+
+.popup-content {
+  width: 300px;
+}
+
+.close-button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+h2 {
+  margin-bottom: 10px;
+}
+
+label {
+  display: block;
+  margin-bottom: 5px;
+}
+
+input[type="text"],
+input[type="number"],
+select {
+  width: 100%;
   padding: 8px;
+  margin-bottom: 15px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+button {
+  background-color: #4CAF50;
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #45a049;
+}
+
+/* Show the popup when it's active */
+#schemePopupContainer.active,
+#schemeOverlay.active {
+  display: block;
+}
+
+.text {
+  background: #4CA1AF;  /* fallback for old browsers */
+background: -webkit-linear-gradient(to right, #4CA1AF, #C4E0E5);  /* Chrome 10-25, Safari 5.1-6 */
+background: linear-gradient(to right, #4CA1AF, #C4E0E5); /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */
+
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  margin-top: 100px;
+  margin-bottom: 50px;
+}
+
+.trend {
+  color: #ffffff;
+  font-size: 24px;
+  margin-bottom: 10px;
+}
+
+label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+  color: #333;
+}
+
+input[type="text"],
+input[type="number"] {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 14px;
+}
+
+button {
+  background-color: #007BFF;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  padding: 10px 20px;
+  font-size: 14px;
+  cursor: pointer;
+  margin-top: 10px;
+}
+#totalAmount {
+  color: #ff3366;
+  font-size: 36px;
+  margin-bottom: 20px;
+}
+/* CSS for the top selling medicines table */
+.topsell-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  color: rgb(10, 3, 3);
+}
+
+.topsell-table th, .topsell-table td {
+  padding: 10px;
+  text-align: left;
   border-bottom: 1px solid #ddd;
 }
 
-th {
-  text-align: left;
+.topsell-table th {
+background: #f9f9f9;
+  font-weight: bold;
+  color: rgb(63, 63, 63);
+}
+
+.topsell-table tr:hover {
+  background-color: #f9f9f9;
+  color: rgb(0, 0, 0);
+
+}
+
+
+
+    .earnings-icon {
+   font-size: 34px;
+   color: #ffbb00; /* Adjust the color as desired */
+   background: #136a8a;  /* fallback for old browsers */
+background: -webkit-linear-gradient(to right, #267871, #136a8a);  /* Chrome 10-25, Safari 5.1-6 */
+background: linear-gradient(to right, #267871, #136a8a); /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */
+   padding: 10px;
+   border-radius: 50px;
+}
+
+.earnings-text {
+  font-size: 30px;
+  color: #333; /* Adjust the color as desired */
+}
+
+
+#salesReceiptsContainer {
+  max-width: 800px;
+  margin: 20px auto;
+  padding: 20px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
 table {
   width: 100%;
   border-collapse: collapse;
+  margin-top: 20px;
+}
+
+th, td {
+  padding: 10px;
   border-bottom: 1px solid #ddd;
-}
-.recordKeyData {
-  font-weight: bold;
+  text-align: left;
 }
 
-.paymentStatusData {
-  font-weight: bold;
+th {
+  background-color: #f2f2f2;
 }
 
-.paymentStatusData.red {
-  color: red;
+tr:nth-child(even) {
+  background-color: #f9f9f9;
 }
 
-.paymentStatusData.blue {
-  color: blue;
+tr:hover {
+  background-color: #f5f5f5;
 }
 
-.resultsObtainedData {
-  font-weight: bold;
+.caption {
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 24px;
 }
 
-.resultsObtainedData.orange {
-  color: orange;
+.message {
+  margin-top: 20px;
+  padding: 10px;
+  background-color: #f44336;
+  color: white;
+  border-radius: 5px;
 }
 
-</style>
+.message.success {
+  background-color: #4caf50;
+}
+
+
+  </style>
+   <!-- <section  style="color: white; width: fit-content;">
+<h1  style="color: white; text-decoration: none;" >Trend of Data Entry Made Over Days</h1> 
+ </section>--> <section>
+      <h1  id="analytics" style="color: white; text-decoration: none;" >Test's  analytics</h1>        
+<br>
+    <div>
+      <label style="color: white;" for="start-date2">Start Date:</label>
+      <input type="date" id="start-date2">
+    </div>
+
+    <div>
+      <label style="color: white;" for="end-date2">End Date:</label>
+      <input type="date" id="end-date2">
+    </div>
+
+    <button id="filter-button2"><i class="fas fa-filter"></i> Filter</button>
+    <button id="clear-filter-button2"><i class="fas fa-refresh"></i> Refresh Filter</button>
+
+</section>
+<!-- Add this div to display the total price -->
+<div id="total-price"></div>
+
+<div id="button-container"></div>
+
+  
+
+  <div id="test-table-container"></div>
+
     <!-- /page content -->
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
 
-
-<!-- Firebase libraries -->
+ <!-- Firebase libraries -->
 <script type="module" src="https://www.gstatic.com/firebasejs/9.0.2/firebase-app.js"></script>
 <script type="module" src="https://www.gstatic.com/firebasejs/9.0.2/firebase-database.js"></script>
 <script type="module" src="https://www.gstatic.com/firebasejs/9.0.2/firebase-auth.js"></script>
-<script type="module" src="https://www.gstatic.com/firebasejs/9.0.2/firebase-storage.js"></script>
-<script src="./jspdf/dist/jspdf.umd.min.js"></script>
- <script src="./jspdf-autotable/dist/jspdf.plugin.autotable.js"></script>
- <!-- Include the html2canvas library -->
- <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.3.2/html2canvas.min.js"></script>
-
-<script type="module" src="laboratory.js">
-
-</script>
-
-<!-- Include the jQuery library -->
-<script src='https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js'></script>
-<script src='https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js'></script>
-
-<!-- Include the Select2 CSS and JS files -->
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-
-<script src="./portal.js"></script>
-
-<style>
-  .select2-container {
-    z-index: 9999; /* Adjust the z-index value as needed */
-  }
-</style>
-
-<script>
-  $(document).ready(function() {
-    // Initialize Select2 for the first select element
-    $('#testsTaken').select2({
-      dropdownParent: $('body')
-    });
-  });
+<script type="module" src="index.js">
+ 
 </script>
 
 
-<!-- Rest of your HTML code -->
+  </body>
+<!-- partial -->
+  <script src='https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js'></script>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js'></script><script  src="./portal.js"></script>
 
 </body>
 </html>

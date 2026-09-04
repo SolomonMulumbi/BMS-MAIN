@@ -2,16 +2,16 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.2/firebase
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.0.2/firebase-storage.js";
 import { getDatabase, ref, remove, push, get, update, onValue, child, set } from "https://www.gstatic.com/firebasejs/9.0.2/firebase-database.js";
 import { getAuth, onAuthStateChanged, sendPasswordResetEmail, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/9.0.2/firebase-auth.js";
- const firebaseConfig = {
-    apiKey: "AIzaSyCi_hufIZTzsYtdPGQtvtmKmAkkrydmn_A",
-  authDomain: "abbah-83a7b.firebaseapp.com",
-  databaseURL: "https://abbah-83a7b-default-rtdb.firebaseio.com",
-  projectId: "abbah-83a7b",
-  storageBucket: "abbah-83a7b.appspot.com",
-  messagingSenderId: "379729759051",
-  appId: "1:379729759051:web:e75528d61b02d1e4f536ce",
-  measurementId: "G-H41J2WMR6S"
-  };
+const firebaseConfig = {
+  apiKey: "AIzaSyCi_hufIZTzsYtdPGQtvtmKmAkkrydmn_A",
+authDomain: "abbah-83a7b.firebaseapp.com",
+databaseURL: "https://abbah-83a7b-default-rtdb.firebaseio.com",
+projectId: "abbah-83a7b",
+storageBucket: "abbah-83a7b.appspot.com",
+messagingSenderId: "379729759051",
+appId: "1:379729759051:web:e75528d61b02d1e4f536ce",
+measurementId: "G-H41J2WMR6S"
+};
 
   const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);

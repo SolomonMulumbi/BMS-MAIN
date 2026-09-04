@@ -7,15 +7,11 @@
    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-<!-- Add this line to include Font Awesome CSS -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" integrity="sha512-4fKXVDIzVu5Zt4Xyk3SjqjBUpJhyHE6sP9KxS9XnRgOl0A9KHH6s8gPI3uFIdptv5z+nLZ2E4fDz8OKsI/Yg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-<link href="BMS logo only.png" rel="icon">
-<script src="./jspdf/dist/jspdf.umd.min.js"></script>
- <script src="./jspdf-autotable/dist/jspdf.plugin.autotable.js"></script>
-<!-- Add this script tag in the head section or before the end of the body section -->
-<script src="https://cdn.jsdelivr.net/npm/moment"></script>
 
-  <!-- Include the html2canvas library -->
+ <script src="./jspdf/dist/jspdf.umd.min.js"></script>
+ <script src="./jspdf-autotable/dist/jspdf.plugin.autotable.js"></script>
+ <link href="BMS logo only.png" rel="icon">
+ <!-- Include the html2canvas library -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.3.2/html2canvas.min.js"></script>
 
    <!-- Include the Select2 CSS and JS files -->
@@ -70,12 +66,12 @@
             <ul class="nav side-menu">
               <li><a><i class="fa fa-home"></i> Home <span class="fa fa-chevron-down"></span></a>
                 <ul class="nav child_menu">
-                  <li><a href="index.html">Dashboard Management</a></li>
-               <li><a href="cashier.html">Cashier Desk</a></li>
-              <!--      <li><a href="index3.html">Dashboard3</a></li>--> 
+                  <li><a href="index.html">Dashboard</a></li>
+            <li><a href="cashier.html">Cashier Desk</a></li>
+              <!--         <li><a href="index3.html">Dashboard3</a></li>--> 
                 </ul>
               </li>
-              <li><a><i class="fa fa-edit"></i>Treatment<span class="fa fa-chevron-down"></span></a>
+              <li><a><i class="fa fa-edit"></i>Management <span class="fa fa-chevron-down"></span></a>
                 <ul class="nav child_menu">
                   <li><a href="laboratory.html">Laboratory</a></li>
                   <li><a href="patients.html">Patients Reception</a></li>
@@ -110,21 +106,19 @@
               <li><a><i class="fa fa-bar-chart-o"></i> Data Analytics <span class="fa fa-chevron-down"></span></a>
                 <ul class="nav child_menu">
                   <li><a href="sales.html">Data Entry</a></li>
-               <!--    <li><a href="revenue.html"> Data Entry Analytics</a></li>
-              <li><a href="tests.html">Tests</a></li>
+                <li><a href="revenue.html"> Data Entry Analytics</a></li>
+              <!--   <li><a href="tests.html">Tests</a></li>
                     <li><a href="echarts.html">ECharts</a></li>
                   <li><a href="other_charts.html">Other Charts</a></li>-->
                 </ul>
               </li>
-            <li><a><i class="fa fa-clone"></i>Management<span class="fa fa-chevron-down"></span></a>
+             <!-- <li><a><i class="fa fa-clone"></i>Layouts <span class="fa fa-chevron-down"></span></a>
                 <ul class="nav child_menu">
-                  <li><a href="staff.html">Hospital Staff</a></li>
-               <li><a href="insurance.html">Insurance </a></li>              
-              
-              
+                  <li><a href="fixed_sidebar.html">Fixed Sidebar</a></li>
+               <li><a href="fixed_footer.html">Fixed Footer</a></li>
                 </ul>
               </li>
-            </ul>
+            </ul>-->
           </div>
        <div class="menu_section">
             <ul class="nav side-menu">
@@ -171,7 +165,6 @@
         </div>
         <!-- /sidebar menu -->
 
-
      
         <div class="sidebar-footer hidden-small">
      <!--   <a data-toggle="tooltip" data-placement="top" title="Settings">
@@ -183,10 +176,10 @@
           <a data-toggle="tooltip" data-placement="top" title="Lock">
             <span class="glyphicon glyphicon-eye-close" aria-hidden="true"></span>
           </a>
-       <a data-toggle="tooltip" data-placement="top" title="Logout" href="#" id="closesession">
-            <span id="onlineStatus"  aria-hidden="true"></span>
+          <a data-toggle="tooltip" data-placement="top" title="Logout" href="#" id="closesession">
+            <span id="onlineStatus" aria-hidden="true"></span>
           </a>
-          <a data-toggle="tooltip" data-placement="top" title="Logout" href="#" id=""></a>
+          <a data-toggle="tooltip" data-placement="top" title="Logout" href="#" id="closesession"></a>
             <span class="glyphicon glyphicon-chevron-up" aria-hidden="true"></span>
           </a>
         </div> 
@@ -252,23 +245,20 @@ fullscreenButton.addEventListener('click', function() {
                   </a>
                 </li>              </ul>
             </li>
+                <li><!-- HTML element to display the count of not yet done messages -->
+                
+              
 
-            <li role="presentation" class="dropdown">
-              <a id="envelope-icon" href="javascript:;" class="dropdown-toggle info-number" data-toggle="dropdown" aria-expanded="false">
-                <i class="fa fa-envelope-o" ></i>
-                <span id="notDoneCount" class="badge bg-green" ></span>
-              </a>
-              
-              
-            </li>
-            <li role="presentation" class="dropdown">
-              <a id="list" href="javascript:;" class="dropdown-toggle info-number" data-toggle="dropdown" aria-expanded="false">
-                <i class="fas fa-list" ></i>
-                <span id="listCount" class="badge bg-green" ></span>
-              </a>
-              
-              
-            </li>
+
+                </li>
+                <li role="presentation" class="dropdown">
+                  <a id="envelope-icon" href="javascript:;" class="dropdown-toggle info-number" data-toggle="dropdown" aria-expanded="false">
+                    <i class="fa fa-envelope-o" ></i>
+                    <span id="notDoneCount" class="badge bg-green" ></span>
+                  </a>
+                  
+                  
+                </li>
           </ul>
         </nav>
       </div>
@@ -276,174 +266,147 @@ fullscreenButton.addEventListener('click', function() {
     <!-- /top navigation -->
  </div>
     <!-- page content -->
-    <style>
 
-      th, td {
-        padding: 8px;
-        border-bottom: 1px solid #ddd;
-      }
-      
-      th {
-        text-align: left;
-      }
-      
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        border-bottom: 1px solid #ddd;
-      }
-      .recordKeyData {
-        font-weight: bold;
-      }
-      
-      .paymentStatusData {
-        font-weight: bold;
-      }
-      
-      .paymentStatusData.red {
-        color: red;
-      }
-      
-      .paymentStatusData.blue {
-        color: blue;
-      }
-      
-      .resultsObtainedData {
-        font-weight: bold;
-      }
-      
-      .resultsObtainedData.orange {
-        color: orange;
-      }
-      
-      </style>
 
      <div style="z-index: 10000;" id="message"></div>
-    <div class="right_col" role="main"> 
+     
+  
+    <div class="right_col" role="main">  
       
       <div id="loginoverlay">  <div id="errorContainer" class="error-message" style="color: red;"></div>
-  </div>
-  
-      <!-- Add the container for error messages -->
-  
-  <div id="loginpopup" class="loginpopup">
-  
-    <div class="login-container">
-    <div class="login-form">
-      <h2 style="color: white;">Enter your credentials</h2>
-      <!-- Use a form to handle form submission -->
-      <form id="loginForm">
-        <label style="color: white;" for="email">Email:</label>
-        <input type="email" id="email" required>
-        <label style="color: white;" for="password">Password:</label>
-        <input type="password" id="password" required>
-        <button type="submit"  id="submitBtn">Submit</button>
-        <!-- Add a link for Forgot Password -->
-        <a href="#" id="forgotPasswordLink" style="color: white;">Forgot Password?</a>
-      </form>
     </div>
-    <!-- Details about Bibo Medical Systems -->
-    <div class="bibo-details">
-      <h3 style="color: rgb(255, 255, 255);" class="title">
-        <i class="fas fa-hospital"></i> Bibo Medical Systems | Your Healthcare Assistant
-      </h3>
-      <p style="color: rgb(255, 255, 255);">
-        Bibo Medical Systems is a state-of-the-art Hospital Management System that aims to revolutionize healthcare services. With cutting-edge technology and a team of dedicated healthcare professionals, we provide comprehensive medical solutions to enhance patient care and streamline hospital operations.
-      </p>
-      <p style="color: rgb(255, 255, 255);">
-        Our advanced system offers features such as electronic health records (EHR), patient billing, pharmacy management, and more. We prioritize data security and ensure that patient information remains confidential and protected.
-      </p>
-  <!--   <p style="color: rgb(255, 255, 255);">
-        At Bibo Medical Systems, we focus on patient-centric care, providing personalized treatment plans and fostering a compassionate environment for healing. Our hospital management system optimizes workflows, reduces administrative burdens, and empowers healthcare providers to deliver efficient and effective services.
-      </p>--> 
-      <p style="color: rgb(255, 255, 255);">
-        Whether you're a patient seeking top-notch medical care or a healthcare professional looking to streamline hospital operations, Bibo Medical Systems is your reliable healthcare assistant.
-      </p>
-      <p style="color: rgb(255, 255, 255);">
-        Experience the future of healthcare management with Bibo Medical Systems. Your well-being is our priority, and we are committed to delivering excellence in healthcare services every step of the way.
-      </p>
+    
+        <!-- Add the container for error messages -->
+    
+    <div id="loginpopup" class="loginpopup">
+    
+      <div class="login-container">
+      <div class="login-form">
+        <h2 style="color: white;">Enter your credentials</h2>
+        <!-- Use a form to handle form submission -->
+        <form id="loginForm">
+          <label style="color: white;" for="email">Email:</label>
+          <input type="email" id="email" required>
+          <label style="color: white;" for="password">Password:</label>
+          <input type="password" id="password" required>
+          <button type="submit"  id="submitBtn">Submit</button>
+          <!-- Add a link for Forgot Password -->
+          <a href="#" id="forgotPasswordLink" style="color: white;">Forgot Password?</a>
+        </form>
+      </div>
+      <!-- Details about Bibo Medical Systems -->
+      <div class="bibo-details">
+        <h3 style="color: rgb(255, 255, 255);" class="title">
+          <i class="fas fa-hospital"></i> Bibo Medical Systems | Your Healthcare Assistant
+        </h3>
+        <p style="color: rgb(255, 255, 255);">
+          Bibo Medical Systems is a state-of-the-art Hospital Management System that aims to revolutionize healthcare services. With cutting-edge technology and a team of dedicated healthcare professionals, we provide comprehensive medical solutions to enhance patient care and streamline hospital operations.
+        </p>
+        <p style="color: rgb(255, 255, 255);">
+          Our advanced system offers features such as electronic health records (EHR), patient billing, pharmacy management, and more. We prioritize data security and ensure that patient information remains confidential and protected.
+        </p>
+    <!--   <p style="color: rgb(255, 255, 255);">
+          At Bibo Medical Systems, we focus on patient-centric care, providing personalized treatment plans and fostering a compassionate environment for healing. Our hospital management system optimizes workflows, reduces administrative burdens, and empowers healthcare providers to deliver efficient and effective services.
+        </p>--> 
+        <p style="color: rgb(255, 255, 255);">
+          Whether you're a patient seeking top-notch medical care or a healthcare professional looking to streamline hospital operations, Bibo Medical Systems is your reliable healthcare assistant.
+        </p>
+        <p style="color: rgb(255, 255, 255);">
+          Experience the future of healthcare management with Bibo Medical Systems. Your well-being is our priority, and we are committed to delivering excellence in healthcare services every step of the way.
+        </p>
+      </div>
     </div>
-  </div>
-  </div>
+    </div>
       <section>
-        <button id="uploadBtn"><i class="fa fa-plus"></i>Add insurance CO.</button>
+      <!-- <button id="uploadBtn"><i class="fa fa-plus"></i>Register New Patient</button>--> 
         <div style="margin: auto;" class="search-container">
           <input type="text" id="searchInput" placeholder="Search by name or ID ...">
           <button id="searchButton"><i class="fas fa-search"></i> </button> 
+
         </div>
         
-        
         </section>
-         
-
+        
+       
 
              <div id="overlay"></div>
 
-        <div id="loader" class="loader"></div> <!--<div class="sort-container">
-            <label class="sort-label" for="sortSelect"></label>
-            <select id="sortSelect" class="sort-select">
-             <option value="expiry">Sort by Expiry Date</option>
-              <option value="alphabetical">Sort Alphabetically</option>
-            </select>
-          </div>--> 
+        <div id="loader" class="loader"></div><!-- Add this section for the lab requests popup -->
+
+<div class="dental-department-title">
+  <!-- Hospital Logo + Name -->
+  <div class="hospital-header">
+    <img src="sanyu.png" alt="SANYU HOSPITAL  Logo" class="hospital-logo">
+    <span class="hospital-name">Sanyu Hospital - Katooke (Wakiso)</span>
+  </div>
+<div id="resultsUploadPopup" style="display: none;">
+ <h3>
+  Upload Results for 
+  <span id="resultsPopupTestName"></span> 
+  (<span id="resultsPopupPatientName"></span>)
+</h3>
+  <form id="resultsUploadForm">
+    <div id="resultsPopupContainer"></div>
+    <div class="results-form-buttons">
+      <button type="submit" class="save-button">Save Results</button>
+      <button type="button" class="cancel-button" id="resultsCancelBtn">Cancel</button>
+    </div>
+  </form>
+</div>
+<div id="viewResultsPopup">
+  <div class="popup-content">
+    <h3 id="viewResultsHeader">Results</h3>  
+      <button class="close-popup-button">Close</button>
+
+    <div id="viewResultsContainer"></div>
+  </div>
+</div>
+
+
+  <!-- Reception Desk Section -->
+  <div class="reception-section">
+    <i class="fas fa-flask"></i>
+    <span>Laboratory</span>
+  </div>
+</div>
+
+ <div id="pagination" class="pagination"></div>
+       
         <div id="patients" class="patients-container"></div>
+       
+
+        <div class="action-center">
+          <div class="chat-overlay" id="chatOverlay"></div>
+          <div class="chat-button">
+            <button id="openChatBtn"><i class="fas fa-comment"></i><span id="unreadMessageCount">0</span></button>
+          </div>
+          <div class="chat-container" id="chatContainer">
+            <div class="action-header">Chat Room</div>
+            <div id="chatBox"></div>
+            <div class="message-input-container">
+              <input type="text" id="messageInput" placeholder="Type your message...">
+              <button id="sendMessageBtn"><i class="fas fa-paper-plane"></i></button>
+            </div>
+          </div>
+          <!-- Header of the action center -->
+          <div class="action-header">Action Center</div>
+          <span id="actionCenter"></span>
+          <!-- Button to send a message -->
+        </div>
+
         <!-- Popup Overlay -->
         <div class="popup-overlay" id="popupOverlay1">
           <div class="popup">
             <span class="popup-close" id="popupClose1">&times;</span>  
-            
             <div id="patientDetails"></div>
-            <h2>Patient's Medical Expenditure</h2>
-            <div class="container3">
-              <div class="medicine-total-container">
-                <span id="medicinetotal"></span>
-              </div>
-              <div id="test-total" class="test-total-container">
-                <span id="testtotal"></span>
-              </div>
-            </div>
-            <input type="text" id="testSearch" placeholder="Search tests by record key">
+ <button style="display: none;" id="addMedicationBtn"><i class="fa fa-plus"></i>Add Record</button>
 
-                    
-                  <h2 style=" margin-bottom: 30px;">Medical History Summary</h2>
-        <!--     <button id="addMedicationBtn"><i class="fa fa-plus"></i>Add Record</button>-->
+ <input type="text" id="testSearch" placeholder="Search tests by record key">
+ <h2 style=" margin-bottom: 30px;">Medical History</h2>
+
             <div id="patientHistory"></div>
           </div>
         </div>
-
-<!-- The insurance popup (hidden by default) -->
-<!-- The insurance popup (hidden by default) -->
-<div id="insurancePopup">
-
-  <form id="insuranceForm">
-      <h2>Add Insurance Details</h2>
-    <input type="hidden" id="patientName" value=""> <!-- Hidden field to store the patient's name -->
-    <label for="insuranceCompany">Insurance Company:</label>
-    <select style="width: 100%; margin-bottom: 20px;" id="insuranceCompanySelect" required>
-      <option value="" disabled selected>Select an insurance company</option>
-    </select>
-
-    <label for="premium" class="required-label">Premeium UGX (internal):</label>
-    <input type="number" id="premium">
-
-    <label for="startDate" class="required-label">Start Date of Subscription (internal):</label>
-    <input type="date" id="startDate">
-    
-    <label for="policyNumber" class="required-label">Policy Number (external):</label>
-    <input type="text" id="policyNumber">
-    
-    <label for="paymentScheme" class="required-label">Payment Scheme (internal):</label>
-    <select id="paymentScheme" >
-      <option value="" disabled selected>Select payment scheme</option>
-      <option value="monthly">Every Month</option>
-      <option value="quarterly">Every Quarter</option>
-      <option value="yearly">Every Year</option>
-      <option value="biennial">After Every 2 Years</option>
-    </select>
-
-    <button type="submit"  id="saveInsuranceButton" >Save</button>
-    </form>
-</div>
 
 
         <div class="popup-overlay" id="addMedicationPopupOverlay">
@@ -455,9 +418,10 @@ fullscreenButton.addEventListener('click', function() {
               <label for="resultsObtained">Results Obtained:</label>
               <input type="text" id="resultsObtained" required>
               <label for="medicationTaken">Medication Given:</label>
-              <div id="medicationInputsContainer">
-                <div id="medication"></div>        
+              <div id="medication">
+                <div class="medication-row" id="medicationInputsContainer"></div>
               </div>
+              
               
               <button id="addMedicationButton" type="button">+ Add</button>
               <label for="additionalNotes">Additional Notes:</label>
@@ -470,7 +434,22 @@ fullscreenButton.addEventListener('click', function() {
           </div>
         </div>
         
-<!-- The popup overlay -->
+
+
+       <!-- Your HTML code for the lab requests popup -->
+<div id="labRequestsPopupOverlay">
+  <div id="labRequestsPopup">
+    <span id="labRequestsPopupClose">&times;</span>
+    <h2>Laboratory Requests</h2>
+    <!-- Add these buttons where you want them to appear -->
+<button id="notDoneBtn" class="filter-button"> <i class="fas fa-eye-slash"></i>Not Yet Done</button>
+<button id="completedBtn" class="filter-button"><i class="fas fa-check-circle"></i>Completed</button>
+
+    <ul id="labRequestsList"></ul>
+
+  </div>
+</div>
+       <!-- The popup overlay -->
 <div id="popup-overlay4" class="popup-overlay4">
   <div class="popup-content4" id="popup-content4">
     <h2>Triage History</h2>
@@ -498,7 +477,7 @@ fullscreenButton.addEventListener('click', function() {
         </thead>
         <tbody id="tableBody">
         </tbody>
-      </table>   
+      </table>    <div id="trendAnalysisDiv"></div>
      <canvas id="visitTrendChart" style="max-width: 100%; margin-top: 20px;"></canvas>
 
     </div>
@@ -506,128 +485,16 @@ fullscreenButton.addEventListener('click', function() {
 
   </div>
   
-</div>
-<!-- The popup container -->
-<div id="historyoverlay">
-<div id="insuranceHistoryPopup" >
-  <!-- The content of the popup -->
-  <div class="popup-content2">
-    <h2>Insurance History</h2>
-    <!-- Table to display insurance history -->
-    <table id="insuranceHistoryTable">
-      <thead>
-        <tr>
-          <th>Insurance Company</th>
-          <th>Premium</th>
-          <th>Start Date</th>
-          <th>Policy Number</th>
-          <th>Payment Scheme</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-    <!-- Close button for the popup -->
-    <button id="closePopupButton">Close</button>
-  </div>
-</div>
-</div>
-<div id="listPopupOverlay">
-  <div id="listPopup">
-    <span id="listPopupClose">&times;</span>
-    <h2>Waiting List</h2>
-    <!-- Add these buttons where you want them to appear -->
-     <button id="notseen" class="filter-button"> <i class="fas fa-eye-slash"></i>Not Seen</button>
-     <button id="seen" class="filter-button"><i class="fas fa-check-circle"></i>Seen</button>
-
-    <ul id="waitinglist"></ul>
-
-  </div>
-</div>
-
-
-<div id="labRequestsPopupOverlay">
-  <div id="labRequestsPopup">
-    <span id="labRequestsPopupClose">&times;</span>
-    <h2>Laboratory Results</h2>
-    <!-- Add these buttons where you want them to appear -->
-<!-- Add these buttons where you want them to appear -->
-<button id="notDoneBtn" class="filter-button">
-  <i class="fas fa-eye-slash"></i> Not Yet Cleared
-</button>
-<button id="completedBtn" class="filter-button">
-  <i class="fas fa-check-circle"></i> Cleared
-</button>
-    <ul id="labRequestsList"></ul>
-
-  </div>
-</div>
-
-        <!-- The popup overlay -->
-<!-- The popup overlay -->
-<div id="popup-overlay3" class="popup-overlay3">
-  <form class="popup-content3">
-    <h2>Clinician</h2>
-    <label for="clinicianName">Clinician's Name:</label>
-    <select style="width: 100%;" id="clinicianName" required>
-      <!-- Options will be dynamically populated by JavaScript -->
-    </select>
-
-    <h2>Vital Signs</h2>
-    <div class="vital-signs">
-      <input type="text" id="temperature" placeholder="Temperature (&deg;C)">
-      <input type="text" id="bp" placeholder="BP (mmHg)" inputmode="numeric" pattern="\d{3}/\d{3}" title="Please enter blood pressure in the format 000/000 mmHg" required>
-
-      <input type="text" id="rr" placeholder="RR">
-      <input type="text" id="hr" placeholder="HR">
-      <input type="text" id="sp02" placeholder="SpO2 (%)">
-      <input type="text" id="wt" placeholder="WT (Kg)">
-      <input type="text" id="ht" placeholder="HT (cm)">
-      <input type="text" id="bmi" placeholder="BMI">
-      <input type="text" id="muac" placeholder="MUAC">
-      <input type="text" id="weightForAgeZScore" placeholder="Weight for Age Z score">
-    </div>
-
-    <h4>Additional Information</h4>
-    <input type="text" id="disability" placeholder="Disability">
-    <input type="text" id="chronicIllness" placeholder="Known Chronic Illness">
-    <input type="text" id="drugAbuse" placeholder="Any Drug Abuse">
-    <h2>Allergies</h2>
-    <select style=" width: 100%;" id="allergies" multiple >
-      <!-- Add more options as needed -->
-    </select>
-
-    <!-- Add the "Save Visit" and "Cancel" buttons inside the form -->
-    <button style=" margin-top: 20px;" type="button" id="saveVisitBtn">Save Visit</button>
-    <button style=" margin-top: 20px; background: red;" type="button" id="cancelVisitBtn">Cancel</button>
-  </form>
-</div>
-<script>
- const bloodPressureInput = document.getElementById('bp');
-
-bloodPressureInput.addEventListener('input', (event) => {
-  const inputValue = event.target.value.replace(/\D/g, ''); // Remove non-digit characters from input
-
-  if (inputValue.length > 6) {
-    event.target.value = inputValue.slice(0, 6); // Limit to 6 characters (3 for each part)
-  } else if (inputValue.length > 3) {
-    const firstPart = inputValue.slice(0, 3);
-    const secondPart = inputValue.slice(3, 6);
-    event.target.value = `${firstPart}/${secondPart}`;
-  }
-});
-
-</script>
-
-
-
+</div> 
         <!-- Popup Overlay -->
-        <div class="popup-overlay" id="addRecordPopupOverlay">
+        <div tabindex="-1" role="dialog" aria-hidden="true" class="popup-overlay" id="addRecordPopupOverlay">
           <div class="popup">
             <span class="popup-close" id="addRecordPopupClose">&times;</span>
             <h2>Add Medical Record</h2>
             <form id="addRecordForm" data-patient-name="">
                <label for="testsTaken">Test Taken:</label>
                    <select style="width: 100%;" id="testsTaken"  required>
+                   
                      <!-- Add more options as needed -->
                    </select>
 
@@ -652,20 +519,24 @@ bloodPressureInput.addEventListener('input', (event) => {
         <div class="popup-overlay" id="popupOverlay">
           <div class="popup">
             <span class="popup-close" id="popupClose">&times;</span>
-            <h2>Add insurance Company</h2>
+            <h2>Register New Patient</h2>
             <form class="popup-form" id="addPatientForm">
-              <label for="name" class="required-label">Company Name:</label>
+              <label for="name">Full Name:</label>
               <input type="text" id="name" required>
               
-              <label for="dob" class="required-label">Company Registration:</label>
-              <input type="text" id="dob" required>
+              <label for="age">Age:</label>
+<input type="number" id="age" min="0" max="120" placeholder="Enter age">
+
+<label for="dob">Date of Birth:</label>
+<input type="date" id="dob" required>
+
               
-              <label for="parents" class="required-label">Telephone Contact or Email:</label>
+              <label for="parents">Telephone Contact or Email:</label>
               <input type="tel" id="parents" required>
               
-              <label for="residence" class="required-label">Company Address:</label>
+              <label for="residence">Place of Residence:</label>
               <input type="text" id="residence" required>
-             <!--    
+              
               <label for="payment">Payment Terms:</label>
               <select id="payment" required>
                 <option value="cash">Cash</option>
@@ -680,9 +551,9 @@ bloodPressureInput.addEventListener('input', (event) => {
                 <option value="other">Other</option>
               </select>
               
-           <label for="patientId">Patient ID:</label>
+          <!--   <label for="patientId">Patient ID:</label>
               <input type="text" id="patientId" required readonly>
-              -->
+              --> 
               
               <button type="submit">Submit</button>
              
@@ -693,31 +564,332 @@ bloodPressureInput.addEventListener('input', (event) => {
      
         </div>
       </div>
+    
+<style>
 
 
+.cbc-analyzer-layout {
+    display: grid;
+    grid-template-columns: 42% 58%;
+    gap: 15px;
+    padding: 14px;
+}
 
 
-      
-      <script>
-        var uploadBtn = document.getElementById('uploadBtn');
-        var popupOverlay = document.getElementById('popupOverlay');
-        var popupClose = document.getElementById('popupClose');
-      uploadBtn.addEventListener('click', function() {
-      popupOverlay.style.visibility = 'visible';
-      popupOverlay.style.opacity = '1';
-      });
-      
-      popupClose.addEventListener('click', function() {
-      popupOverlay.style.visibility = 'hidden';
-      popupOverlay.style.opacity = '0';
-      });
-      </script>
+.cbc-analyzer-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+}
 
+
+.cbc-analyzer-table th {
+    text-align: left;
+    padding: 6px 8px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #ddd;
+    color: #555;
+}
+
+
+.cbc-analyzer-table th:last-child {
+    text-align: right;
+}
+
+
+.cbc-analyzer-table td {
+    padding: 5px 8px;
+    border-bottom: 1px solid #eee;
+}
+
+
+.cbc-analyzer-table td:last-child {
+    text-align: right;
+    font-weight: bold;
+    color: #222;
+}
+
+
+.cbc-small-chart {
+    height: 95px;
+
+    position: relative;
+
+    border: 1px solid #e5e7eb;
+
+    border-radius: 6px;
+
+    margin-bottom: 8px;
+
+    padding: 18px 6px 5px 6px;
+
+    background: #fff;
+}
+
+
+.cbc-small-chart span {
+    position: absolute;
+
+    top: 4px;
+    left: 7px;
+
+    font-size: 10px;
+
+    font-weight: bold;
+
+    color: #555;
+}
+
+
+.cbc-small-chart canvas {
+    width: 100% !important;
+    height: 80px !important;
+}
+
+
+@media (max-width: 750px) {
+
+    .cbc-analyzer-layout {
+        grid-template-columns: 1fr;
+    }
+
+
+    .cbc-small-chart {
+        height: 90px;
+    }
+
+
+    .cbc-small-chart canvas {
+        height: 65px !important;
+    }
+
+}
+
+
+th, td {
+  padding: 8px;
+  border-bottom: 1px solid #ddd;
+}
+
+th {
+  text-align: left;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  border-bottom: 1px solid #ddd;
+}
+.recordKeyData {
+  font-weight: bold;
+}
+
+.paymentStatusData {
+  font-weight: bold;
+}
+
+.paymentStatusData.red {
+  color: red;
+}
+
+.paymentStatusData.blue {
+  color: blue;
+}
+
+.resultsObtainedData {
+  font-weight: bold;
+}
+
+.resultsObtainedData.orange {
+  color: orange;
+}
+
+.cbc-capture-overlay {
+    position: absolute;
+    inset: 0;
+
+    z-index: 100;
+
+    background: rgba(30, 41, 59, 0.38);
+
+    backdrop-filter: blur(1px);
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    border-radius: inherit;
+
+    transition: opacity 0.3s ease;
+}
+
+
+.cbc-capture-message {
+    background: rgba(255,255,255,0.96);
+
+    min-width: 190px;
+
+    padding: 18px 25px;
+
+    border-radius: 10px;
+
+    text-align: center;
+
+    box-shadow:
+        0 8px 25px rgba(0,0,0,0.12);
+}
+
+
+.cbc-capture-icon {
+    font-size: 25px;
+    color: #0d6efd;
+    margin-bottom: 8px;
+}
+
+
+.cbc-success-icon {
+    font-size: 29px;
+    color: #198754;
+    margin-bottom: 8px;
+}
+
+
+.cbc-capture-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1f2937;
+}
+
+
+.cbc-capture-subtitle {
+    font-size: 10px;
+    color: #6b7280;
+    margin-top: 3px;
+}
+
+
+.cbc-captured-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+
+    margin-top: 8px;
+
+    padding: 5px 10px;
+
+    border-radius: 20px;
+
+    background: #d1e7dd;
+
+    color: #146c43;
+
+    font-size: 11px;
+    font-weight: 700;
+}
+
+
+.cbc-captured-card {
+    border: 1px solid #badbcc !important;
+    background: #f6fff9 !important;
+}
+.cbc-analyzer-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    background: #fff;
+}
+
+.cbc-analyzer-table th {
+    background: #f1f5f9;
+    padding: 7px 6px;
+    text-align: left;
+    border-bottom: 2px solid #cbd5e1;
+    font-size: 11px;
+    color: #334155;
+}
+
+.cbc-analyzer-table td {
+    padding: 6px;
+    border-bottom: 1px solid #e5e7eb;
+    white-space: nowrap;
+}
+
+.cbc-analyzer-table tr:hover {
+    background: #f8fafc;
+}
+
+
+/* HIGH */
+
+.cbc-flag-high {
+    color: #dc2626;
+    font-weight: 800;
+    text-align: center;
+}
+
+.cbc-result-high {
+    color: #dc2626;
+    font-weight: 700;
+}
+
+
+/* LOW */
+
+.cbc-flag-low {
+    color: #2563eb;
+    font-weight: 800;
+    text-align: center;
+}
+
+.cbc-result-low {
+    color: #2563eb;
+    font-weight: 700;
+}
+
+
+/* NORMAL */
+
+.cbc-flag-normal {
+    color: #64748b;
+    text-align: center;
+}
+
+.cbc-saved-graphs {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 12px;
+  width: 100%;
+  align-items: stretch;
+}
+
+.cbc-saved-graph-box {
+  flex: 1 1 0;
+  min-width: 0;
+  background: #fff;
+  border: 1px solid #dbe2ea;
+  border-radius: 8px;
+  padding: 8px;
+  box-sizing: border-box;
+}
+
+.cbc-saved-graph-box canvas {
+  display: block;
+  width: 100%;
+  height: 150px;
+}
+
+.cbc-saved-graph-title {
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 5px;
+  text-align: center;
+}
+</style>
     <!-- /page content -->
 
-
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+
 
 <!-- Firebase libraries -->
 <script type="module" src="https://www.gstatic.com/firebasejs/9.0.2/firebase-app.js"></script>
@@ -729,7 +901,7 @@ bloodPressureInput.addEventListener('input', (event) => {
  <!-- Include the html2canvas library -->
  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.3.2/html2canvas.min.js"></script>
 
-<script type="module" src="insurance.js">
+<script type="module" src="laboratory.js">
 
 </script>
 
@@ -752,13 +924,8 @@ bloodPressureInput.addEventListener('input', (event) => {
 <script>
   $(document).ready(function() {
     // Initialize Select2 for the first select element
-    $('#allergies').select2({
+    $('#testsTaken').select2({
       dropdownParent: $('body')
-    });
-
-    // Initialize Select2 for the select elements inside '.medication-input-container' within '.popup3'
-    $('.popup3 .medication-input-container select').select2({
-      dropdownParent: $('.popup3')
     });
   });
 </script>

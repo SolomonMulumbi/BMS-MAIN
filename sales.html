@@ -51,8 +51,9 @@
             <img src="" alt="..." class="img-circle profile_img">
           </div>
           <div class="profile_info">
-            <span>Welcome,</span>
-            <h2></h2>
+            
+  <span>Welcome,</span>
+  <h2 id="profileName"></h2>
           </div>
         </div>
         <!-- /menu profile quick info -->
@@ -67,8 +68,8 @@
                   <li><a><i class="fa fa-home"></i> Home <span class="fa fa-chevron-down"></span></a>
                     <ul class="nav child_menu">
                       <li><a href="index.html">Dashboard Management</a></li>
-                <!--     <li><a href="index2.html">Dashboard2</a></li>
-                      <li><a href="index3.html">Dashboard3</a></li>--> 
+                   <li><a href="cashier.html">Cashier Desk</a></li>
+                  <!--      <li><a href="index3.html">Dashboard3</a></li>--> 
                     </ul>
                   </li>
                   <li><a><i class="fa fa-edit"></i>Treatment<span class="fa fa-chevron-down"></span></a>
@@ -77,6 +78,10 @@
                       <li><a href="patients.html">Patients Reception</a></li>
                       <li><a href="odp.html">Patient's on Treatment</a></li>
                      <li><a href="doctors.html">Doctor's Room</a></li>
+                     <li><a href="dental.html">Dental Department</a></li>
+                     <li><a href="scan.html">Scan Department</a></li>
+                     <li><a href="babies.html">Babies Department</a></li>
+    
     
                     </ul>
                   </li>
@@ -177,6 +182,9 @@
           </a>
         <a data-toggle="tooltip"  data-placement="top" title="Logout" href="#" id="closesession">
             <span id="onlineStatus" aria-hidden="true"></span>
+          </a>
+          <a data-toggle="tooltip" data-placement="top" title="Logout" href="#" id=""></a>
+            <span class="glyphicon glyphicon-chevron-up" aria-hidden="true"></span>
           </a>
         </div> 
         <script>
@@ -358,7 +366,7 @@ fullscreenButton.addEventListener('click', function() {
   </section>
 
    
- <section style="display: none;" >
+ <section style="" >
                 <h1  style="color: white; text-decoration: none;" > Medicine sale's  analytics</h1>
                 <div>
                 <label style="color: white;" for="start-date">Start Date:</label>
@@ -391,7 +399,7 @@ fullscreenButton.addEventListener('click', function() {
  </div>
           <h2 style="margin-top: 20px;" >Search Medicine</h2>
           <input type="text" id="medicineInput" placeholder="Enter medicine name">
-          <button id="searchMedicineButton">Search</button>   
+          <button style="display: none;" id="searchMedicineButton">Search</button>   
          
               </div>
                    <div id="loader" class="loader"></div>

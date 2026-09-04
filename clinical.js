@@ -1,15 +1,15 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.2/firebase-app.js";
-  import { getDatabase, ref,remove, push,get, onValue,child,set } from "https://www.gstatic.com/firebasejs/9.0.2/firebase-database.js";
+  import { getDatabase, ref,remove, push,get, onValue,child,set,update } from "https://www.gstatic.com/firebasejs/9.0.2/firebase-database.js";
   import { getAuth, onAuthStateChanged,sendPasswordResetEmail , signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/9.0.2/firebase-auth.js";
   const firebaseConfig = {
-    apiKey: "AIzaSyCi_hufIZTzsYtdPGQtvtmKmAkkrydmn_A",
-  authDomain: "abbah-83a7b.firebaseapp.com",
-  databaseURL: "https://abbah-83a7b-default-rtdb.firebaseio.com",
-  projectId: "abbah-83a7b",
-  storageBucket: "abbah-83a7b.appspot.com",
-  messagingSenderId: "379729759051",
-  appId: "1:379729759051:web:e75528d61b02d1e4f536ce",
-  measurementId: "G-H41J2WMR6S"
+   apiKey: "AIzaSyCi_hufIZTzsYtdPGQtvtmKmAkkrydmn_A",
+authDomain: "abbah-83a7b.firebaseapp.com",
+databaseURL: "https://abbah-83a7b-default-rtdb.firebaseio.com",
+projectId: "abbah-83a7b",
+storageBucket: "abbah-83a7b.appspot.com",
+messagingSenderId: "379729759051",
+appId: "1:379729759051:web:e75528d61b02d1e4f536ce",
+measurementId: "G-H41J2WMR6S"
   };
 
   const app = initializeApp(firebaseConfig);
@@ -347,64 +347,313 @@ overlay.addEventListener('click', hidePopup);
 
 // Event listener for form submission
 prescriptionsForm.addEventListener('submit', handleFormSubmit);
-
-
-
 const form = document.querySelector('.popup-form');
+const typeSelect = document.getElementById('testType');
+const categorySelect = document.getElementById('sex');
+const services = document.getElementById('services');
+
 const submitButton = document.querySelector('.popup-form button');
+// Reference to DOM elements
 const patientsContainer = document.getElementById('patients');
-let patients = []; // Declare patients variable outside the event listener
-let patientCount = 1; // Initialize patient count
-form.addEventListener('submit', function(e) {
-  e.preventDefault();
+const loaderElement = document.getElementById('loader');
 
-  const name = document.getElementById('name').value.trim(); // Remove leading and trailing spaces
-  const dob = document.getElementById('dob').value;
- // const parents = document.getElementById('parents').value;
- // const residence = document.getElementById('residence').value;
-  //const payment = document.getElementById('payment').value;
-  const sex = document.getElementById('sex').value;
-  //const patientId = `PI - ${patientCount.toString().padStart(3, '0')}`; // Generate patient ID
+let patientsData = []; // Will hold all tests
 
-  const patientData = {
-    name: name,
-    dob: dob,
- //   parents: parents,
- //   residence: residence,
-  ///  payment: payment,
-    sex: sex,
- //   patientId: patientId
-  };
+const categories = {
+  investigations: ['Laboratory', 'Ultrascan', 'Xray', 'Biopsy', 'Clinical'],
+  procedures: ['Maternity', 'Theatre', 'Treatment-room', 'Other'],
+  services: ['Hospital Admission', 'Professional Fees', 'Consultation Fees', 'Other']
+};
 
-  const patientsRef = ref(database, 'tests');
-  const newPatientRef = child(patientsRef, name); // Use patient name as the key
+const parametersContainer = document.getElementById('parametersContainer');
+const addParameterBtn = document.getElementById('addParameterBtn');
 
-  // Check if patient with the same name already exists
-  get(newPatientRef)
-    .then((snapshot) => {
-      if (snapshot.exists()) {
-        // Display an alert if patient with the same name already exists
-        alert('Test with the same name already exists.');
-      } else {
-        // Save the new patient data
-        set(newPatientRef, patientData)
-          .then(() => {
-            form.reset();
-            showMessage('Test details uploaded successfully!');
-            patientCount++; // Increment patient count
-          })
-          .catch((error) => {
-            console.error('Error uploading patient details:', error);
-            showMessage('Error uploading test details. Please try again.');
-          });
-      }
-    })
-    .catch((error) => {
-      console.error('Error checking if test exists:', error);
-      showMessage('Error checking if test exists. Please try again.');
+// Populate category dynamically
+typeSelect.addEventListener('change', () => {
+  const selectedType = typeSelect.value;
+  categorySelect.innerHTML = '<option value="">-- Select Category --</option>';
+  if (selectedType && categories[selectedType]) {
+    categories[selectedType].forEach(cat => {
+      const option = document.createElement('option');
+      option.value = cat;
+      option.textContent = cat;
+      categorySelect.appendChild(option);
     });
+  }
+});
+// Add dynamic parameter row
+addParameterBtn.addEventListener('click', () => {
+  const div = document.createElement('div');
+  div.classList.add('parameter-row');
+  div.innerHTML = `
+    <input type="text" placeholder="Parameter Name" class="param-name" required>
+    <input type="text" placeholder="Unit (e.g., mg/dL)" class="param-unit">
+    <input type="text" placeholder="Normal Range" class="param-normal">
+    <button type="button" class="remove-param">Remove</button>
+  `;
+  parametersContainer.appendChild(div);
+
+  div.querySelector('.remove-param').addEventListener('click', () => div.remove());
 });
 
+// Submit form and save to Firebase
+form.addEventListener('submit', function (e) {
+  e.preventDefault();
+
+ const type = typeSelect.value.trim();
+const name = document.getElementById('name').value.trim();
+const costInput = document.getElementById('dob');
+const cost = Number(costInput.value);
+const category = categorySelect.value.trim();
+
+if (!type || !name || !category || costInput.value.trim() === '') {
+  alert('⚠️ Please fill in all fields.');
+  return;
+}
+
+if (isNaN(cost) || cost < 0) {
+  alert('⚠️ Please enter a valid cost.');
+  return;
+}
+  // Collect parameters
+  const parameters = Array.from(document.querySelectorAll('.parameter-row')).map(row => ({
+    name: row.querySelector('.param-name').value.trim(),
+    unit: row.querySelector('.param-unit').value.trim(),
+    normal: row.querySelector('.param-normal').value.trim()
+  }));
+
+  const testData = { type, category, name, cost, parameters };
+
+  const testsRef = ref(database, 'tests');
+  const newTestRef = child(testsRef, name.replace(/\s+/g, '_').toLowerCase());
+
+  get(newTestRef)
+    .then(snapshot => {
+      if (snapshot.exists()) {
+        alert('⚠️ A test with this name already exists.');
+      } else {
+        set(newTestRef, testData)
+          .then(() => {
+            form.reset();
+            parametersContainer.innerHTML = '';
+            alert('✅ Test details uploaded successfully!');
+          })
+          .catch(error => console.error('Error uploading test:', error));
+      }
+    })
+    .catch(error => console.error('Error checking if test exists:', error));
+});
+
+// ----------------------
+// Live render from Firebase
+// ----------------------
+const testsRef = ref(database, 'tests');
+
+onValue(testsRef, snapshot => {
+  patientsData = snapshot.val() ? Object.values(snapshot.val()).reverse() : [];
+  renderPatients(patientsData);
+  loaderElement.classList.add('hidden');
+});
+
+// ----------------------
+// Render function
+// ----------------------
+function renderPatients(patients) {
+  patientsContainer.innerHTML = '';
+
+  const table = document.createElement('table');
+  table.classList.add('patient-table');
+
+  // Header
+  const headers = ['Type', 'Category', 'Name', 'Cost (UGX)', 'Parameters', 'Actions'];
+  const tableHeaderRow = document.createElement('tr');
+  tableHeaderRow.classList.add('table-header');
+  headers.forEach(text => {
+    const th = document.createElement('th');
+    th.textContent = text;
+    tableHeaderRow.appendChild(th);
+  });
+  table.appendChild(tableHeaderRow);
+
+  // Rows
+  patients.forEach(test => {
+    const row = document.createElement('tr');
+    row.classList.add('table-row');
+
+    const typeCell = createCell(test.type);
+    const categoryCell = createCell(test.category);
+    const nameCell = createCell(test.name);
+const costCell = document.createElement('td');
+
+const costText = document.createElement('span');
+costText.textContent = test.cost != null
+  ? Number(test.cost).toLocaleString()
+  : '-';
+
+const editButton = document.createElement('button');
+editButton.textContent = 'Edit';
+editButton.className = 'edit-cost-btn';
+
+editButton.addEventListener('click', () => {
+  costCell.innerHTML = '';
+
+  const costInput = document.createElement('input');
+  costInput.type = 'number';
+  costInput.value = test.cost != null ? test.cost : '';
+  costInput.className = 'cost-edit-input';
+
+  const saveButton = document.createElement('button');
+  saveButton.textContent = 'Save';
+  saveButton.className = 'save-cost-btn';
+
+  const cancelButton = document.createElement('button');
+  cancelButton.textContent = 'Cancel';
+  cancelButton.className = 'cancel-cost-btn';
+
+  // ----------------------
+  // SAVE COST TO FIREBASE
+  // ----------------------
+  saveButton.addEventListener('click', async () => {
+    const newCost = Number(costInput.value);
+
+    if (costInput.value === '' || isNaN(newCost) || newCost < 0) {
+      alert('Please enter a valid cost.');
+      return;
+    }
+
+    // EXACT SAME TEST NODE USED BY DELETE
+    const testKey = test.name.replace(/\s+/g, '_').toLowerCase();
+
+    const testRef = ref(database, 'tests/' + testKey);
+
+    try {
+      // Only update the cost field.
+      // Everything else in the test node remains untouched.
+      await update(testRef, {
+        cost: newCost
+      });
+
+      // Update local object too
+      test.cost = newCost;
+
+      // Restore normal display
+      costCell.innerHTML = '';
+
+      const newCostText = document.createElement('span');
+      newCostText.textContent = Number(newCost).toLocaleString();
+
+      const newEditButton = document.createElement('button');
+      newEditButton.textContent = 'Edit';
+      newEditButton.className = 'edit-cost-btn';
+
+      // Re-open editor
+      newEditButton.addEventListener('click', () => {
+        editButton.click();
+      });
+
+      costCell.appendChild(newCostText);
+      costCell.appendChild(newEditButton);
+
+      showMessage('✅ Cost updated successfully.');
+
+    } catch (error) {
+      console.error('Error updating test cost:', error);
+      alert('❌ Failed to update the cost.');
+    }
+  });
+
+  // ----------------------
+  // CANCEL
+  // ----------------------
+  cancelButton.addEventListener('click', () => {
+    costCell.innerHTML = '';
+    costCell.appendChild(costText);
+    costCell.appendChild(editButton);
+  });
+
+  costCell.appendChild(costInput);
+  costCell.appendChild(saveButton);
+  costCell.appendChild(cancelButton);
+
+  costInput.focus();
+});
+
+costCell.appendChild(costText);
+costCell.appendChild(editButton);
+    // Parameters cell with mini table
+    const paramsCell = document.createElement('td');
+    if (test.parameters && test.parameters.length > 0) {
+      const paramTable = document.createElement('table');
+      paramTable.classList.add('param-table');
+      test.parameters.forEach(param => {
+        const paramRow = document.createElement('tr');
+
+        const nameCell = document.createElement('td');
+        nameCell.textContent = param.name || '-';
+        nameCell.style.fontWeight = '600';
+
+        const unitCell = document.createElement('td');
+        unitCell.textContent = param.unit || '-';
+
+       const rangeCell = document.createElement('td');
+rangeCell.textContent = param.normal || '-';
+
+
+        paramRow.appendChild(nameCell);
+        paramRow.appendChild(unitCell);
+        paramRow.appendChild(rangeCell);
+        paramTable.appendChild(paramRow);
+      });
+
+      paramsCell.appendChild(paramTable);
+    } else {
+      paramsCell.textContent = '-';
+    }
+
+    // Actions
+    const actionsCell = document.createElement('td');
+    const deleteBtn = document.createElement('button');
+    deleteBtn.textContent = 'Delete';
+    deleteBtn.classList.add('delete-button');
+    deleteBtn.addEventListener('click', () => {
+      const confirmed = confirm('Are you sure you want to delete this test?');
+      if (!confirmed) return;
+
+      const password = prompt('Enter password to confirm deletion:');
+      if (password !== 'mm') {
+        alert('Incorrect password. Deletion canceled.');
+        return;
+      }
+
+      const testRef = ref(database, 'tests/' + test.name.replace(/\s+/g, '_').toLowerCase());
+      remove(testRef)
+        .then(() => showMessage('🗑️ Test deleted successfully.'))
+        .catch(error => {
+          console.error('Error deleting test:', error);
+          showMessage('❌ Error deleting test.');
+        });
+    });
+
+    actionsCell.appendChild(deleteBtn);
+
+    row.appendChild(typeCell);
+    row.appendChild(categoryCell);
+    row.appendChild(nameCell);
+    row.appendChild(costCell);
+    row.appendChild(paramsCell);
+    row.appendChild(actionsCell);
+
+    table.appendChild(row);
+  });
+
+  patientsContainer.appendChild(table);
+
+  function createCell(text) {
+    const cell = document.createElement('td');
+    cell.textContent = text ?? '-';
+    return cell;
+  }
+}
 
 
 // Rest of the code...
@@ -453,112 +702,6 @@ searchButton.addEventListener('click', () => {
   });
 });
 
-function renderPatients(patients) {
-  
-  patientsContainer.innerHTML = '';
-
-// Create the table element
-const table = document.createElement('table');
-table.classList.add('patient-table');
-
-// Create the table header row
-const tableHeaderRow = document.createElement('tr');
-tableHeaderRow.classList.add('table-header');
-
-// Define the table header columns
-const headers = ['Name',  'Test Case','Cost (UGX)', 'Actions'];
-
-// Create the table header cells
-headers.forEach(headerText => {
-  const tableHeaderCell = document.createElement('th');
-  tableHeaderCell.textContent = headerText;
-  tableHeaderRow.appendChild(tableHeaderCell);
-});
-
-// Append the header row to the table
-table.appendChild(tableHeaderRow);
-
-patients.forEach(patient => {
-  // Create a table row for each patient
-  const tableRow = document.createElement('tr');
-  tableRow.classList.add('table-row');
-
-  // Create the table cells for patient information
-  const nameCell = createTableCell(patient.name);
- // const residenceCell = createTableCell(patient.residence);
- // const paymentCell = createTableCell(patient.payment);
-  const sexCell = createTableCell(patient.sex);
- // const patientIdCell = createTableCell(patient.patientId);
- // const parentsCell = createTableCell(patient.parents);
-  const dobCell = createTableCell(patient.dob);
-  
-  // Calculate the age based on the date of birth
-  const dob = new Date(patient.dob);
-  const today = new Date();
-  const age = today.getFullYear() - dob.getFullYear();
-  const ageCell = createTableCell(age.toString());
-
-// Create the actions cell with the delete button
-const actionsCell = document.createElement('td');
-const deleteButton = document.createElement('button');
-deleteButton.textContent = 'Delete';
-deleteButton.classList.add('delete-button');
-deleteButton.addEventListener('click', function() {
-  const confirmed = confirm("Are you sure you want to delete this test?");
-  if (confirmed) {
-    const password = prompt("Please enter the password to confirm:");
-    // Replace 'YOUR_PASSWORD' with the actual password for confirmation
-    if (password === 'mm') {
-      // Remove the patient from Firebase
-      const patientRef = ref(database, 'tests/' + patient.name);
-      remove(patientRef)
-        .then(() => {
-          // Patient successfully deleted
-          console.log('Test deleted successfully');
-        })
-        .catch(error => {
-          // An error occurred while deleting the patient
-          console.log('Error deleting test:', error);
-        });
-    } else {
-      // Incorrect password entered
-      alert('Incorrect password. Deletion canceled.');
-    }
-  } else {
-    // Deletion canceled by the user
-    console.log('Deletion canceled by the user');
-  }
-});
-actionsCell.appendChild(deleteButton);
-
-
-  // Append the cells to the table row
-  tableRow.appendChild(nameCell);
- // tableRow.appendChild(residenceCell);
- // tableRow.appendChild(paymentCell);
-  tableRow.appendChild(sexCell);
- // tableRow.appendChild(patientIdCell);
- // tableRow.appendChild(parentsCell);
-  tableRow.appendChild(dobCell);
- // tableRow.appendChild(ageCell);
-  tableRow.appendChild(actionsCell);
-
-  // Append the row to the table
-  table.appendChild(tableRow);
-});
-
-
-
-// Append the table to the patients container
-patientsContainer.appendChild(table);
-
-function createTableCell(text) {
-  const cell = document.createElement('td');
-  cell.textContent = text;
-  return cell;
-}
-
-}
 
 const addRecordForm = document.getElementById('addRecordForm');
 let currentPatientName = '';
@@ -693,7 +836,7 @@ function createRecordElement(recordKey, record) {
   recordElement.appendChild(dateTakenElement);
 
   const testsTakenElement = document.createElement('p');
-  testsTakenElement.textContent = 'Tests Taken: ' + record.testsTaken;
+  testsTakenElement.textContent = 'Services Offered: ' + record.testsTaken;
   recordElement.appendChild(testsTakenElement);
 
   const resultsObtainedElement = document.createElement('p');
@@ -789,104 +932,30 @@ addRecordPopupClose.addEventListener('click', () => {
 });
 
 
-const loaderElement = document.getElementById('loader');
-
-// Retrieve and render patients
-const patientsRef = ref(database, 'tests');
-
 // Show the loader
 loaderElement.classList.remove('hidden');
 
+// Firebase reference (make sure this is defined somewhere)
+const patientsRef = ref(database, 'tests'); // or 'investigations' / 'procedures' depending on your structure
+
+// Listen for live updates
 onValue(patientsRef, (snapshot) => {
-  const patientsData = snapshot.val();
+  patientsData = snapshot.val() ? Object.values(snapshot.val()).reverse() : [];
 
-  if (patientsData) {
-    patients = Object.values(patientsData); // Update the patients variable
-    renderPatients(patients);
-  }
+  // Render the table using the data
+  renderPatients(patientsData);
 
-  // Hide the loader
+  // Hide the loader after rendering
   loaderElement.classList.add('hidden');
 });
-
 
 const uploadForm = document.getElementById('addPatientForm');
 
 
 
 
-uploadForm.addEventListener('DOMContentLoaded', () => {
-  populateNextPatientId();
-});
 
-uploadForm.addEventListener('submit', (e) => {
-  e.preventDefault();
 
-  const nameInput = document.getElementById('name');
-  const dobInput = document.getElementById('dob');
-  const parentsInput = document.getElementById('parents');
-  const residenceInput = document.getElementById('residence');
-  const paymentInput = document.getElementById('payment');
-  const sexInput = document.getElementById('sex');
-  const patientIdInput = document.getElementById('patientId');
-
-  // Save patient data to Firebase
-  const savePatientData = () => {
-    const name = nameInput.value;
-    const dob = dobInput.value;
-    const parents = parentsInput.value;
-    const residence = residenceInput.value;
-    const payment = paymentInput.value;
-    const sex = sexInput.value;
-    const patientId = patientIdInput.value;
-
-    const patientsRef = ref(database, 'tests');
-    const newPatientRef = child(patientsRef, patientId); // Use patient ID as the key
-
-    set(newPatientRef, {
-      name: name,
-      dob: dob,
-      parents: parents,
-      residence: residence,
-      payment: payment,
-      sex: sex,
-      patientId: patientId
-    })
-      .then(() => {
-        nameInput.value = '';
-        dobInput.value = '';
-        parentsInput.value = '';
-        residenceInput.value = '';
-        paymentInput.value = '';
-        sexInput.value = '';
-        patientIdInput.value = '';
-
-        showMessage('Patient details uploaded successfully!');
-      })
-      .catch((error) => {
-        console.error('Error uploading patient details:', error);
-        showMessage('Error uploading patient details. Please try again.');
-      });
-  };
-
-const showMessage = (message) => {
-  const messageElement = document.getElementById('message');
-  messageElement.textContent = message;
-  messageElement.style.display = 'block';
-
-  setTimeout(() => {
-    messageElement.style.display = 'none';
-  }, 3000);
-};
-
-// Attach the savePatientData function to the form submit event
-const addPatientForm = document.getElementById('addPatientForm');
-addPatientForm.addEventListener('submit', (e) => {
-  e.preventDefault();
-  savePatientData();
-});
-
-});
 
 
 // Get the online status element

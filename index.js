@@ -1098,6 +1098,265 @@ popupContainer.style.display = 'none';
 overlay.style.display = 'none';
 });
 
+
+// Add event listener to the "Filter" button
+const filterButton2 = document.getElementById('filter-button2');
+filterButton2.addEventListener('click', function () {
+  // Get the selected start and end dates
+  const startDateValue = document.getElementById('start-date2').value;
+  const endDateValue = document.getElementById('end-date2').value;
+
+  const startDate2 = new Date(startDateValue);
+  const endDate2 = new Date(endDateValue);
+
+  // Filter the tests based on the selected date range
+  filterTestsByDate(startDate2, endDate2).then((filteredTests) => {
+    // Render using the unified rendering function
+    renderTestsTable(filteredTests);
+  });
+});
+
+// Function to filter the tests based on the selected date range
+function filterTestsByDate(startDate2, endDate2) {
+  const patientsRef = ref(database, 'patients');
+
+  return get(patientsRef).then((snapshot) => {
+    const patientsData = snapshot.val();
+    const filteredTests = [];
+
+    if (patientsData) {
+      for (const patientId in patientsData) {
+        const patient = patientsData[patientId];
+
+        if (patient.hasOwnProperty('testsTaken')) {
+          const testsTaken = patient.testsTaken;
+
+          for (const testId in testsTaken) {
+            const testData = testsTaken[testId];
+            const testDate = new Date(testData.dateTaken);
+
+            // Check if test date is within range
+            if (testDate >= startDate2 && testDate <= endDate2) {
+              // Combine investigations and procedures names
+              const investigationNames = Array.isArray(testData.investigationsTaken)
+                ? testData.investigationsTaken.map(inv => inv.name)
+                : [];
+              const procedureNames = Array.isArray(testData.proceduresTaken)
+                ? testData.proceduresTaken.map(proc => proc.name)
+                : [];
+              const servicesOffered = [...investigationNames, ...procedureNames].join(', ') || 'N/A';
+
+              // Use totalAmount as price
+              const price = typeof testData.totalAmount === 'number' ? testData.totalAmount : 0;
+
+              filteredTests.push({
+                patientId,
+                testId,
+                servicesOffered,
+                dateTaken: testDate,
+                price
+              });
+            }
+          }
+        }
+      }
+    }
+
+    return filteredTests;
+  }).catch((error) => {
+    console.error('Error fetching patients data:', error);
+    return [];
+  });
+}
+
+// Global Variables
+// -------------------------
+let testsData = [];
+const testsPerPage = 50;
+let currentOffset = 0;
+
+// -------------------------
+// Extract and Format Tests Data
+// -------------------------
+function extractTestsData(patientsData) {
+  const extractedTests = [];
+
+  for (const patientId in patientsData) {
+    const patient = patientsData[patientId];
+
+    if (patient.hasOwnProperty('testsTaken')) {
+      const testsTaken = patient.testsTaken;
+
+      for (const testId in testsTaken) {
+        const testData = testsTaken[testId];
+
+        // Combine investigations and procedures names
+        const investigationNames = Array.isArray(testData.investigationsTaken)
+          ? testData.investigationsTaken.map(inv => inv.name)
+          : [];
+        const procedureNames = Array.isArray(testData.proceduresTaken)
+          ? testData.proceduresTaken.map(proc => proc.name)
+          : [];
+        const servicesOffered = [...investigationNames, ...procedureNames].join(', ') || 'N/A';
+
+        // Use totalAmount as price
+        const price = typeof testData.totalAmount === 'number' ? testData.totalAmount : 0;
+
+        // Convert dateTaken to Date object
+        const dateTaken = testData.dateTaken ? new Date(testData.dateTaken) : null;
+
+        extractedTests.push({
+          patientId,
+          testId,
+          servicesOffered,
+          dateTaken,
+          price
+        });
+      }
+    }
+  }
+
+  return extractedTests;
+}
+
+// -------------------------
+// Fetch and Display Tests (with Retry)
+// -------------------------
+function fetchAndDisplayTestsWithRetry(maxRetries = 10, retryDelay = 1000) {
+  let retries = 0;
+
+  function fetchTests() {
+    retries++;
+    const patientsRef = ref(database, 'patients');
+
+    get(patientsRef)
+      .then(snapshot => {
+        const patientsData = snapshot.val();
+
+        if (patientsData) {
+          testsData = extractTestsData(patientsData);
+          currentOffset = 0;
+          renderTestsTable(testsData);
+        } else {
+          showMessage('No patients data found.');
+        }
+      })
+      .catch(error => {
+        console.error('Error fetching patients data:', error);
+        if (retries < maxRetries) {
+          setTimeout(fetchTests, retryDelay);
+        } else {
+          console.error('Exceeded maximum retries. Unable to display tests.');
+        }
+      });
+  }
+
+  fetchTests();
+}
+
+// -------------------------
+// Render Tests Table
+// -------------------------
+function renderTestsTable(testsArray) {
+  const tableContainer = document.getElementById('test-table-container');
+  tableContainer.innerHTML = '';
+
+  // Create table element
+  const table = document.createElement('table');
+  table.classList.add('test-table');
+
+  // Table header
+  const headerRow = document.createElement('tr');
+  headerRow.innerHTML = `
+    <th>Patient</th>
+    <th>Test ID</th>
+    <th>Services Offered</th>
+    <th>Date Taken</th>
+    <th>Price (UGX)</th>
+  `;
+  table.appendChild(headerRow);
+
+  // Calculate end index for pagination
+  const endIndex = Math.min(currentOffset + testsPerPage, testsArray.length);
+  let totalPrice = 0;
+
+  // Table rows
+  for (let i = currentOffset; i < endIndex; i++) {
+    const { patientId, testId, servicesOffered, dateTaken, price } = testsArray[i];
+
+    const formattedDate = dateTaken
+      ? dateTaken.toLocaleString('en-UG', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true
+        })
+      : 'N/A';
+
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td>${patientId}</td>
+      <td>${testId}</td>
+      <td>${servicesOffered}</td>
+      <td>${formattedDate}</td>
+      <td>${price.toLocaleString('en-UG')}</td>
+    `;
+    table.appendChild(row);
+    totalPrice += price;
+  }
+
+  tableContainer.appendChild(table);
+
+  // Display total price
+  const totalPriceDiv = document.getElementById('total-price');
+  totalPriceDiv.innerHTML = `Total Tests Revenue: ${totalPrice.toLocaleString('en-UG', { style: 'currency', currency: 'UGX' })}`;
+
+  // Show/Hide pagination buttons
+  managePaginationButtons(testsArray.length);
+}
+
+// -------------------------
+// Pagination Buttons
+// -------------------------
+function managePaginationButtons(totalTests) {
+  const buttonContainer = document.getElementById('button-container');
+  buttonContainer.innerHTML = '';
+
+  // Show More
+  if (currentOffset + testsPerPage < totalTests) {
+    const showMore = document.createElement('button');
+    showMore.textContent = 'Show More';
+    showMore.classList.add('show-more');
+    showMore.addEventListener('click', () => {
+      currentOffset += testsPerPage;
+      renderTestsTable(testsData);
+    });
+    buttonContainer.appendChild(showMore);
+  }
+
+  // Show Less
+  if (currentOffset > 0) {
+    const showLess = document.createElement('button');
+    showLess.textContent = 'Show Less';
+    showLess.classList.add('show-less');
+    showLess.addEventListener('click', () => {
+      currentOffset = Math.max(0, currentOffset - testsPerPage);
+      renderTestsTable(testsData);
+    });
+    buttonContainer.appendChild(showLess);
+  }
+}
+
+// -------------------------
+// Fetch Data on Load
+// -------------------------
+fetchAndDisplayTestsWithRetry();
+
+// Call the function with maximum retries of 10 and a retry delay of 1000 milliseconds (1 second)
+fetchAndDisplayTestsWithRetry(10, 1000);
+
 // Assuming you have already initialized Firebase and have a reference to the database
 // Add event listener to the "Clear Filter" button
 const clearFilterButton2 = document.getElementById('clear-filter-button2');
@@ -1107,306 +1366,8 @@ document.getElementById('start-date2').value = '';
 document.getElementById('end-date2').value = '';
 
 // Display all tests again
-fetchAndDisplayTests();
+fetchAndDisplayTestsWithRetry()
 });
-
-// Add event listener to the "Filter" button
-const filterButton2 = document.getElementById('filter-button2');
-filterButton2.addEventListener('click', function () {
-// Get the selected start and end dates
-const startDateValue = document.getElementById('start-date2').value;
-const endDateValue = document.getElementById('end-date2').value;
-
-// Convert the date strings to Date objects
-const startDate2 = new Date(startDateValue);
-const endDate2 = new Date(endDateValue);
-
-// Filter the tests based on the selected date range
-filterTestsByDate(startDate2, endDate2).then((filteredTests) => {
-  // Render the filtered tests in the table
-  renderFilteredTests(filteredTests);
-});
-});
-
-// Function to filter the tests based on the selected date range
-function filterTestsByDate(startDate2, endDate2) {
-// Get a reference to the "patients" node in Firebase
-const patientsRef = ref(database, 'patients');
-
-// Fetch the patient data from Firebase
-return get(patientsRef).then((snapshot) => {
-    const patientsData = snapshot.val();
-    const filteredTests = [];
-
-    // Check if patientsData exists and contains patient objects
-    if (patientsData) {
-      // Loop through each patient in the patientsData
-      for (const patientId in patientsData) {
-        const patient = patientsData[patientId];
-
-        // Check if the patient has the "testsTaken" node
-        if (patient.hasOwnProperty('testsTaken')) {
-          const testsTaken = patient.testsTaken;
-
-          // Loop through each test with unique identifiers
-          for (const testId in testsTaken) {
-            const testData = testsTaken[testId];
-            const dateTakenValue = testData.dateTaken;
-
-            // Check if the test date is within the selected date range
-            if (dateTakenValue >= startDate2 && dateTakenValue <= endDate2) {
-              // Add the test data to the filteredTests array
-              filteredTests.push({
-                patientId: patientId,
-                testId: testId,
-                testsTakenValue: testData.testsTaken,
-                
-                dateTakenValue: new Date(testData.dateTaken), // Convert to Date object
-                priceValue: testData.price
-              });
-            }
-            
-          }
-        }
-      }
-    }
-
-    return filteredTests;
-
-  }).catch((error) => {
-    console.error('Error fetching patients data:', error);
-    return [];
-  });
-}
-// Function to render the filtered tests in the table
-function renderFilteredTests(filteredTests) {
-  // Create a table element
-  const table = document.createElement('table');
-  table.classList.add('test-table');
-// Calculate total price
-let totalPrice = 0;
-filteredTests.forEach(test => {
-  totalPrice += test.priceValue;
-});
-// Display total price in the div
-const totalPriceDiv = document.getElementById('total-price');
-totalPriceDiv.innerHTML = `Total Revenue: ${totalPrice.toLocaleString('en-US', { style: 'currency', currency: 'UGX' })}`;
-
-  // Create the table header row
-  const headerRow = document.createElement('tr');
-  headerRow.innerHTML = `
-    <th>Patient</th>
-    <th>Test ID</th>
-    <th>Tests Taken</th>
-  
-    <th>Date Taken</th>
-    <th>Price (UGX)</th>
-  `;
-  table.appendChild(headerRow);
-
-  // Loop through each filtered test and create table rows
-  filteredTests.forEach(test => {
-    const row = document.createElement('tr');
-     // Format the dateTakenValue in MM/DD/YYYY format
-  const formattedDate = test.dateTakenValue.toLocaleDateString('en-US');
-
-    row.innerHTML = `
-      <td>${test.patientId}</td>
-      <td>${test.testId}</td>
-      <td>${test.testsTakenValue}</td>
-      
-      <td>${formattedDate}</td>
-      <td>${test.priceValue.toLocaleString('en-US', { style: 'currency', currency: 'UGX' })}</td>
-    `;
-    table.appendChild(row);
-  });
-
-  // Replace the existing table (if any) with the new table
-  const testTableContainer = document.getElementById('test-table-container');
-  testTableContainer.innerHTML = '';
-  testTableContainer.appendChild(table);
-}
-
-// Define variables
-let testsData = [];
-const testsPerPage = 30;
-let currentPage = 1;
-
-// Function to fetch and display tests data with pagination
-function fetchAndDisplayTestsWithPagination() {
-const testTableContainer = document.getElementById('test-table-container');
-
-// Calculate the start and end indices for the current page
-const startIndex = (currentPage - 1) * testsPerPage;
-const endIndex = startIndex + testsPerPage;
-
-// Create a subset of tests for the current page
-const testsForPage = testsData.slice(startIndex, endIndex);
-
-// Create a table element
-const table = document.createElement('table');
-table.classList.add('test-table');
-
-// Create the table header row
-const headerRow = document.createElement('tr');
-headerRow.innerHTML = `
-  <th>Patient</th>
-  <th>Test ID</th>
-  <th>Tests Taken</th>
-  <th>Date Taken</th>
-  <th>Price (UGX)</th>
-`;
-table.appendChild(headerRow);
-
-// Calculate total price while rendering the table
-let totalPrice = 0;
-
-// Loop through testsForPage and render the table
-testsForPage.forEach((test) => {
-  const { patientId, testId, testsTaken, dateTaken, price } = test;
-
-  // Format the dateTaken in MM/DD/YYYY format
-  const formattedDate = new Date(dateTaken).toLocaleDateString('en-US');
-
-  // Create a row element for each test
-  const row = document.createElement('tr');
-  row.innerHTML = `
-    <td>${patientId}</td>
-    <td>${testId}</td>
-    <td>${testsTaken}</td>
-    <td>${formattedDate}</td>
-    <td>${price}</td>
-  `;
-
-  // Append the row to the table
-  table.appendChild(row);
-
-  // Add the test's price to the total price
-  totalPrice += price;
-});
-
-// Replace the existing table (if any) with the new table
-testTableContainer.innerHTML = '';
-testTableContainer.appendChild(table);
-
-// Display total price in the div
-const totalPriceDiv = document.getElementById('total-price');
-totalPriceDiv.innerHTML = `Total Tests Revenue: ${totalPrice.toLocaleString('en-US', { style: 'currency', currency: 'UGX' })}`;
-}
-
-// Function to update pagination
-function updatePagination() {
-const totalPages = Math.ceil(testsData.length / testsPerPage);
-const paginationDiv = document.getElementById('pagination');
-paginationDiv.innerHTML = '';
-
-// Create previous button
-const prevButton = document.createElement('button');
-prevButton.textContent = 'Previous';
-prevButton.addEventListener('click', () => {
-  if (currentPage > 1) {
-    currentPage--;
-    fetchAndDisplayTestsWithPagination();
-  }
-});
-
-// Create next button
-const nextButton = document.createElement('button');
-nextButton.textContent = 'Next';
-nextButton.addEventListener('click', () => {
-  if (currentPage < totalPages) {
-    currentPage++;
-    fetchAndDisplayTestsWithPagination();
-  }
-});
-
-// Display current page and total pages
-const pageInfo = document.createElement('span');
-pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
-
-// Append the buttons and page info to the pagination div
-paginationDiv.appendChild(prevButton);
-paginationDiv.appendChild(pageInfo);
-paginationDiv.appendChild(nextButton);
-}
-
-// Function to fetch and display the testsTaken data in a table with retry mechanism
-function fetchAndDisplayTestsWithRetry(maxRetries, retryDelay) {
-let retries = 0;
-
-function fetchTests() {
-  retries++;
-
-  const patientsRef = ref(database, 'patients');
-
-  get(patientsRef)
-    .then((snapshot) => {
-      const patientsData = snapshot.val();
-
-      if (patientsData) {
-        // Extract and format tests data here
-        const extractedTests = extractTestsData(patientsData);
-        
-        // Set testsData to the extracted tests data
-        testsData = extractedTests;
-
-        // Update pagination and display data
-        currentPage = 1;
-        fetchAndDisplayTestsWithPagination();
-        updatePagination();
-      } else {
-        // Handle the case when there are no patients
-        showMessage('No patients data found.');
-      }
-    })
-    .catch((error) => {
-      console.error('Error fetching patients data:', error);
-
-      if (retries < maxRetries) {
-        setTimeout(fetchTests, retryDelay);
-      } else {
-        console.error('Exceeded maximum retries. Unable to display tests.');
-      }
-    });
-}
-
-fetchTests();
-}
-
-// Extract and format tests data
-function extractTestsData(patientsData) {
-const extractedTests = [];
-
-for (const patientId in patientsData) {
-  const patient = patientsData[patientId];
-
-  if (patient.hasOwnProperty('testsTaken')) {
-    const testsTaken = patient.testsTaken;
-
-    for (const testId in testsTaken) {
-      const testData = testsTaken[testId];
-      const testsTakenValue = testData.testsTaken;
-      const dateTakenValue = new Date(testData.dateTaken); // Convert to Date object
-      const priceValue = testData.price;
-
-      extractedTests.push({
-        patientId,
-        testId,
-        testsTaken: testsTakenValue,
-        dateTaken: dateTakenValue,
-        price: priceValue,
-      });
-    }
-  }
-}
-
-return extractedTests;
-}
-
-// Call the function with maximum retries of 3 and a retry delay of 1000 milliseconds (1 second)
-fetchAndDisplayTestsWithRetry(10, 1000);
-
-
 
 
 
@@ -1634,51 +1595,92 @@ sales.forEach(sale => {
   quantityCell.textContent = saleData.quantity + ' pcs';
   row.appendChild(quantityCell);
 
-  // Get the medicine ID from the saleData
-  const medicineId = saleData.medicineId;
+    // Create a row element for each sale
+  const date = document.createElement('tr');
+
+// Create and append the patient name cell
+const dateCell = document.createElement('td');
+
+// Convert saleData.date to a readable format
+const saleDate = new Date(saleData.date);
+dateCell.textContent = saleDate.toLocaleString('en-UG', {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+  hour12: true
+});
+
 
   // Create and append the price cell
   const priceCell = document.createElement('td');
+  const totalCell = document.createElement('td');
 
-  // Fetch the medicine data from the database
+  // Fetch the medicine data from the database and determine unit price + total for this sale
   const medicineRef = ref(database, `medicine/${patientName}`);
   get(medicineRef).then((snapshot) => {
-    if (snapshot.exists()) {
-      const medicineData = snapshot.val();
-      const price = medicineData.price;
-      priceCell.textContent = price ? price : 'N/A';
+    const medicineData = snapshot.exists() ? snapshot.val() : null;
 
-      // Calculate the total income for each medicine
-      const totalIncome = price * saleData.quantity;
+    const quantity = Number(saleData.quantity) || 0;
 
-      // Aggregate the total income for each medicine
-      if (medicineIncomes[patientName]) {
-        medicineIncomes[patientName] += totalIncome;
-      } else {
-        medicineIncomes[patientName] = totalIncome;
-      }
-// Aggregate the total sales for each day
-const day = saleData.date;
-  if (salesByDay[day]) {
-    salesByDay[day]++;
-  } else {
-    salesByDay[day] = 1;
-  }
-      // Update the chart and total amount
-      updateChart();
-      updateTotalAmount();
-    } else {
-      priceCell.textContent = 'N/A';
+    // Determine unit price priority:
+    // 1) saleData.unitPrice
+    // 2) saleData.totalCost / quantity (if totalCost present)
+    // 3) medicine insurancePrices.keah or medicine.keahPrice
+    let unitPrice = null;
+    if (saleData.unitPrice !== undefined && saleData.unitPrice !== null) {
+      unitPrice = Number(saleData.unitPrice);
+    } else if (saleData.totalCost !== undefined && quantity > 0) {
+      unitPrice = Number(saleData.totalCost) / quantity;
+    } else if (medicineData) {
+      unitPrice = Number(medicineData.insurancePrices?.keah ?? medicineData.keahPrice ?? medicineData.insurancePrices?.keahPrice ?? NaN);
+      if (isNaN(unitPrice)) unitPrice = null;
     }
+
+    // Determine total for this sale: prefer saleData.totalCost, else unitPrice * quantity
+    let totalIncome = null;
+    if (saleData.totalCost !== undefined && saleData.totalCost !== null) {
+      totalIncome = Number(saleData.totalCost);
+    } else if (unitPrice !== null && !isNaN(unitPrice)) {
+      totalIncome = unitPrice * quantity;
+    } else {
+      totalIncome = 0;
+    }
+
+    // Display formatted unit price and total
+    priceCell.textContent = (unitPrice !== null && !isNaN(unitPrice)) ? `UGX ${Math.round(unitPrice).toLocaleString()}` : 'N/A';
+    totalCell.textContent = (!isNaN(totalIncome) && totalIncome !== null) ? `UGX ${Math.round(totalIncome).toLocaleString()}` : 'N/A';
+
+    // Aggregate the total income for each medicine (ensure numeric)
+    if (medicineIncomes[patientName]) {
+      medicineIncomes[patientName] += Number(totalIncome) || 0;
+    } else {
+      medicineIncomes[patientName] = Number(totalIncome) || 0;
+    }
+
+    // Aggregate the total sales (monetary) for each day
+    const day = saleData.date;
+    if (salesByDay[day]) {
+      salesByDay[day] += Number(totalIncome) || 0;
+    } else {
+      salesByDay[day] = Number(totalIncome) || 0;
+    }
+
+    // Update charts and totals
+    updateChart();
+    updateTotalAmount();
+
   }).catch((error) => {
     console.log('Error fetching medicine data:', error);
     priceCell.textContent = 'N/A';
+    totalCell.textContent = 'N/A';
   });
 
   row.appendChild(priceCell);
 
   // Create and append the sale date cell
-  const dateCell = document.createElement('td');
   dateCell.textContent = saleData.date;
   row.appendChild(dateCell);
 
@@ -2292,9 +2294,13 @@ async function calculateOverallCostWithRetry(maxRetries = 100, delayBetweenRetri
         snapshot.forEach((medicineSnapshot) => {
           const medicineData = medicineSnapshot.val();
 
-          // Assuming each medicine has a 'price' and 'quantity' field
-          const pricePerPiece = medicineData.price || 0;
-          const quantity = medicineData.parents || 0;
+  // Extract price per piece
+const pricePerPiece = medicineData.insurancePrices?.keah || 0; // using insurancePrices.keah
+// Extract quantity (convert string to number if needed)
+const quantity = Number(medicineData.parents) || 0;
+
+// Calculate total cost
+
 
           // Calculate the cost for the current medicine
           const medicineCost = pricePerPiece * quantity;
@@ -2345,88 +2351,125 @@ function getShift(timestamp) {
   }
 }
 
-// Function to retrieve and display sales receipts data in a table
+let currentPage = 1;
+const pageSize = 100;
+let allFilteredReceipts = [];  // <-- This must be declared globally
+let earnings = {
+  'Day Shift': {},
+  'Night Shift': {}
+};
+
+// Main function to retrieve and paginate sales receipts data
 function displaySalesReceipts(startDate, endDate) {
-  // Reference to the sales receipts node in Firebase
   const salesReceiptsRef = ref(database, 'salesReceipts');
 
-  // Fetch data from Firebase
   onValue(salesReceiptsRef, (snapshot) => {
     const salesReceiptsData = snapshot.val();
 
-    // Check if there are any sales receipts data
     if (salesReceiptsData) {
       // Filter data based on date range
-      const filteredData = Object.values(salesReceiptsData).filter(receipt => {
+      allFilteredReceipts = Object.values(salesReceiptsData).filter(receipt => {
         const receiptDate = new Date(receipt.timestamp);
         return receiptDate >= startDate && receiptDate <= endDate;
       });
 
-      // Create a table element
-      const table = document.createElement('table');
-      table.classList.add('sales-receipts-table');
+      currentPage = 1;  // Reset to first page
 
-      // Create table header row
-      const headerRow = table.createTHead().insertRow();
-      const headers = ['Shift', 'Timestamp', 'Patient ID / Reason', 'Department', 'Total Amount', 'Payment Mode'];
-      headers.forEach(headerText => {
-        const headerCell = document.createElement('th');
-        headerCell.textContent = headerText;
-        headerRow.appendChild(headerCell);
-      });
-
-      // Create table body
-      const tbody = table.createTBody();
-
-      // Initialize objects to store earnings per shift and department
-      const earnings = {
-        'Day Shift': {},
-        'Night Shift': {}
-      };
-
-// Loop through each sales receipt data and create table rows
-filteredData.forEach(receipt => {
-  const row = tbody.insertRow();
-  const shift = getShift(receipt.timestamp);
-  const shiftCell = row.insertCell();
-  shiftCell.textContent = shift;
-  const timestampCell = row.insertCell();
-  timestampCell.textContent = new Date(receipt.timestamp).toLocaleString(); // Format timestamp
-  const patientIdCell = row.insertCell();
-  patientIdCell.textContent = receipt.patientId;
-  const departmentCell = row.insertCell();
-  departmentCell.textContent = receipt.department;
-  const totalAmountCell = row.insertCell();
-  let totalAmountValue = receipt.totalAmount || receipt.consumables;
-  if (typeof totalAmountValue === 'string') {
-      totalAmountValue = parseFloat(totalAmountValue);
-  }
-  totalAmountCell.textContent = typeof totalAmountValue === 'number' ? totalAmountValue.toFixed(2) : totalAmountValue; // Use totalAmount if available, otherwise use consumables
-  const paymentModeCell = row.insertCell();
-  paymentModeCell.textContent = receipt.paymentMode;
-
-  // Update earnings per shift and department
-  if (!earnings[shift][receipt.department]) {
-      earnings[shift][receipt.department] = 0;
-  }
-  earnings[shift][receipt.department] += typeof totalAmountValue === 'number' ? totalAmountValue : 0;
-});
-
-
-      // Append the table to a container element on your webpage
-      const container = document.getElementById('salesReceiptsContainer');
-      container.innerHTML = ''; // Clear previous content
-      container.appendChild(table);
-
-      // Display the summarized earnings
-      displaySummarizedEarnings(earnings);
+      showPage(currentPage);
+      setupPaginationControls();
     } else {
       console.log('No sales receipts data found.');
+      document.getElementById('salesReceiptsContainer').innerHTML = 'No sales receipts found.';
+      document.getElementById('pageIndicator').textContent = '';
     }
   });
 }
 
-// Function to display summarized earnings in a table and bar graph
+// Function to render one page of data
+function showPage(page) {
+  const startIndex = (page - 1) * pageSize;
+  const endIndex = Math.min(startIndex + pageSize, allFilteredReceipts.length);
+
+  // Create table
+  const table = document.createElement('table');
+  table.classList.add('sales-receipts-table');
+
+  // Table header
+  const headerRow = table.createTHead().insertRow();
+  const headers = ['Shift', 'Timestamp', 'Patient ID / Reason', 'Department', 'Total Amount', 'Payment Mode'];
+  headers.forEach(headerText => {
+    const headerCell = document.createElement('th');
+    headerCell.textContent = headerText;
+    headerRow.appendChild(headerCell);
+  });
+
+  // Table body
+  const tbody = table.createTBody();
+
+  // Reset earnings for this page
+  earnings = {
+    'Day Shift': {},
+    'Night Shift': {}
+  };
+
+  for (let i = startIndex; i < endIndex; i++) {
+    const receipt = allFilteredReceipts[i];
+    const row = tbody.insertRow();
+
+    const shift = getShift(receipt.timestamp);
+    row.insertCell().textContent = shift;
+    row.insertCell().textContent = new Date(receipt.timestamp).toLocaleString();
+    row.insertCell().textContent = receipt.patientId || '';
+    row.insertCell().textContent = receipt.department || '';
+
+    let totalAmountValue = receipt.totalAmount || receipt.consumables || 0;
+    if (typeof totalAmountValue === 'string') {
+      totalAmountValue = parseFloat(totalAmountValue);
+    }
+    row.insertCell().textContent = (typeof totalAmountValue === 'number') ? totalAmountValue.toFixed(2) : totalAmountValue;
+
+    row.insertCell().textContent = receipt.paymentMode || '';
+
+    // Update earnings
+    if (!earnings[shift][receipt.department]) {
+      earnings[shift][receipt.department] = 0;
+    }
+    earnings[shift][receipt.department] += typeof totalAmountValue === 'number' ? totalAmountValue : 0;
+  }
+
+  // Append table to container
+  const container = document.getElementById('salesReceiptsContainer');
+  container.innerHTML = '';
+  container.appendChild(table);
+
+  // Update page indicator
+  document.getElementById('pageIndicator').textContent = `Page ${currentPage} of ${Math.ceil(allFilteredReceipts.length / pageSize)}`;
+
+  // Show earnings summary
+  displaySummarizedEarnings(earnings);
+}
+
+// Setup Previous/Next button events
+function setupPaginationControls() {
+  const prevBtn = document.getElementById('prevPageBtn');
+  const nextBtn = document.getElementById('nextPageBtn');
+
+  prevBtn.onclick = () => {
+    if (currentPage > 1) {
+      currentPage--;
+      showPage(currentPage);
+    }
+  };
+
+  nextBtn.onclick = () => {
+    if (currentPage < Math.ceil(allFilteredReceipts.length / pageSize)) {
+      currentPage++;
+      showPage(currentPage);
+    }
+  };
+}
+let earningsChartInstance = null;
+
 function displaySummarizedEarnings(earnings) {
   const summaryContainer = document.getElementById('summaryContainer');
   summaryContainer.innerHTML = ''; // Clear previous content
@@ -2448,7 +2491,6 @@ function displaySummarizedEarnings(earnings) {
   const tbody = summaryTable.createTBody();
 
   // Arrays to store data for the chart
-  const shifts = [];
   const departments = [];
   const earningsData = [];
 
@@ -2456,40 +2498,37 @@ function displaySummarizedEarnings(earnings) {
   Object.keys(earnings).forEach(shift => {
     Object.keys(earnings[shift]).forEach(department => {
       const row = tbody.insertRow();
-      const shiftCell = row.insertCell();
-      shiftCell.textContent = shift;
-      const departmentCell = row.insertCell();
-      departmentCell.textContent = department;
-      const earningsCell = row.insertCell();
-      earningsCell.textContent = earnings[shift][department].toFixed(2);
+      row.insertCell().textContent = shift;
+      row.insertCell().textContent = department;
+      row.insertCell().textContent = earnings[shift][department].toFixed(2);
 
-      // Add data to the arrays for the chart
-      shifts.push(shift);
-      departments.push(department);
+      // Add to chart data arrays
+      departments.push(`${shift} - ${department}`);
       earningsData.push(earnings[shift][department]);
     });
   });
 
-  // Append the summary table to the container element on your webpage
+  // Append the summary table
   summaryContainer.appendChild(summaryTable);
 
-  // Define colors for the bars
+  // Define colors
   const colors = [
-    'rgba(255, 99, 132, 0.2)', // Red
-    'rgba(54, 162, 235, 0.2)', // Blue
-    'rgba(255, 206, 86, 0.2)', // Yellow
-    'rgba(75, 192, 192, 0.2)', // Green
-    'rgba(153, 102, 255, 0.2)', // Purple
-    'rgba(255, 159, 64, 0.2)', // Orange
-    'rgba(199, 199, 199, 0.2)', // Grey
-    'rgba(83, 102, 255, 0.2)', // Light Blue
-    'rgba(255, 219, 88, 0.2)', // Light Yellow
-    'rgba(193, 99, 255, 0.2)'  // Violet
+    'rgba(255, 99, 132, 0.2)', 'rgba(54, 162, 235, 0.2)', 'rgba(255, 206, 86, 0.2)',
+    'rgba(75, 192, 192, 0.2)', 'rgba(153, 102, 255, 0.2)', 'rgba(255, 159, 64, 0.2)',
+    'rgba(199, 199, 199, 0.2)', 'rgba(83, 102, 255, 0.2)', 'rgba(255, 219, 88, 0.2)',
+    'rgba(193, 99, 255, 0.2)'
   ];
 
-  // Create the bar graph
+  // Get canvas context
   const ctx = document.getElementById('earningsChart').getContext('2d');
-  new Chart(ctx, {
+
+  // ❗ Destroy existing chart if exists
+  if (earningsChartInstance) {
+    earningsChartInstance.destroy();
+  }
+
+  // Create and assign new chart
+  earningsChartInstance = new Chart(ctx, {
     type: 'bar',
     data: {
       labels: departments,
@@ -2511,6 +2550,7 @@ function displaySummarizedEarnings(earnings) {
     }
   });
 }
+
 
 
 // Event listener for the filter button
@@ -2565,51 +2605,47 @@ document.getElementById('refreshButton5').addEventListener('click', () => {
   displaySalesReceipts(new Date(0), new Date());
 });
 
-
-// Function to calculate time until the next shift
 function calculateTimeToNextShift() {
   const now = new Date();
   const currentHour = now.getHours();
   const currentMinute = now.getMinutes();
 
-  // Define day and night shift start and end hours
-  const dayShiftStartHour = 8;
-  const dayShiftEndHour = 17;
-  const nightShiftStartHour = 18;
-  const nightShiftEndHour = 7;
-  const nightShiftEndNextDay = 7;
+  // Shift start/end hours
+  const dayShiftStartHour = 8;  // 08:00
+  const dayShiftEndHour = 18;   // 18:00
+  const nightShiftStartHour = 18; // 18:00
+  const nightShiftEndHour = 8;  // 08:00 next day
 
-  let nextShiftStart = new Date(now); // Today's date by default
+  let nextShiftStart = new Date(now);
 
-  // Determine the next shift based on the current time
-  if (currentHour < dayShiftStartHour || (currentHour === dayShiftStartHour && currentMinute === 0)) {
-    // Before the day shift starts, set next shift start to the day shift start
-    nextShiftStart.setHours(dayShiftStartHour, 0, 0, 0);
-  } else if (currentHour < nightShiftStartHour || (currentHour === nightShiftStartHour && currentMinute === 0)) {
-    // During the day shift, set next shift start to the night shift start
+  if (currentHour >= dayShiftStartHour && currentHour < dayShiftEndHour) {
+    // During the day shift → next shift = night shift
     nextShiftStart.setHours(nightShiftStartHour, 0, 0, 0);
-  } else {
-    // After the night shift starts, set next shift start to the next day's day shift start
-    nextShiftStart.setDate(nextShiftStart.getDate() + 1);
+  } else if (currentHour >= nightShiftStartHour || currentHour < dayShiftStartHour) {
+    // During the night shift → next shift = day shift next morning
+    if (currentHour >= nightShiftStartHour) {
+      // After 18:00 → next day 08:00
+      nextShiftStart.setDate(nextShiftStart.getDate() + 1);
+    }
     nextShiftStart.setHours(dayShiftStartHour, 0, 0, 0);
   }
 
-  // Calculate the time difference in milliseconds
+  // Time difference in milliseconds
   const timeDifference = nextShiftStart - now;
 
-  // Calculate hours, minutes, and seconds
+  // Hours, minutes, seconds
   const hours = Math.floor(timeDifference / (1000 * 60 * 60));
   const minutes = Math.floor((timeDifference % (1000 * 60 * 60)) / (1000 * 60));
   const seconds = Math.floor((timeDifference % (1000 * 60)) / 1000);
 
-  // Return the time until the next shift
   return {
-    hours: hours,
-    minutes: minutes,
-    seconds: seconds,
-    nextShiftStart: nextShiftStart
+    hours,
+    minutes,
+    seconds,
+    nextShiftStart
   };
 }
+
 
 // Function to format the date in a readable way
 function formatDate(date) {
@@ -2810,4 +2846,146 @@ messageInput.addEventListener('keydown', (event) => {
   if (event.key === 'Enter') {
     sendMessage();
   }
+});
+
+const registrationRateDiv = document.getElementById('registrationRate');
+
+// Function to retry fetching data until success
+const fetchPatientDataWithRetry = async (retries = 5, delay = 2000) => {
+  try {
+    const patientsRef = ref(database, 'patients');
+    
+    // Fetch patient records
+    const snapshot = await get(patientsRef);
+
+    if (snapshot.exists()) {
+      return snapshot.val();
+    } else {
+      throw new Error("No patient data available.");
+    }
+  } catch (error) {
+    if (retries === 0) {
+      throw new Error("Failed to fetch data after multiple attempts.");
+    }
+    console.log(`Retrying... (${retries} attempts left)`);
+    await new Promise(resolve => setTimeout(resolve, delay)); // Wait before retrying
+    return fetchPatientDataWithRetry(retries - 1, delay); // Retry recursively
+  }
+};
+
+const calculateRegistrationRate = async () => {
+  try {
+    // Fetch patient data with retries
+    const patients = await fetchPatientDataWithRetry();
+
+    const patientList = Object.values(patients);
+    
+    // Get the current date
+    const today = new Date().toISOString().split('T')[0];
+
+    // Count patients registered today
+    const todayCount = patientList.filter(patient => 
+      patient.registrationDate && patient.registrationDate.startsWith(today)
+    ).length;
+
+    // Count all patients for overall registration rate
+    const totalCount = patientList.length;
+
+    // Calculate registration rate (adjust logic if needed)
+    const avgDailyRate = (totalCount / 30).toFixed(2); // Assuming last 30 days
+
+    // Update the div with registration statistics
+    registrationRateDiv.innerHTML = `
+      <p>Total Registrations: <strong>${totalCount}</strong></p>
+      <p>Today's Registrations: <strong>${todayCount}</strong></p>
+      <p>Avg Daily Rate: <strong>${avgDailyRate} patients/day</strong></p>
+    `;
+  } catch (error) {
+    console.error("Error fetching patient data:", error);
+    registrationRateDiv.innerHTML = "Error loading data.";
+  }
+};
+
+// Call the function on page load
+calculateRegistrationRate();
+
+
+
+// References to DOM elements
+const reportsContainer = document.getElementById("reportsList");
+const reportDetailsPopup = document.getElementById("reportDetailsPopup");
+const reportTitlePopup = document.getElementById("reportTitlePopup");
+const reportDescriptionPopup = document.getElementById("reportDescriptionPopup");
+const reportDatePopup = document.getElementById("reportDatePopup");
+const totalPatientsPopup = document.getElementById("totalPatientsPopup");
+const totalTestsPopup = document.getElementById("totalTestsPopup");
+const followUpAppointmentsPopup = document.getElementById("followUpAppointmentsPopup");
+const additionalNotesPopup = document.getElementById("additionalNotesPopup");
+const closeReportDetails = document.getElementById("closeReportDetails");
+const popupOverlay3 = document.getElementById("popupOverlay3");
+
+// Fetch reports from Firebase and display them
+const reportsRef = ref(database, "reports");
+onValue(reportsRef, (snapshot) => {
+  const reportsData = snapshot.val();
+
+  // Clear existing reports
+  reportsContainer.innerHTML = "";
+
+  if (reportsData) {
+    // Convert to an array and sort reports by timestamp (latest first)
+    const sortedReports = Object.entries(reportsData).sort(([idA, reportA], [idB, reportB]) => {
+      return new Date(reportB.timestamp) - new Date(reportA.timestamp); // Sort in descending order
+    });
+
+    // Loop through sorted reports and create report items
+    sortedReports.forEach(([id, report]) => {
+      // Format timestamp into readable date and time
+      const timestamp = new Date(report.timestamp);
+      const date = timestamp.toLocaleDateString();
+      const time = timestamp.toLocaleTimeString();
+
+      // Create a clickable div for each report
+      const reportDiv = document.createElement("div");
+      reportDiv.className = "report-item";
+      reportDiv.innerHTML = `
+        <strong>${report.title}</strong><br>
+        <small>Date: ${date} | Time: ${time}</small>
+      `;
+
+      reportDiv.addEventListener("mouseover", () => (reportDiv.style.backgroundColor = "#f0f0f0"));
+      reportDiv.addEventListener("mouseout", () => (reportDiv.style.backgroundColor = "#f9f9f9"));
+
+      // On click, show report details in the popup
+      reportDiv.addEventListener("click", () => {
+        reportTitlePopup.textContent = report.title;
+      //  reportDescriptionPopup.textContent = report.description;
+        reportDatePopup.textContent = `${date} at ${time}`;
+        totalPatientsPopup.textContent = `Total Patients: ${report.totalPatients}`;
+        totalTestsPopup.textContent = `Total Tests: ${report.totalTests}`;
+        followUpAppointmentsPopup.textContent = `Follow-up Appointments: ${report.followUpAppointments}`;
+        additionalNotesPopup.textContent = report.description || "No additional notes";
+
+        reportDetailsPopup.style.display = "block";
+        popupOverlay3.style.display = "block";
+      });
+
+      // Add report div to the reports container
+      reportsContainer.appendChild(reportDiv);
+    });
+  } else {
+    reportsContainer.innerHTML = "<p>No reports available.</p>";
+  }
+});
+
+// Close the popup and hide the overlay
+closeReportDetails.addEventListener("click", () => {
+  reportDetailsPopup.style.display = "none";
+  popupOverlay3.style.display = "none";
+});
+
+// Close the popup if the overlay is clicked
+popupOverlay3.addEventListener("click", () => {
+  reportDetailsPopup.style.display = "none";
+  popupOverlay3.style.display = "none";
 });

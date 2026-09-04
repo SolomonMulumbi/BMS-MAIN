@@ -27,8 +27,8 @@
       <div class="left_col scroll-view">
         <div class="navbar nav_title" style="border: 0;">
           <a href="index.html" class="site_title">
-            <img class="dashImg" src="BMS logo only.png" alt="Dashboard Image">
-            <span>BIBO MEDSYS</span>
+            <img class="dashImg" src="sanyu.png" alt="Dashboard Image">
+            <span>PI</span>
         </a>
               </div>
 
@@ -40,8 +40,9 @@
             <img src="" alt="..." class="img-circle profile_img">
           </div>
           <div class="profile_info">
-            <span>Welcome,</span>
-            <h2></h2>
+            
+  <span>Welcome,</span>
+  <h2 id="profileName"></h2>
           </div>
         </div>
         <!-- /menu profile quick info -->
@@ -56,8 +57,8 @@
               <li><a><i class="fa fa-home"></i> Home <span class="fa fa-chevron-down"></span></a>
                 <ul class="nav child_menu">
                   <li><a href="index.html">Dashboard Management</a></li>
-            <!--     <li><a href="index2.html">Dashboard2</a></li>
-                  <li><a href="index3.html">Dashboard3</a></li>--> 
+               <li><a href="cashier.html">Cashier Desk</a></li>
+             <!--       <li><a href="index3.html">Dashboard3</a></li>--> 
                 </ul>
               </li>
               <li><a><i class="fa fa-edit"></i>Treatment<span class="fa fa-chevron-down"></span></a>
@@ -434,41 +435,34 @@ fullscreenButton.addEventListener('click', function() {
           <div class="popup">
             <span class="popup-close" id="popupClose">&times;</span>
             <h2>Register New Test</h2>
-            <form class="popup-form" id="addPatientForm">
-              <label for="name">Test Name:</label>
-              <input type="text" id="name" required>
-              
-              <label for="dob"> Test Cost (UGX):</label>
-              <input type="number" id="dob" required>
-              
-            <!-- <label for="parents">Telephone Contact or Email:</label>
-              <input type="tel" id="parents" required>
-              
-              <label for="residence">Place of Residence:</label>
-              <input type="text" id="residence" required>
-              
-              <label for="payment">Payment Terms:</label>
-              <select id="payment" required>
-                <option value="cash">Cash</option>
-                <option value="insurance">Insurance</option>
-                <option value="other">Other</option>
-              </select>
-              --> 
-              <label for="sex">Test Case:</label>
-              <select id="sex" required>
-                <option value="Clinical">Clinical</option>
-                <option value="Theater">Theater</option>
-                <option value="Other">Other</option>
-              </select>
-              
-            <!--  <label for="patientId">Patient ID:</label>
-              <input type="text" id="patientId" required readonly>
-              -->
-              
-              <button type="submit">Submit</button>
-             
-            </form>
-            
+        <form class="popup-form" id="addTestForm">
+  <label for="testType">Select Type:</label>
+  <select id="testType" required>
+    <option value="">-- Select Type --</option>
+    <option value="investigations">Investigation</option>
+    <option value="procedures">Procedure</option>
+    <option value="services">Service</option>
+  </select>
+
+  <label for="name">Test Name:</label>
+  <input type="text" id="name" placeholder="e.g., Blood Test" required>
+
+  <label for="cost">Test Cost (UGX):</label>
+  <input type="number" id="dob" placeholder="e.g., 20000" required>
+
+  <label for="categorySelect">Test Category:</label>
+  <select id="sex" required>
+    <option value="">-- Select Category --</option>
+    <!-- Options will be dynamically populated -->
+  </select>
+
+  <!-- Parameters Section -->
+  <div id="parametersContainer"></div>
+  <button type="button" id="addParameterBtn">Add Parameter</button>
+
+  <button type="submit">Submit</button>
+</form>
+
             
           </div>
           <div id="message"></div>
@@ -491,12 +485,104 @@ fullscreenButton.addEventListener('click', function() {
 
     <!-- /page content -->
 
+<style>
+  /* ==============================
+   COST CELL
+   ============================== */
 
+.patient-table td {
+  vertical-align: middle;
+}
+
+.edit-cost-btn {
+  margin-left: 8px;
+  padding: 4px 9px;
+  border: 1px solid #2563eb;
+  border-radius: 5px;
+  background: transparent;
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.edit-cost-btn:hover {
+  background: #2563eb;
+  color: #fff;
+}
+
+
+/* ==============================
+   COST INPUT
+   ============================== */
+
+.cost-edit-input {
+  width: 90px;
+  height: 32px;
+  padding: 5px 8px;
+  border: 1px solid #2563eb;
+  border-radius: 5px;
+  outline: none;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.cost-edit-input:focus {
+  border-color: #1d4ed8;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+}
+
+
+/* ==============================
+   SAVE BUTTON
+   ============================== */
+
+.save-cost-btn {
+  margin-left: 6px;
+  padding: 5px 9px;
+  border: none;
+  border-radius: 5px;
+  background: #16a34a;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.save-cost-btn:hover {
+  background: #15803d;
+}
+
+
+/* ==============================
+   CANCEL BUTTON
+   ============================== */
+
+.cancel-cost-btn {
+  margin-left: 5px;
+  padding: 5px 9px;
+  border: 1px solid #dc2626;
+  border-radius: 5px;
+  background: transparent;
+  color: #dc2626;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cancel-cost-btn:hover {
+  background: #dc2626;
+  color: #fff;
+}
+</style>
 <!-- Firebase libraries -->
 <script type="module" src="https://www.gstatic.com/firebasejs/9.0.2/firebase-app.js"></script>
 <script type="module" src="https://www.gstatic.com/firebasejs/9.0.2/firebase-database.js"></script>
 <script type="module" src="https://www.gstatic.com/firebasejs/9.0.2/firebase-auth.js"></script>
-<script type="module" src="clinical.min.js">
+<script type="module" src="clinical.js">
   
 </script>
 

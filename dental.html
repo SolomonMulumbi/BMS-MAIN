@@ -67,8 +67,8 @@
               <li><a><i class="fa fa-home"></i> Home <span class="fa fa-chevron-down"></span></a>
                 <ul class="nav child_menu">
                   <li><a href="index.html">Dashboard Management</a></li>
-               <li><a href="cashier.html">Cashier Desk</a></li>
-               <!--     <li><a href="index3.html">Dashboard3</a></li>--> 
+             <li><a href="cashier.html">Cashier Desk</a></li>
+              <!--        <li><a href="index3.html">Dashboard3</a></li>--> 
                 </ul>
               </li>
               <li><a><i class="fa fa-edit"></i>Treatment<span class="fa fa-chevron-down"></span></a>
@@ -180,9 +180,9 @@
             <span class="glyphicon glyphicon-eye-close" aria-hidden="true"></span>
           </a>
      <a data-toggle="tooltip" data-placement="top" title="Logout" href="#" id="closesession">
-            <span id="onlineStatus" aria-hidden="true"></span>
+            <span id="onlineStatus"  aria-hidden="true"></span>
           </a>
-          <a data-toggle="tooltip" data-placement="top" title="Logout" href="#" id=""></a>
+          <a data-toggle="tooltip" data-placement="top" title="Logout" href="#" id="closesession">
             <span class="glyphicon glyphicon-chevron-up" aria-hidden="true"></span>
           </a>
         </div> 
@@ -248,7 +248,7 @@ fullscreenButton.addEventListener('click', function() {
                   </a>
                 </li>              </ul>
             </li>
-        <!--   <li role="presentation" class="dropdown">
+            <li role="presentation" class="dropdown">
                 <a id="envelope-icon" href="javascript:;" class="dropdown-toggle info-number" data-toggle="dropdown" aria-expanded="false">
                   <i class="fa fa-envelope-o" ></i>
                   <span id="notDoneCount" class="badge bg-green" ></span>
@@ -263,7 +263,7 @@ fullscreenButton.addEventListener('click', function() {
                 </a>
                 
                 
-              </li>--> 
+              </li>
             
           </ul>
         </nav>
@@ -275,76 +275,271 @@ fullscreenButton.addEventListener('click', function() {
 
 
      <div style="z-index: 10000;" id="message"></div>
-    <div class="right_col" role="main">
+    <div class="right_col" role="main">    
+
+      <div id="loginoverlay">  <div id="errorContainer" class="error-message" style="color: red;"></div>
+    </div>
+    
+        <!-- Add the container for error messages -->
+    
+    <div id="loginpopup" class="loginpopup">
+    
+      <div class="login-container">
+      <div class="login-form">
+        <h2 style="color: white;">Enter your credentials</h2>
+        <!-- Use a form to handle form submission -->
+        <form id="loginForm">
+          <label style="color: white;" for="email">Email:</label>
+          <input type="email" id="email" required>
+          <label style="color: white;" for="password">Password:</label>
+          <input type="password" id="password" required>
+          <button type="submit"  id="submitBtn">Submit</button>
+          <!-- Add a link for Forgot Password -->
+          <a href="#" id="forgotPasswordLink" style="color: white;">Forgot Password?</a>
+        </form>
+      </div>
+      <!-- Details about Bibo Medical Systems -->
+      <div class="bibo-details">
+        <h3 style="color: rgb(255, 255, 255);" class="title">
+          <i class="fas fa-hospital"></i> Bibo Medical Systems | Your Healthcare Assistant
+        </h3>
+        <p style="color: rgb(255, 255, 255);">
+          Bibo Medical Systems is a state-of-the-art Hospital Management System that aims to revolutionize healthcare services. With cutting-edge technology and a team of dedicated healthcare professionals, we provide comprehensive medical solutions to enhance patient care and streamline hospital operations.
+        </p>
+        <p style="color: rgb(255, 255, 255);">
+          Our advanced system offers features such as electronic health records (EHR), patient billing, pharmacy management, and more. We prioritize data security and ensure that patient information remains confidential and protected.
+        </p>
+    <!--   <p style="color: rgb(255, 255, 255);">
+          At Bibo Medical Systems, we focus on patient-centric care, providing personalized treatment plans and fostering a compassionate environment for healing. Our hospital management system optimizes workflows, reduces administrative burdens, and empowers healthcare providers to deliver efficient and effective services.
+        </p>--> 
+        <p style="color: rgb(255, 255, 255);">
+          Whether you're a patient seeking top-notch medical care or a healthcare professional looking to streamline hospital operations, Bibo Medical Systems is your reliable healthcare assistant.
+        </p>
+        <p style="color: rgb(255, 255, 255);">
+          Experience the future of healthcare management with Bibo Medical Systems. Your well-being is our priority, and we are committed to delivering excellence in healthcare services every step of the way.
+        </p>
+      </div>
+    </div>
+    </div>
       <section>
-        <button id="uploadBtn"><i class="fa fa-plus"></i>Add Patient</button>
+        <button  id="uploadBtn"><i class="fa fa-plus"></i>Register New Patient</button>
+        <button id="appointment"><i class="fa fa-plus"></i>Register New Appointment</button>
+
         <div style="margin: auto;" class="search-container">
-          <input type="text" id="searchInput" placeholder="Search by name ...">
+          <input type="text" id="searchInput" placeholder="Search by name or ID ...">
           <button id="searchButton"><i class="fas fa-search"></i> </button> 
-        </div> 
+        </div>
         
         </section>
-        
+        <div id="existingPatientsPopup" class="">
+          <span id="closePopup" class="">&times;</span>
+          <div id="existingPatientsContent"></div>
+        </div>
+<!-- Popup modal -->
+<div id="Apopup" style="display: none;">
+  <h3>Register New Appointment</h3>
+  <form id="appointmentForm">
+    <!-- Appointment Name -->
+    <label for="appointmentName">Appointment Name / Reason:</label><br>
+    <input type="text" id="appointmentName" name="appointmentName" required><br><br>
+    
+    <!-- Date Picker -->
+    <label for="appointmentDate">Date:</label><br>
+    <input type="date" id="appointmentDate" name="appointmentDate" required><br><br>
 
-       
-        <div id="loginoverlay">  <div id="errorContainer" class="error-message" style="color: red;"></div>
-      </div>
-      
-          <!-- Add the container for error messages -->
-      
-      <div id="loginpopup" class="loginpopup">
-      
-        <div class="login-container">
-        <div class="login-form">
-          <h2 style="color: white;">Enter your credentials</h2>
-          <!-- Use a form to handle form submission -->
-          <form id="loginForm">
-            <label style="color: white;" for="email">Email:</label>
-            <input type="email" id="email" required>
-            <label style="color: white;" for="password">Password:</label>
-            <input type="password" id="password" required>
-            <button type="submit"  id="submitBtn">Submit</button>
-            <!-- Add a link for Forgot Password -->
-            <a href="#" id="forgotPasswordLink" style="color: white;">Forgot Password?</a>
-          </form>
-        </div>
-        <!-- Details about Bibo Medical Systems -->
-        <div class="bibo-details">
-          <h3 style="color: rgb(255, 255, 255);" class="title">
-            <i class="fas fa-hospital"></i> Bibo Medical Systems | Your Healthcare Assistant
-          </h3>
-          <p style="color: rgb(255, 255, 255);">
-            Bibo Medical Systems is a state-of-the-art Hospital Management System that aims to revolutionize healthcare services. With cutting-edge technology and a team of dedicated healthcare professionals, we provide comprehensive medical solutions to enhance patient care and streamline hospital operations.
-          </p>
-          <p style="color: rgb(255, 255, 255);">
-            Our advanced system offers features such as electronic health records (EHR), patient billing, pharmacy management, and more. We prioritize data security and ensure that patient information remains confidential and protected.
-          </p>
-      <!--   <p style="color: rgb(255, 255, 255);">
-            At Bibo Medical Systems, we focus on patient-centric care, providing personalized treatment plans and fostering a compassionate environment for healing. Our hospital management system optimizes workflows, reduces administrative burdens, and empowers healthcare providers to deliver efficient and effective services.
-          </p>--> 
-          <p style="color: rgb(255, 255, 255);">
-            Whether you're a patient seeking top-notch medical care or a healthcare professional looking to streamline hospital operations, Bibo Medical Systems is your reliable healthcare assistant.
-          </p>
-          <p style="color: rgb(255, 255, 255);">
-            Experience the future of healthcare management with Bibo Medical Systems. Your well-being is our priority, and we are committed to delivering excellence in healthcare services every step of the way.
-          </p>
-        </div>
-      </div>
-      </div>
+    <!-- Time Picker -->
+    <label for="appointmentTime">Time:</label><br>
+    <input type="time" id="appointmentTime" name="appointmentTime" required><br><br>
+
+    <!-- Select2 Dropdown -->
+    <label for="patientSelect">Select Patient:</label><br>
+    <select id="patientSelect" required style="width: 100%;">
+      <!-- Options will be dynamically populated -->
+    </select><br><br>
+    
+    <!-- Buttons -->
+    <button type="submit" class="btn submit-btn">Submit</button>
+    <button type="button" id="closeAppPopup" class="close-btn">Close</button>
+  </form>
+</div>
+
+
+<style>
+  /* Popup modal styles */
+#Apopup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 500px;
+  padding: 20px;
+  background: #fff;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  z-index: 1000;
+  font-family: Arial, sans-serif;
+}
+
+/* Button styles */
+.btn {
+  display: inline-block;
+  padding: 10px 15px;
+  font-size: 14px;
+  font-weight: bold;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: center;
+}
+
+/* Submit button */
+.submit-btn {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.submit-btn:hover {
+  background-color: #45a049;
+}
+
+/* Base styles for the Close button */
+.close-btn {
+  background-color: #f44336; /* Red background */
+  color: white; /* White text */
+  border: none; /* No border */
+  padding: 10px 20px; /* Padding for a comfortable click area */
+  font-size: 14px; /* Font size for readability */
+  font-weight: bold; /* Bold text */
+  border-radius: 4px; /* Rounded corners */
+  cursor: pointer; /* Pointer cursor on hover */
+  transition: background-color 0.3s ease, transform 0.2s ease; /* Smooth hover effect */
+}
+
+/* Hover effect */
+.close-btn:hover {
+  background-color: #d32f2f; /* Darker red on hover */
+  transform: scale(1.05); /* Slightly enlarge the button */
+}
+
+/* Active (pressed) state */
+.close-btn:active {
+  background-color: #b71c1c; /* Even darker red when pressed */
+  transform: scale(1); /* Return to original size */
+}
+
+/* Focus state for accessibility */
+.close-btn:focus {
+  outline: 2px solid #ffcccb; /* Light red focus outline */
+  outline-offset: 2px;
+}
+
+
+/* Input field styles (optional improvement) */
+form input[type="text"] {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+</style>
+
+<div id="overlay3"></div>
 
              <div id="overlay"></div>
 
-        <div id="loader" class="loader"></div> 
-  <div id="tableContainer"></div>
+        <div id="loader" class="loader"></div> <!--<div class="sort-container">
+            <label class="sort-label" for="sortSelect"></label>
+            <select id="sortSelect" class="sort-select">
+             <option value="expiry">Sort by Expiry Date</option>
+              <option value="alphabetical">Sort Alphabetically</option>
+            </select>
+          </div>--> 
+          
+          <div class="dental-department-title">
+            <i class="fas fa-stethoscope"></i>
+            <span>Dental Department</span>
+          </div>
+
+  
+          
+          <div id="pagination" class="pagination">
+            <!-- Pagination buttons will be rendered here -->
+          </div>
+        <div id="patients" class="patients-container"></div>
+
+
+
+        <div class="action-center">
+          <div class="chat-overlay" id="chatOverlay"></div>
+          <div class="chat-button">
+            <button id="openChatBtn"><i class="fas fa-comment"></i><span id="unreadMessageCount">0</span></button>
+          </div>
+          <div class="chat-container" id="chatContainer">
+            <div class="action-header">Chat Room</div>
+            <div id="chatBox"></div>
+            <div class="message-input-container">
+              <input type="text" id="messageInput" placeholder="Type your message...">
+              <button id="sendMessageBtn"><i class="fas fa-paper-plane"></i></button>
+            </div>
+          </div>
+          <!-- Header of the action center -->
+          <div class="action-header">Action Center</div>
+          <span id="actionCenter"></span>
+          <h3>Upcoming Follow-Up Date & Time Appointments</h3>
+
+          <div id="futureFollowUpsContainer">
+            <!-- Future follow-up appointments will be displayed here -->
+          </div>
+          
+          <!-- Button to trigger displaying follow-ups -->
+          <button id="showFollowUpsButton">
+            <i class="fa fa-calendar-check" aria-hidden="true"></i> Show Future Follow-ups
+          </button>
+                    
+
+          
+          
+                <!-- Appointments Display Section -->
+                <div id="appointmentsContainer">
+                  <h3>Upcoming Scheduled Appointments</h3>
+                  <table id="appointmentsTable" border="1" style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                      <tr>
+                        <th>Appointment Name</th>
+                        <th>Patient Name</th>
+                        <th>Date</th>
+                        <th>Time</th>
+                        <th>Action</th> <!-- New column for the "Done" button -->
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <!-- Rows will be dynamically populated -->
+                    </tbody>
+                  </table>
+                
+                  
+                </div>
+                
+
+
+
+          <!-- Button to send a message -->
+        </div>
 
         <!-- Popup Overlay -->
         <div class="popup-overlay" id="popupOverlay1">
           <div class="popup">
             <span class="popup-close" id="popupClose1">&times;</span>  
             <div id="patientDetails"></div>
-            <h2 style="display: none;">Treatment History</h2>
-   <button style="display: none;" id="addMedicationBtn"><i class="fa fa-plus"></i>Add Test Record</button>
-            <div style="display: none;" id="patientHistory"></div>
+            <h2>Medical History</h2>
+ <button id="addMedicationBtn"><i class="fa fa-plus"></i>Add Test Record</button>
+ <!-- Add a search input field -->
+<input type="text" id="testSearch" placeholder="Search tests by record key">
+
+            <div id="patientHistory"></div>
           </div>
         </div>
 
@@ -365,26 +560,27 @@ fullscreenButton.addEventListener('click', function() {
                 <label for="additionalNotes">Diagnosis:</label>
                 <input type="text" id="additionalNotes" required>
                 
-                <!-- Add this section to the existing form -->
-<div id="finalStatus">
-    <label for="finalStatus">Final Status of Patient:</label>
-    <div>
-      <input type="radio" id="discharged" name="finalStatus" value="Discharged">
-      <label for="discharged">Discharged</label>
-    </div>
-    <div>
-      <input type="radio" id="admitted" name="finalStatus" value="Admitted">
-      <label for="admitted">Admitted</label>
-    </div>
-    <div>
-      <input type="radio" id="opdClient" name="finalStatus" value="OPD Client">
-      <label for="opdClient">OPD Client</label>
-    </div>
-  </div>
-  
-  <label for="followUpDateTime">Follow-up Date/Time:</label>
-  <input type="datetime-local" id="followUpDateTime">
-  
+                <div id="finalStatus">
+                    <label>Final Status of Patient:</label>
+                    <div>
+                        <input type="radio" id="discharged" name="finalStatus" value="Discharged">
+                        <label for="discharged">Discharged</label>
+                    </div>
+                    <div>
+                        <input type="radio" id="admitted" name="finalStatus" value="Admitted">
+                        <label for="admitted">Admitted</label>
+                    </div>
+                    <div>
+                        <input type="radio" id="opdClient" name="finalStatus" value="OPD Client">
+                        <label for="opdClient">OPD Client</label>
+                    </div>
+                </div>
+                
+                <label for="followUpDateTime">Follow-up Date/Time:</label>
+                <input type="datetime-local" id="followUpDateTime">
+                
+                <button style="display: none;" type="button" id="saveAllButton">Save All</button>
+                
                 
                 <div id="totalCost"></div>
                 <button type="submit" id="submitMedicationButton">Submit</button>
@@ -406,21 +602,6 @@ fullscreenButton.addEventListener('click', function() {
   
     </div>
   </div>
-  <!-- ... Your existing HTML code ... -->
-
-<!-- Payment History Popup -->
-<div id="paymentHistoryPopupOverlay">
-    <div class="popup-content">
-      <span id="paymentHistoryPopupClose">&times;</span>
-      <h2>Payment History</h2>
-      <div id="paymentHistoryContent">
-        <!-- Payment history items will be dynamically populated here -->
-      </div>
-    </div>
-  </div>
-  
-  
-  <!-- ... Your existing HTML code ... -->
   
   
   <div id="labRequestsPopupOverlay">
@@ -477,7 +658,6 @@ fullscreenButton.addEventListener('click', function() {
     </div>
     
   </div>
- 
   
   
   
@@ -543,22 +723,31 @@ fullscreenButton.addEventListener('click', function() {
             <span class="popup-close" id="addRecordPopupClose">&times;</span>
             <h2>Add Medical Record</h2>
             <form id="addRecordForm" data-patient-name="">
-               
+              
+              <label style="margin-top: 10px;" for="additionalNotes">Patient's Concerns (Complaints):</label>
+              <input type="text" id="Concerns" required>
+
+              <label style="margin-top: 10px;" for="additionalNotes">Examination:</label>
+              <input type="text" id="examination" required>
+               <label for="testsTaken">Services to be Offered:</label>
+                   <select style="width: 100%;" id="testsTaken" multiple required>
+                   
+                     <!-- Add more options as needed -->
+                   </select>
 
               
-             <!-- <label for="resultsObtained">Results Obtained:</label>
+           <!--   <label for="resultsObtained">Results Obtained:</label>
               <input type="text" id="resultsObtained" required>
               <label for="medicationTaken">Medication Given:</label>
-              <div id="medicationInputsContainer">
+             <div id="medicationInputsContainer">
                  <div id="medication"></div>
                 <button id="addMedicationButton" type="button">+ Add</button>
 
               </div>
+              -->
               
-              
-              <label for="additionalNotes">Additional Notes:</label>
-              <input type="text" id="additionalNotes" required>
-              <div id="totalCost"></div>-->
+            
+              <div id="totalCost"></div>
               <button type="submit">Submit</button>
             </form>
           </div>
@@ -566,123 +755,63 @@ fullscreenButton.addEventListener('click', function() {
 
 
 
-        <style>
-        
- /* Style for the table */
- table {
-      border-collapse: collapse;
-      width: 100%;
-      font-family: Arial, sans-serif;
-      font-size: 15px;
-      margin-top: 20px;
-    }
 
-    th, td {
-      border: 1px solid #ddd;
-      padding: 8px;
-      text-align: left;
-    }
-
-    th {
-      background-color: #f2f2f2;
-    }
-
-    /* Style for the "View" button */
-    .view-button {
-      background-color: #4CAF50;
-      color: white;
-      border: none;
-      padding: 5px 10px;
-      text-align: center;
-      text-decoration: none;
-      display: inline-block;
-      cursor: pointer;
-    }
-
-    /* Hover effect for the "View" button */
-    .view-button:hover {
-      background-color: #45a049;
-    }
-          </style>
-          
-
-          <div class="action-center">
-            <div class="chat-overlay" id="chatOverlay"></div>
-            <div class="chat-button">
-              <button id="openChatBtn"><i class="fas fa-comment"></i><span id="unreadMessageCount">0</span></button>
-            </div>
-            <div class="chat-container" id="chatContainer">
-              <div class="action-header">Chat Room</div>
-              <div id="chatBox"></div>
-              <div class="message-input-container">
-                <input type="text" id="messageInput" placeholder="Type your message...">
-                <button id="sendMessageBtn"><i class="fas fa-paper-plane"></i></button>
+        <button id="fetchPatientCountBtn"> <i class="fas fa-sync-alt"></i>
+              Fetch New Patient Count</button>
+              <div class="popup-overlay" id="popupOverlay">
+                <div class="popup">
+                  
+                  <span class="popup-close" id="popupClose">&times;</span>
+                  
+                  <h2>Register New Patient</h2>
+                  <div id="existingPatients"></div>
+                  <form class="popup-form" id="addPatientForm">
+                    <label for="name">Full Name:</label>
+                    <input type="text" id="name" required>
+                    
+                    <label for="dob">Date of Birth:</label>
+                    <input type="date" id="dob" required>
+                    
+                    <label for="parents">Telephone Contact:</label>
+                    <div class="telephone-input">
+                      <input type="text" id="parentsCountryCode" value="+256" >
+                      <input type="tel" id="parents" required placeholder="Enter phone number...">
+                    </div>
+                    
+                    <label for="NOK">Next of Kin's Telephone Contact:</label>
+                    <div class="telephone-input">
+                      <input type="text" id="NOKCountryCode" value="+256" >
+                      <input type="tel" id="NOK" required placeholder="Enter phone number...">
+                    </div>
+                    
+      
+                    <label for="residence">Place of Residence:</label>
+                    <input type="text" id="residence" required>
+                    
+                    <label for="payment">Payment Terms:</label>
+                    <select id="payment" required>
+                      <option value="cash">Cash</option>
+                      <option value="insurance">Insurance</option>
+                      <option value="other">Other</option>
+                    </select>
+                    
+                    <label for="sex">Sex:</label>
+                    <select id="sex" required>
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                      <option value="other">Other</option>
+                    </select>
+                    
+      
+                    
+                    <button type="submit">Submit</button>
+                   
+                  </form>
+                  
+                  
+                </div>
+           
               </div>
-            </div>
-            <!-- Header of the action center -->
-            <div class="action-header">Action Center</div>
-            <span id="actionCenter"></span>
-            <!-- Button to send a message -->
-          </div>
-
-
-          
-        <div class="popup-overlay" id="popupOverlay">
-          <div class="popup">
-            <span class="popup-close" id="popupClose">&times;</span>
-            <h2>Add Patient</h2>
-            <form class="popup-form" id="addPatientForm">
-             <!-- HTML -->
-             <!-- Add a button to fetch patients -->
-               
-               
-               <!-- Container for the "Patient Name" select input -->
-               <div id="patientNameContainer">
-                 <label for="patientNameSelect">Patient Name:</label>
-                 <select style="width: 100%;" id="patientNameSelect" class="select2">
-                   <!-- Options will be populated dynamically -->
-                 </select>
-                
-               </div>
-               <button class="check" type="button" id="checkPatientsButton">
-                <i class="fas fa-search"></i> Check Patient
-              </button>
-                             <!-- Container for the "Services Offered" select input -->
-               <div id="testsTakenContainer">
-                 <label for="selectedTests">Medication Reference:</label>
-                 <select  style="width: 100%;"  id="selectedTests" class="select2" multiple>
-                   <!-- Options will be populated dynamically -->
-                 </select>
-               </div>
-
-              <label for="Treatment total Cost (UGX)"> Total treatment Cost (UGX):</label>
-              <input type="number" id="totalcost" required>
-              
-              <label for="Treatment Duration">Treatment Duration (No. of days):</label>
-              <input type="number" id="duration" required>
-
-              <label for="Patient Status">Patient Status:</label>
-              <select id="patientStatus">
-                <option value="OPD Client">OPD Client</option>
-                <option value="Admitted">Admitted</option>
-              </select>
-              
-              
-              <label for="Payment Scheme">Payment Scheme:</label>
-              <select id="PaymentScheme" required>
-                <option value="Full Payment">Full Cash</option>
-                <option value="Insurance">Insurance</option>
-                <option value="Installments">Partial/Installments</option>
-              </select>
-                            
-              <button style="width: fit-content; display: flex; float: right;" type="submit">Submit</button>
-             
-            </form>
-            
-            
-          </div>
-     
-        </div>
       </div>
       <script>
         var uploadBtn = document.getElementById('uploadBtn');
@@ -753,7 +882,7 @@ table {
  <!-- Include the html2canvas library -->
  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.3.2/html2canvas.min.js"></script>
 
-<script type="module" src="odp.js">
+<script type="module" src="dental.js">
 
 </script>
 
@@ -772,6 +901,16 @@ table {
     z-index: 9999; /* Adjust the z-index value as needed */
   }
 </style>
+
+<script>
+  $(document).ready(function() {
+    // Initialize Select2 for the first select element
+    $('#testsTaken').select2({
+      dropdownParent: $('body')
+    });
+  });
+</script>
+
 
 <!-- Rest of your HTML code -->
 

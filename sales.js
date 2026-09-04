@@ -665,7 +665,6 @@ const detailsPopup = document.getElementById('detailsPopup');
 detailsPopup.style.display = 'none';
 }
 
-
 // Function to delete an expense
 function deleteDailyExpense(date, expenseKey) {
 // Ask the user to enter the password
@@ -1253,7 +1252,7 @@ totalPriceDiv.innerHTML = `Total Tests Revenue: ${totalPrice.toLocaleString('en-
   headerRow.innerHTML = `
     <th>Patient</th>
     <th>Test ID</th>
-    <th>Tests Taken</th>
+    <th>Services Offered</th>
   
     <th>Date Taken</th>
     <th>Price (UGX)</th>
@@ -1308,7 +1307,7 @@ const headerRow = document.createElement('tr');
 headerRow.innerHTML = `
   <th>Patient</th>
   <th>Test ID</th>
-  <th>Tests Taken</th>
+  <th>Services Offered</th>
   <th>Date Taken</th>
   <th>Price (UGX)</th>
 `;
@@ -1653,7 +1652,7 @@ headerRow.innerHTML = `
   <th>Quantity</th>
   <th>Price (Ug.sh)</th>
   <th>Date</th>
-  <th>Time</th>
+  <th>Total</th>
   <th>Action</th>
 `;
 table.appendChild(headerRow);
@@ -1693,58 +1692,93 @@ sales.forEach(sale => {
   quantityCell.textContent = saleData.quantity + ' pcs';
   row.appendChild(quantityCell);
 
-  // Get the medicine ID from the saleData
-  const medicineId = saleData.medicineId;
+    // Create a row element for each sale
+  const date = document.createElement('tr');
+
+// Create and append the patient name cell
+const dateCell = document.createElement('td');
+
+// Convert saleData.date to a readable format
+const saleDate = new Date(saleData.date);
+dateCell.textContent = saleDate.toLocaleString('en-UG', {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+  hour12: true
+});
+
 
   // Create and append the price cell
   const priceCell = document.createElement('td');
+  const totalCell = document.createElement('td');
 
-  // Fetch the medicine data from the database
+  // Fetch the medicine data from the database and determine unit price + total for this sale
   const medicineRef = ref(database, `medicine/${patientName}`);
   get(medicineRef).then((snapshot) => {
-    if (snapshot.exists()) {
-      const medicineData = snapshot.val();
-      const price = medicineData.price;
-      priceCell.textContent = price ? price : 'N/A';
+    const medicineData = snapshot.exists() ? snapshot.val() : null;
 
-      // Calculate the total income for each medicine
-      const totalIncome = price * saleData.quantity;
+    const quantity = Number(saleData.quantity) || 0;
 
-      // Aggregate the total income for each medicine
-      if (medicineIncomes[patientName]) {
-        medicineIncomes[patientName] += totalIncome;
-      } else {
-        medicineIncomes[patientName] = totalIncome;
-      }
-// Aggregate the total sales for each day
-const day = saleData.date;
-  if (salesByDay[day]) {
-    salesByDay[day]++;
-  } else {
-    salesByDay[day] = 1;
-  }
-      // Update the chart and total amount
-      updateChart();
-      updateTotalAmount();
-    } else {
-      priceCell.textContent = 'N/A';
+    // Determine unit price priority:
+    // 1) saleData.unitPrice
+    // 2) saleData.totalCost / quantity (if totalCost present)
+    // 3) medicine insurancePrices.keah or medicine.keahPrice
+    let unitPrice = null;
+    if (saleData.unitPrice !== undefined && saleData.unitPrice !== null) {
+      unitPrice = Number(saleData.unitPrice);
+    } else if (saleData.totalCost !== undefined && quantity > 0) {
+      unitPrice = Number(saleData.totalCost) / quantity;
+    } else if (medicineData) {
+      unitPrice = Number(medicineData.insurancePrices?.keah ?? medicineData.keahPrice ?? medicineData.insurancePrices?.keahPrice ?? NaN);
+      if (isNaN(unitPrice)) unitPrice = null;
     }
+
+    // Determine total for this sale: prefer saleData.totalCost, else unitPrice * quantity
+    let totalIncome = null;
+    if (saleData.totalCost !== undefined && saleData.totalCost !== null) {
+      totalIncome = Number(saleData.totalCost);
+    } else if (unitPrice !== null && !isNaN(unitPrice)) {
+      totalIncome = unitPrice * quantity;
+    } else {
+      totalIncome = 0;
+    }
+
+    // Display formatted unit price and total
+    priceCell.textContent = (unitPrice !== null && !isNaN(unitPrice)) ? `UGX ${Math.round(unitPrice).toLocaleString()}` : 'N/A';
+    totalCell.textContent = (!isNaN(totalIncome) && totalIncome !== null) ? `UGX ${Math.round(totalIncome).toLocaleString()}` : 'N/A';
+
+    // Aggregate the total income for each medicine (ensure numeric)
+    if (medicineIncomes[patientName]) {
+      medicineIncomes[patientName] += Number(totalIncome) || 0;
+    } else {
+      medicineIncomes[patientName] = Number(totalIncome) || 0;
+    }
+
+    // Aggregate the total sales (monetary) for each day
+    const day = saleData.date;
+    if (salesByDay[day]) {
+      salesByDay[day] += Number(totalIncome) || 0;
+    } else {
+      salesByDay[day] = Number(totalIncome) || 0;
+    }
+
+    // Update charts and totals
+    updateChart();
+    updateTotalAmount();
+
   }).catch((error) => {
     console.log('Error fetching medicine data:', error);
     priceCell.textContent = 'N/A';
+    totalCell.textContent = 'N/A';
   });
 
   row.appendChild(priceCell);
+    row.appendChild(dateCell);
 
-  // Create and append the sale date cell
-  const dateCell = document.createElement('td');
-  dateCell.textContent = saleData.date;
-  row.appendChild(dateCell);
-
-  // Create and append the sale time cell
-  const timeCell = document.createElement('td');
-  timeCell.textContent = saleData.time;
-  row.appendChild(timeCell);
+  row.appendChild(totalCell);
 
 // Create and append the delete button cell
 const deleteCell = document.createElement('td');
