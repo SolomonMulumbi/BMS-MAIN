@@ -2652,21 +2652,64 @@ function formatDate(date) {
   const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true };
   return date.toLocaleString('en-US', options);
 }
-
 // Function to update the countdown display
 function updateCountdown() {
   const countdownElement = document.getElementById('countdown');
   const timeToNextShift = calculateTimeToNextShift();
 
-  // Display the countdown and shift information
+  const hours = timeToNextShift.hours.toString().padStart(2, '0');
+  const minutes = timeToNextShift.minutes.toString().padStart(2, '0');
+  const seconds = timeToNextShift.seconds.toString().padStart(2, '0');
+
   countdownElement.innerHTML = `
-    <h2>Time to Next Shift</h2>
-    <div>
-      <span>${timeToNextShift.hours.toString().padStart(2, '0')} hr</span> :
-      <span>${timeToNextShift.minutes.toString().padStart(2, '0')} m</span> :
-      <span>${timeToNextShift.seconds.toString().padStart(2, '0')} s</span>
+    <div class="shift-countdown-card">
+
+      <div class="shift-countdown-icon">
+        <i class="fas fa-clock"></i>
+      </div>
+
+      <div class="shift-countdown-info">
+
+        <div class="shift-countdown-heading">
+          <strong>Time to Next Shift</strong>
+          <span>Automatic shift countdown</span>
+        </div>
+
+        <div class="shift-countdown-time">
+
+          <div class="shift-time-block">
+            <strong>${hours}</strong>
+            <span>HRS</span>
+          </div>
+
+          <div class="shift-time-separator">:</div>
+
+          <div class="shift-time-block">
+            <strong>${minutes}</strong>
+            <span>MIN</span>
+          </div>
+
+          <div class="shift-time-separator">:</div>
+
+          <div class="shift-time-block">
+            <strong>${seconds}</strong>
+            <span>SEC</span>
+          </div>
+
+        </div>
+
+      </div>
+
+      <div class="next-shift-info">
+        <i class="fas fa-calendar-check"></i>
+
+        <div>
+          <span>Next Shift</span>
+          <strong>${formatDate(timeToNextShift.nextShiftStart)}</strong>
+        </div>
+      </div>
+
     </div>
-    <p>Next shift starts on ${formatDate(timeToNextShift.nextShiftStart)}</p>
   `;
 }
 
@@ -2872,37 +2915,94 @@ const fetchPatientDataWithRetry = async (retries = 5, delay = 2000) => {
     return fetchPatientDataWithRetry(retries - 1, delay); // Retry recursively
   }
 };
-
 const calculateRegistrationRate = async () => {
   try {
-    // Fetch patient data with retries
+
+    // Fetch patient data
     const patients = await fetchPatientDataWithRetry();
 
     const patientList = Object.values(patients);
-    
-    // Get the current date
+
+    // Current date
     const today = new Date().toISOString().split('T')[0];
 
-    // Count patients registered today
-    const todayCount = patientList.filter(patient => 
-      patient.registrationDate && patient.registrationDate.startsWith(today)
+    // Registrations today
+    const todayCount = patientList.filter(patient =>
+      patient.registrationDate &&
+      patient.registrationDate.startsWith(today)
     ).length;
 
-    // Count all patients for overall registration rate
+    // Total registrations
     const totalCount = patientList.length;
 
-    // Calculate registration rate (adjust logic if needed)
-    const avgDailyRate = (totalCount / 30).toFixed(2); // Assuming last 30 days
+    // Average daily registration rate
+    const avgDailyRate = (totalCount / 30).toFixed(2);
 
-    // Update the div with registration statistics
+
+    // Display registration statistics
     registrationRateDiv.innerHTML = `
-      <p>Total Registrations: <strong>${totalCount}</strong></p>
-      <p>Today's Registrations: <strong>${todayCount}</strong></p>
-      <p>Avg Daily Rate: <strong>${avgDailyRate} patients/day</strong></p>
+      <div class="registration-stats">
+
+        <div class="registration-stat-card">
+
+          <div class="registration-stat-icon total-registration-icon">
+            <i class="fas fa-users"></i>
+          </div>
+
+          <div class="registration-stat-info">
+            <span>Total Registrations</span>
+            <strong>${totalCount}</strong>
+          </div>
+
+        </div>
+
+
+        <div class="registration-stat-card">
+
+          <div class="registration-stat-icon today-registration-icon">
+            <i class="fas fa-user-plus"></i>
+          </div>
+
+          <div class="registration-stat-info">
+            <span>Today's Registrations</span>
+            <strong>${todayCount}</strong>
+          </div>
+
+        </div>
+
+
+        <div class="registration-stat-card">
+
+          <div class="registration-stat-icon rate-registration-icon">
+            <i class="fas fa-chart-line"></i>
+          </div>
+
+          <div class="registration-stat-info">
+
+            <span>Average Daily Rate</span>
+
+            <div class="registration-rate-value">
+              <strong>${avgDailyRate}</strong>
+              <small>patients / day</small>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
     `;
+
   } catch (error) {
+
     console.error("Error fetching patient data:", error);
-    registrationRateDiv.innerHTML = "Error loading data.";
+
+    registrationRateDiv.innerHTML = `
+      <div class="registration-error">
+        <i class="fas fa-circle-exclamation"></i>
+        <span>Unable to load registration statistics.</span>
+      </div>
+    `;
   }
 };
 

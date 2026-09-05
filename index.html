@@ -323,15 +323,42 @@ fullscreenButton.addEventListener('click', function() {
 
 
 <section class="welcome">
-  <div>
-    <h2 class="wel-head">
-      <span id="home" class="icon">&#128202;</span> Welcome to the Dashboard
-    </h2>
-   
+<div class="sanyu-welcome-card">
 
-  </div>
-   <div id="greeting"></div>
+    <div class="welcome-main">
+
+        <div class="welcome-icon-box">
+            <i id="home" class="fas fa-hospital"></i>
+        </div>
+
+        <div class="welcome-content">
+            <span class="welcome-small-text">SANYU HOSPITAL</span>
+
+            <h2 class="wel-head">
+                Welcome to the Dashboard
+            </h2>
+
+            <p class="welcome-message">
+                Caring for every patient with compassion, efficiency and excellence.
+                Have a productive day serving our patients.
+            </p>
+        </div>
+
+    </div>
+
+
+    <div class="welcome-status">
+        <span class="status-dot"></span>
+
+        <div>
+            <small>Hospital System</small>
+            <strong>Active & Ready</strong>
+        </div>
+    </div>
+
+</div>
   </section>
+  <!----> <div id="greeting"></div>
 
 <!-- Navigation -->
 <div class="navigation">
@@ -340,37 +367,89 @@ fullscreenButton.addEventListener('click', function() {
   <a href="#expenses"><i class="fas fa-hospital"></i> Hospital Expenses</a>
   <a href="#analytics"><i class="fas fa-chart-line"></i> Test's Analytics</a>
 </div>
+<div class="hospital-survey-container">
 
-<h2>Hospital Survey</h2>
-  <section class="intro">
-    <div class="survey-item">
-      <i style="color: green;" class="fa fa-user-md"></i>
-      <span class="count2" id="staffCount">0</span>
-      <h3>Staff</h3>
+    <div class="hospital-survey-header">
+        <div class="hospital-survey-header-icon">
+            <i class="fas fa-chart-pie"></i>
+        </div>
+
+        <div>
+            <h2>Hospital Survey</h2>
+            <p>Quick overview of hospital activity</p>
+        </div>
     </div>
-    <div class="survey-item">
-      <i style="color: brown;" class="fa fa-users"></i>
-      <span class="count2" id="patientsCount">0</span>
-      <h3>Patients</h3>
-    </div>
-    <div class="survey-item">
-      <i style="color: #ff5733;" class="fas fa-hospital"></i> <!-- Example color: orange -->
-      <span class="count2" id="admittedPatientsCount">0</span>
-      <h3>Admitted</h3>
-    </div>
-    <div class="survey-item">
-      <i style="color: blue;" class="fas fa-stethoscope"></i>
-      <span class="count2" id="opdClientsCount">0</span>
-      <h3>OPD</h3>
-    </div>
-    
-    <div class="survey-item">
-      <i style="color: orange;" class="fa fa-shopping-cart"></i>
-      <span class="count2" id="salesCount">0</span>
-      <h3>Sales Count</h3>
-    </div>
-    
-  </section>
+
+
+    <section class="intro hospital-survey-grid">
+
+        <!-- STAFF -->
+        <div class="survey-item">
+            <div class="survey-icon staff-survey-icon">
+                <i class="fa fa-user-md"></i>
+            </div>
+
+            <div class="survey-info">
+                <span class="survey-label">Staff</span>
+                <span class="count2" id="staffCount">0</span>
+            </div>
+        </div>
+
+
+        <!-- PATIENTS -->
+        <div class="survey-item">
+            <div class="survey-icon patients-survey-icon">
+                <i class="fa fa-users"></i>
+            </div>
+
+            <div class="survey-info">
+                <span class="survey-label">Patients</span>
+                <span class="count2" id="patientsCount">0</span>
+            </div>
+        </div>
+
+
+        <!-- ADMITTED -->
+        <div class="survey-item">
+            <div class="survey-icon admitted-survey-icon">
+                <i class="fas fa-hospital"></i>
+            </div>
+
+            <div class="survey-info">
+                <span class="survey-label">Admitted</span>
+                <span class="count2" id="admittedPatientsCount">0</span>
+            </div>
+        </div>
+
+
+        <!-- OPD -->
+        <div class="survey-item">
+            <div class="survey-icon opd-survey-icon">
+                <i class="fas fa-stethoscope"></i>
+            </div>
+
+            <div class="survey-info">
+                <span class="survey-label">OPD</span>
+                <span class="count2" id="opdClientsCount">0</span>
+            </div>
+        </div>
+
+
+        <!-- SALES -->
+        <div class="survey-item">
+            <div class="survey-icon sales-survey-icon">
+                <i class="fas fa-shopping-cart"></i>
+            </div>
+
+            <div class="survey-info">
+                <span class="survey-label">Sales Count</span>
+                <span class="count2" id="salesCount">0</span>
+            </div>
+        </div>
+
+    </section>
+
+</div>
 
   <!-- Overlay -->
 <div id="popupOverlay3" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 9999;"></div>
@@ -390,10 +469,12 @@ fullscreenButton.addEventListener('click', function() {
 </div>
 
   
-  <div id="registrationRate" class="registration-rate">
-
-    Loading registration rate...
-  </div>
+ <div id="registrationRate" class="registration-rate">
+    <div class="registration-loading">
+        <i class="fas fa-spinner fa-spin"></i>
+        <span>Loading registration statistics...</span>
+    </div>
+</div>
   <div id="reportsContainer" style="margin-top: 20px;">
     <h3>Reports</h3>
     <div id="reportsList" class="reports-grid">
@@ -414,12 +495,39 @@ fullscreenButton.addEventListener('click', function() {
       <button id="clear-filter-button"><i class="fas fa-refresh"></i> Refresh Filter</button>
     
     </section>
-   <div class="search-container">
-          <h2 style="margin-top: 20px;" >Search Medicine</h2>
-          <input type="text" id="medicineInput" placeholder="Enter medicine name">
-          <button id="searchMedicineButton">Search</button>   
-         
-              </div>
+  <div class="medicine-search-container">
+
+    <div class="medicine-search-header">
+        <div class="medicine-search-icon">
+            <i class="fas fa-pills"></i>
+        </div>
+
+        <div class="medicine-search-title">
+            <h2>Search Medicine</h2>
+            <p>Find medicine by name</p>
+        </div>
+    </div>
+
+    <div class="medicine-search-box">
+
+        <div class="medicine-input-wrapper">
+            <i class="fas fa-capsules"></i>
+
+            <input
+                type="text"
+                id="medicineInput"
+                placeholder="Enter medicine name"
+            >
+        </div>
+
+        <button id="searchMedicineButton">
+            <i class="fas fa-search"></i>
+            <span>Search</span>
+        </button>
+
+    </div>
+
+</div>
                    <div id="loader" class="loader"></div>
                 
       
@@ -554,69 +662,196 @@ document.getElementById('closeDetailsButton').addEventListener('click', () => {
     <section>
       <h1 style="color: white; text-decoration: none;">Hospital Expenses</h1>
 
-    <div id="dailyExpenseContainer">
-    <h2 style="margin-top: 20px; color: white">Daily Expenses</h2>
-
-
-<button id="openPopupButton">
-   <i class="fas fa-plus-circle"></i> Daily Expense
-  </button> 
-      <!-- Button to show the daily expense summary -->
-    <button id="showPopupButton">
-        <i class="fas fa-list-check" style="margin-right: 10px;"></i>Summary
-    </button>
-   
- </div>
+    
     </section>
-<div id="ExpenseSummaryPopupOverlay"></div>
-    <!-- Popup Content -->
-    <div class="ExpenseSummaryPopup" id="ExpenseSummaryPopup">
-        <h2>Daily Expense Summary</h2>
-               <div id="totalSum"></div>
-<section>
-  <!-- Filter by Date -->
-  <h2 style="color: white; margin-right: 50px;">Filter Expenses</h2>
+    
+   <div id="dailyExpenseContainer">
 
-  <div>
-  <label style="color: white;" for="startDate">Start Date:</label>
-  <input style=" margin-right: 50px;" type="date" id="dailystartDate"></div>
-  <div>
-  <label style="color: white" for="endDate">End Date:</label>
-  <input  style=" margin-left: 50px;" type="date" id="dailyendDate"></div>
-  <button id="filterByDateButton"><i class="fas fa-filter"></i> Filter</button>
-  <div>
-  <button id="clear-filter-details"><i class="fas fa-refresh"></i> Refresh Filter</button></div>
-</section>
+    <div class="expense-header">
+        <div class="expense-header-icon">
+            <i class="fas fa-wallet"></i>
+        </div>
 
-<div id="totalAmountSum" class="total-amount-sum">
-  Table Summation: <span id="totalAmountSum">0 UGX</span>
-  <i class="fa fa-money-bill"></i>
-</div>
-        <!-- Date range inputs 
-        <label for="startDate">Start Date:</label>
-        <input type="date" id="startDate">
-        <label for="endDate">End Date:</label>
-        <input type="date" id="endDate">-->
-        
-        <!-- Table to display daily expenses -->
-        <table>
-          <thead>
-              <tr>
-                  <th><i style="color: green;" class="fas fa-calendar-day"></i> Date</th>
-                  <th><i style="color: green;" class="fas fa-file-invoice-dollar"></i> Number of Expenses</th>
-                  <th><i style="color: darkblue;" class="fas fa-money-bill-alt"></i> Total Amount (UGX)</th>
-                  <th><i style="color: blue;" class="fas fa-cogs"></i> Actions</th>
-              </tr>
-          </thead>
-          <tbody id="dailyExpensesBody">
-              <!-- Expenses will be displayed here -->
-          </tbody>
-      </table>
-      
-        <!-- Close button -->
-        <button id="closePopupButton">Close</button>
+        <div class="expense-header-text">
+            <h2>Daily Expenses</h2>
+            <p>Record expenses and view today's summary</p>
+        </div>
     </div>
 
+    <div class="expense-actions">
+
+        <button id="openPopupButton">
+            <span class="expense-btn-icon">
+                <i class="fas fa-plus"></i>
+            </span>
+
+            <span class="expense-btn-text">
+                <strong>Daily Expense</strong>
+                <small>Add a new expense</small>
+            </span>
+        </button>
+
+
+        <button id="showPopupButton">
+            <span class="expense-btn-icon">
+                <i class="fas fa-list-check"></i>
+            </span>
+
+            <span class="expense-btn-text">
+                <strong>Summary</strong>
+                <small>View expense summary</small>
+            </span>
+        </button>
+
+    </div>
+
+</div>
+<div id="ExpenseSummaryPopupOverlay"></div>
+    <!-- Popup Content -->
+<div class="ExpenseSummaryPopup" id="ExpenseSummaryPopup">
+
+    <!-- Header -->
+    <div class="expense-summary-header">
+        <div class="expense-summary-header-icon">
+            <i class="fas fa-file-invoice-dollar"></i>
+        </div>
+
+        <div>
+            <h2>Daily Expense Summary</h2>
+            <p>Review and filter hospital daily expenses</p>
+        </div>
+    </div>
+
+
+    <!-- Main Total -->
+    <div class="expense-summary-total">
+        <div class="expense-total-icon">
+            <i class="fas fa-wallet"></i>
+        </div>
+
+        <div>
+            <span>Expense Summary</span>
+            <div id="totalSum"></div>
+        </div>
+    </div>
+
+
+    <!-- Filter Area -->
+    <div class="expense-filter-section">
+
+        <div class="expense-filter-heading">
+            <i class="fas fa-filter"></i>
+
+            <div>
+                <h3>Filter Expenses</h3>
+                <p>Select a date range to view expenses</p>
+            </div>
+        </div>
+
+
+        <div class="expense-filter-fields">
+
+            <div class="expense-filter-field">
+                <label for="dailystartDate">
+                    <i class="fas fa-calendar-day"></i>
+                    Start Date
+                </label>
+
+                <input type="date" id="dailystartDate">
+            </div>
+
+
+            <div class="expense-filter-field">
+                <label for="dailyendDate">
+                    <i class="fas fa-calendar-check"></i>
+                    End Date
+                </label>
+
+                <input type="date" id="dailyendDate">
+            </div>
+
+
+            <div class="expense-filter-buttons">
+
+                <button id="filterByDateButton">
+                    <i class="fas fa-filter"></i>
+                    Filter
+                </button>
+
+                <button id="clear-filter-details">
+                    <i class="fas fa-rotate-right"></i>
+                    Refresh
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- Table Total -->
+    <div class="total-amount-sum">
+
+        <div class="table-total-icon">
+            <i class="fas fa-coins"></i>
+        </div>
+
+        <div>
+            <span>Table Summation</span>
+            <strong id="totalAmountSum">0 UGX</strong>
+        </div>
+
+    </div>
+
+
+    <!-- Expense Table -->
+    <div class="expense-summary-table-wrapper">
+
+        <table>
+
+            <thead>
+                <tr>
+                    <th>
+                        <i class="fas fa-calendar-day"></i>
+                        Date
+                    </th>
+
+                    <th>
+                        <i class="fas fa-file-invoice-dollar"></i>
+                        Number of Expenses
+                    </th>
+
+                    <th>
+                        <i class="fas fa-money-bill-wave"></i>
+                        Total Amount (UGX)
+                    </th>
+
+                    <th>
+                        <i class="fas fa-cogs"></i>
+                        Actions
+                    </th>
+                </tr>
+            </thead>
+
+            <tbody id="dailyExpensesBody">
+                <!-- Expenses will be displayed here -->
+            </tbody>
+
+        </table>
+
+    </div>
+
+
+    <!-- Footer -->
+    <div class="expense-summary-footer">
+        <button id="closePopupButton">
+            <i class="fas fa-times"></i>
+            Close
+        </button>
+    </div>
+
+</div>
     <!-- The container for the daily expenses table 
 
     <div id="dailyExpensesContainer">
@@ -641,68 +876,216 @@ document.getElementById('closeDetailsButton').addEventListener('click', () => {
 
 <!-- The container for the schemed expenses table -->
 <div id="schemedExpensesContainer">
-  <h2 style="margin-top: 20px; color: white">Schemed Expenses</h2>
-    <button id="openSchemePopupButton">
-  <i class="fas fa-plus-circle"></i> Schemed Expense
-</button>
-  <h2 style="margin-top: 20px; color: white">Schemed Expense Billing  Rate</h2>
 
-  <div class="total-sums-container">
-    <div class="total-sum-card" id="totalSumMonthly"></div>
-    <div class="total-sum-card" id="totalSumYearly"></div>
-    <div class="total-sum-card" id="totalSumAfter2Years"></div>
-    <div class="total-sum-card" id="totalSumAfter3Years"></div>
-    <div class="total-sum-card" id="totalSumAfter5Years"></div>
-
-    
-  </div>    
-    <div id="expensesContainer">
-      <div id="expensesInfo">
-        <!-- Your existing expense information here -->
-      </div>
-      <canvas id="expensesPieChart" width="400" height="400"></canvas>
+  <!-- Header -->
+  <div class="scheme-header">
+    <div class="scheme-header-icon">
+      <i class="fas fa-calendar-check"></i>
     </div>
-  <h2 style="margin-top: 20px; color: white">Schemed Expense Overview</h2>
-  <table id="schemedExpensesTable" class="expense-table">
-    <thead>
-      <tr>
-        <th><i style="color: green;" class="fas fa-file-invoice-dollar"></i> Expense</th>
-        <th><i style="color: darkblue;" class="fas fa-money-bill-alt"></i> Amount (UGX)</th>
-        <th><i style="color: maroon;" class="fas fa-calendar-alt"></i> Scheme of Payment</th>
-        <th><i style="color: green;" class="fas fa-calendar-day"></i> Start Date</th>
-        <th><i style="color: purple;" class="fas fa-calendar-check"></i> Due Date</th>
-        <th><i style="color: orange;" class="fas fa-hourglass-half"></i> Days Left</th>
-        <th><i style="color: blue;" class="fas fa-cogs"></i> Actions</th>
-      </tr>
-    </thead>
-    <tbody id="schemedExpensesBody">
-      <!-- Schemed expenses rows will be added here -->
-    </tbody>
-  </table>
-</div>
 
- 
-  <section  style="color: white;">
-    <h1  style="color: white; text-decoration: none;" >Sales Per<br> Department </h1> 
-  <div class="date-filter">
-    <label style="color: white; margin-top: 5px;" for="startDate5">Start Date:</label>
-    <input type="date" id="startDate5">
-    <label style="color: white; margin-top: 5px;" for="startDate5" for="endDate5">End Date:</label>
-    <input type="date" id="endDate5">
-    <button id="filterButton5">Filter</button>
-    <button style="background-color: rgb(215, 0, 0); margin-top: 5px;" for="startDate5" id="refreshButton5">Refresh</button>
+    <div class="scheme-header-text">
+      <h2>Schemed Expenses</h2>
+      <p>Plan and monitor recurring and future expenses</p>
+    </div>
+
+    <button id="openSchemePopupButton">
+      <i class="fas fa-plus"></i>
+      <span>Schemed Expense</span>
+    </button>
   </div>
+
+
+  <!-- Billing Rate -->
+  <div class="scheme-section">
+
+    <div class="scheme-section-title">
+      <div class="scheme-title-icon">
+        <i class="fas fa-chart-line"></i>
+      </div>
+
+      <div>
+        <h3>Schemed Expense Billing Rate</h3>
+        <p>Projected expense commitments over time</p>
+      </div>
+    </div>
+
+
+    <div class="total-sums-container">
+
+      <div class="total-sum-card" id="totalSumMonthly"></div>
+
+      <div class="total-sum-card" id="totalSumYearly"></div>
+
+      <div class="total-sum-card" id="totalSumAfter2Years"></div>
+
+      <div class="total-sum-card" id="totalSumAfter3Years"></div>
+
+      <div class="total-sum-card" id="totalSumAfter5Years"></div>
+
+    </div>
+
+
+    <!-- Expense Information + Chart -->
+    <div id="expensesContainer">
+
+      <div id="expensesInfo">
+        <!-- Existing expense information -->
+      </div>
+
+      <div class="expense-chart-container">
+        <canvas id="expensesPieChart" width="400" height="400"></canvas>
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- Overview -->
+  <div class="scheme-section">
+
+    <div class="scheme-section-title">
+      <div class="scheme-title-icon overview-icon">
+        <i class="fas fa-list-check"></i>
+      </div>
+
+      <div>
+        <h3>Schemed Expense Overview</h3>
+        <p>Review upcoming expenses, payment schedules and due dates</p>
+      </div>
+    </div>
+
+
+    <div class="scheme-table-wrapper">
+
+      <table id="schemedExpensesTable" class="expense-table">
+
+        <thead>
+          <tr>
+            <th>
+              <i class="fas fa-file-invoice-dollar"></i>
+              Expense
+            </th>
+
+            <th>
+              <i class="fas fa-money-bill-wave"></i>
+              Amount (UGX)
+            </th>
+
+            <th>
+              <i class="fas fa-calendar-alt"></i>
+              Scheme of Payment
+            </th>
+
+            <th>
+              <i class="fas fa-calendar-day"></i>
+              Start Date
+            </th>
+
+            <th>
+              <i class="fas fa-calendar-check"></i>
+              Due Date
+            </th>
+
+            <th>
+              <i class="fas fa-hourglass-half"></i>
+              Days Left
+            </th>
+
+            <th>
+              <i class="fas fa-cogs"></i>
+              Actions
+            </th>
+          </tr>
+        </thead>
+
+        <tbody id="schemedExpensesBody">
+          <!-- Schemed expense rows -->
+        </tbody>
+
+      </table>
+
+    </div>
+
+  </div>
+
+</div>
+ 
+   <div class="department-sales-panel">
+
+    <div class="department-sales-header">
+        <div class="department-sales-icon">
+            <i class="fas fa-chart-column"></i>
+        </div>
+
+        <div class="department-sales-title">
+            <h1>Sales Per Department</h1>
+            <p>Filter and review departmental revenue</p>
+        </div>
+    </div>
+
+
+    <div class="date-filter">
+
+        <div class="date-filter-field">
+            <label for="startDate5">
+                <i class="fas fa-calendar-day"></i>
+                Start Date
+            </label>
+
+            <input type="date" id="startDate5">
+        </div>
+
+
+        <div class="date-filter-field">
+            <label for="endDate5">
+                <i class="fas fa-calendar-check"></i>
+                End Date
+            </label>
+
+            <input type="date" id="endDate5">
+        </div>
+
+
+        <div class="date-filter-actions">
+
+            <button id="filterButton5">
+                <i class="fas fa-filter"></i>
+                Filter
+            </button>
+
+            <button id="refreshButton5">
+                <i class="fas fa-rotate-right"></i>
+                Refresh
+            </button>
+
+        </div>
+
+    </div>
+
+
     <div id="countdown"></div>
-   </section>   
+
+</div>
   
 
  <h2 class="summary-heading">Summary of Sales</h2>
 
   
-  <div id="paginationControls">
-  <button id="prevPageBtn">Previous</button>
+ <div id="paginationControls">
+
+  <button id="prevPageBtn">
+    <i class="fas fa-chevron-left"></i>
+    Previous
+  </button>
+
   <span id="pageIndicator">Page 1</span>
-  <button id="nextPageBtn">Next</button>
+
+  <button id="nextPageBtn">
+    Next
+    <i class="fas fa-chevron-right"></i>
+  </button>
+
 </div>
 <div id="salesReceiptsContainer"></div>
 

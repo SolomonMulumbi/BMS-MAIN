@@ -3497,7 +3497,6 @@ const treatmentTotal =
 
 // Overall total
 const overallTotal =
-    testsTotal +
     medicationTotal +
     treatmentTotal;
 
