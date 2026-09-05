@@ -2204,20 +2204,28 @@ shareButton.addEventListener('click', () => {
 // Append the share button to the record element
 //recordElement.appendChild(shareButton);
  // --- Upload Results Button ---
-  const uploadResultsButtonRow = document.createElement('tr');
-  table.appendChild(uploadResultsButtonRow);
+ // ==========================================
+// ACTIONS CONTAINER
+// ==========================================
 
-  const uploadHeader = document.createElement('th');
-  uploadHeader.textContent = 'Actions';
-  uploadResultsButtonRow.appendChild(uploadHeader);
+const uploadActionsContainer = document.createElement('div');
 
-  const uploadCell = document.createElement('td');
-  const uploadResultsButton = document.createElement('button');
-  uploadResultsButton.classList.add('upload-results-button');
-  uploadResultsButton.innerHTML = '<i class="fas fa-upload"></i> Upload Results';
-  uploadCell.appendChild(uploadResultsButton);
-  uploadResultsButtonRow.appendChild(uploadCell);
+uploadActionsContainer.classList.add('upload-results-actions');
 
+
+const uploadResultsButton = document.createElement('button');
+
+uploadResultsButton.classList.add('upload-results-button');
+
+uploadResultsButton.innerHTML = `
+  <i class="fas fa-upload"></i>
+  Upload Results
+`;
+
+
+
+// Append as normal element — NOT a table cell
+recordElement.appendChild(uploadActionsContainer);
   // Click Event
   uploadResultsButton.addEventListener('click', () => {
     openUploadResultsPopup(patientName, recordKey, record);
@@ -2798,66 +2806,88 @@ if (cbcResult.histograms) {
         });
 
         card.appendChild(paramContainer);
-      } else {
-  // No parameters → positive/negative radio plus +, ++, +++
-  const optionsContainer = document.createElement('div');
-  optionsContainer.classList.add('radio-options-container'); // styling container
+} else {
+  // No parameters → radio options + typed text result
 
+  const optionsContainer = document.createElement('div');
+  optionsContainer.classList.add('radio-options-container');
+
+  // Positive
   const posLabel = document.createElement('label');
   posLabel.textContent = 'Positive';
+
   const posRadio = document.createElement('input');
   posRadio.type = 'radio';
   posRadio.name = `inv_${i}`;
   posRadio.value = 'Positive';
   posRadio.dataset.type = 'investigation';
   posRadio.dataset.index = i;
-  posRadio.dataset.testName = item.name; // <-- Added: attach test name
+  posRadio.dataset.testName = item.name;
+
   posLabel.prepend(posRadio);
 
+
+  // Negative
   const negLabel = document.createElement('label');
   negLabel.textContent = 'Negative';
+
   const negRadio = document.createElement('input');
   negRadio.type = 'radio';
   negRadio.name = `inv_${i}`;
   negRadio.value = 'Negative';
   negRadio.dataset.type = 'investigation';
   negRadio.dataset.index = i;
-  negRadio.dataset.testName = item.name; // <-- Added: attach test name
+  negRadio.dataset.testName = item.name;
+
   negLabel.prepend(negRadio);
 
+
+  // +
   const plusLabel = document.createElement('label');
   plusLabel.textContent = '+';
+
   const plusRadio = document.createElement('input');
   plusRadio.type = 'radio';
   plusRadio.name = `inv_${i}`;
   plusRadio.value = '+';
   plusRadio.dataset.type = 'investigation';
   plusRadio.dataset.index = i;
-  plusRadio.dataset.testName = item.name; // <-- Added: attach test name
+  plusRadio.dataset.testName = item.name;
+
   plusLabel.prepend(plusRadio);
 
+
+  // ++
   const doublePlusLabel = document.createElement('label');
   doublePlusLabel.textContent = '++';
+
   const doublePlusRadio = document.createElement('input');
   doublePlusRadio.type = 'radio';
   doublePlusRadio.name = `inv_${i}`;
   doublePlusRadio.value = '++';
   doublePlusRadio.dataset.type = 'investigation';
   doublePlusRadio.dataset.index = i;
-  doublePlusRadio.dataset.testName = item.name; // <-- Added: attach test name
+  doublePlusRadio.dataset.testName = item.name;
+
   doublePlusLabel.prepend(doublePlusRadio);
 
+
+  // +++
   const triplePlusLabel = document.createElement('label');
   triplePlusLabel.textContent = '+++';
+
   const triplePlusRadio = document.createElement('input');
   triplePlusRadio.type = 'radio';
   triplePlusRadio.name = `inv_${i}`;
   triplePlusRadio.value = '+++';
   triplePlusRadio.dataset.type = 'investigation';
   triplePlusRadio.dataset.index = i;
-  triplePlusRadio.dataset.testName = item.name; // <-- Added: attach test name
+  triplePlusRadio.dataset.testName = item.name;
+
   triplePlusLabel.prepend(triplePlusRadio);
 
+
+  // Add radio buttons
   optionsContainer.appendChild(posLabel);
   optionsContainer.appendChild(negLabel);
   optionsContainer.appendChild(plusLabel);
@@ -2865,6 +2895,36 @@ if (cbcResult.histograms) {
   optionsContainer.appendChild(triplePlusLabel);
 
   card.appendChild(optionsContainer);
+
+
+  // ============================================================
+  // TYPED RESULT
+  // ============================================================
+
+  const typedResultContainer = document.createElement('div');
+  typedResultContainer.classList.add('typed-investigation-container');
+
+
+  const typedResultLabel = document.createElement('label');
+  typedResultLabel.textContent = 'Additional Result / Findings';
+  typedResultLabel.classList.add('typed-investigation-label');
+
+
+  const typedResultInput = document.createElement('input');
+  typedResultInput.type = 'text';
+  typedResultInput.placeholder = 'Type additional result or findings...';
+
+  typedResultInput.classList.add('typed-investigation-input');
+
+  typedResultInput.dataset.type = 'investigation-text';
+  typedResultInput.dataset.index = i;
+  typedResultInput.dataset.testName = item.name;
+
+
+  typedResultContainer.appendChild(typedResultLabel);
+  typedResultContainer.appendChild(typedResultInput);
+
+  card.appendChild(typedResultContainer);
 }
 
     } catch (err) {
@@ -2909,8 +2969,7 @@ resultsForm.addEventListener('submit', (e) => {
   const record = JSON.parse(resultsForm.dataset.record); // if you stored as JSON string
 
   saveResults(patientName, recordKey, record);
-});
-function saveResults(patientName, recordKey, record) {
+});function saveResults(patientName, recordKey, record) {
 
   const resultsData = {
     investigationsResults: {},
@@ -2934,6 +2993,110 @@ function saveResults(patientName, recordKey, record) {
 
   investigationCards.forEach(card => {
 
+    // ============================================
+    // FIRST:
+    // HANDLE RADIO + TYPED INVESTIGATION RESULTS
+    // ============================================
+
+    const typedInvestigationInputs =
+      card.querySelectorAll(
+        'input[data-type="investigation-text"]'
+      );
+
+
+    typedInvestigationInputs.forEach(
+      typedInput => {
+
+        const testName =
+          typedInput.dataset.testName ||
+          'Report';
+
+
+        const index =
+          typedInput.dataset.index;
+
+
+        const typedValue =
+          typedInput.value.trim();
+
+
+        // Find selected radio belonging
+        // to this exact investigation
+        const selectedRadio =
+          card.querySelector(
+            `input[type="radio"][data-type="investigation"][data-index="${index}"]:checked`
+          );
+
+
+        const radioValue =
+          selectedRadio
+            ? selectedRadio.value.trim()
+            : '';
+
+
+        // ========================================
+        // COMBINE RADIO + TYPED RESULT
+        // ========================================
+
+        let finalValue = '';
+
+
+        if (radioValue && typedValue) {
+
+          finalValue =
+            `${radioValue} - ${typedValue}`;
+
+        }
+
+        else if (radioValue) {
+
+          finalValue =
+            radioValue;
+
+        }
+
+        else if (typedValue) {
+
+          finalValue =
+            typedValue;
+
+        }
+
+
+        // Save only when something was entered
+        if (finalValue) {
+
+          if (
+            !resultsData
+              .investigationsResults[testName]
+          ) {
+
+            resultsData
+              .investigationsResults[testName] = [];
+
+          }
+
+
+          resultsData
+            .investigationsResults[testName]
+            .push({
+
+              parameter: testName,
+
+              value: finalValue
+
+            });
+
+        }
+
+      }
+    );
+
+
+    // ============================================
+    // NOW PROCESS NORMAL INPUTS
+    // ============================================
+
     const inputs =
       card.querySelectorAll('input');
 
@@ -2951,7 +3114,36 @@ function saveResults(patientName, recordKey, record) {
       if (type === 'investigation') {
 
         const testName =
-          input.dataset.testName || 'Report';
+          input.dataset.testName ||
+          'Report';
+
+
+        // ==========================================
+        // IMPORTANT:
+        // If this is a radio that has a typed-result
+        // input, we already processed it above.
+        // Do not save it again.
+        // ==========================================
+
+        if (input.type === 'radio') {
+
+          const index =
+            input.dataset.index;
+
+
+          const hasTypedResultFacility =
+            card.querySelector(
+              `input[data-type="investigation-text"][data-index="${index}"]`
+            );
+
+
+          if (hasTypedResultFacility) {
+
+            return;
+
+          }
+
+        }
 
 
         if (
@@ -2965,7 +3157,10 @@ function saveResults(patientName, recordKey, record) {
         }
 
 
-        // Text / hidden investigation value
+        // ==========================================
+        // PARAMETER / NORMAL TEXT RESULT
+        // ==========================================
+
         if (
           input.type === 'text' ||
           input.type === 'hidden'
@@ -2994,7 +3189,11 @@ function saveResults(patientName, recordKey, record) {
         }
 
 
-        // Radio input
+        // ==========================================
+        // NORMAL RADIO
+        // Used when there is NO typed-result facility
+        // ==========================================
+
         else if (
           input.type === 'radio' &&
           input.checked
@@ -3016,10 +3215,27 @@ function saveResults(patientName, recordKey, record) {
 
 
       // ============================================
+      // INVESTIGATION-TEXT
+      // ============================================
+      // Already combined with the radio above,
+      // so do nothing here.
+
+      else if (
+        type === 'investigation-text'
+      ) {
+
+        return;
+
+      }
+
+
+      // ============================================
       // BC-2800 HISTOGRAM DATA
       // ============================================
 
-      else if (type === 'cbc-histograms') {
+      else if (
+        type === 'cbc-histograms'
+      ) {
 
         const testName =
           input.dataset.testName ||
@@ -3029,10 +3245,11 @@ function saveResults(patientName, recordKey, record) {
         try {
 
           const histogramData =
-            JSON.parse(input.value);
+            JSON.parse(
+              input.value
+            );
 
 
-          // Make sure we actually have histogram data
           if (
             histogramData &&
             typeof histogramData === 'object'
@@ -3069,7 +3286,9 @@ function saveResults(patientName, recordKey, record) {
       // PROCEDURES
       // ============================================
 
-      else if (type === 'procedure') {
+      else if (
+        type === 'procedure'
+      ) {
 
         const name =
           input.dataset.itemName ||
@@ -3095,7 +3314,9 @@ function saveResults(patientName, recordKey, record) {
       // SERVICES
       // ============================================
 
-      else if (type === 'service') {
+      else if (
+        type === 'service'
+      ) {
 
         const name =
           input.dataset.itemName ||
@@ -3196,8 +3417,6 @@ function saveResults(patientName, recordKey, record) {
     });
 
 }
-
-
 // Define visitKeys at a higher scope to make it accessible to both functions
 let visitKeys = [];
 let visitDetails = {};
@@ -3338,6 +3557,8 @@ printRecord(patient, record, recordKey, visitDetails, latestVisitData);
 
 // Append the print button to the record element
 recordElement.appendChild(printButton);
+uploadActionsContainer.appendChild(uploadResultsButton);
+
 // ===============================
 // LIVE BC-2800 FETCH BUTTON
 // ===============================
@@ -5150,45 +5371,157 @@ async function printRecord(patient, record, recordKey, visitDetails, latestVisit
   doc.addImage('sanyu.png', 'PNG', (pageWidth - watermarkSize) / 2, (pageHeight - watermarkSize) / 2, watermarkSize, watermarkSize);
   doc.setGState(new doc.GState({ opacity: 1 }));
 
-  // ---------------- Header ----------------
-  cursorY -= 8;
-doc.addImage('sanyu.png', 'PNG', margin, cursorY - 6, 40, 40);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(20);
-  doc.setTextColor(0, 100, 0);
-  doc.text('SANYU HOSPITAL ', pageWidth / 2 + 10, cursorY + 10, { align: 'center' });
-  cursorY += 13;
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(13);
-  doc.setTextColor(0, 0, 0);
-  doc.text('Located at Katooke-Wakiso District', pageWidth / 2 + 10, cursorY + 6, { align: 'center' });
-  cursorY += 7;
-  doc.text('Tel: +256 708 657 717 | Email: sanyuhospital@gmail.com', pageWidth / 2 + 10, cursorY + 6, { align: 'center' });
-  cursorY += 15;
+// ---------------- Header ----------------
+
+cursorY -= 8;
+
+doc.addImage(
+  'sanyu.png',
+  'PNG',
+  margin,
+  cursorY - 6,
+  40,
+  40
+);
 
 
-  // ---------------- Outer Box ----------------
-  const boxX = margin;
-  const boxY = cursorY;
-  const boxWidth = pageWidth - 2 * margin;
-  const boxHeight = pageHeight - boxY - margin;
-doc.setDrawColor(0, 100, 0);  doc.setLineWidth(0.8);
-  doc.rect(boxX, boxY, boxWidth, boxHeight);
+// ==========================================
+// MAIN HOSPITAL TITLE - EXTRA THICK
+// ==========================================
 
+doc.setFont('helvetica', 'bold');
+doc.setFontSize(20);
+doc.setTextColor(0, 100, 0);
+
+const titleX = pageWidth / 2 + 10;
+const titleY = cursorY + 10;
+
+// Draw multiple times with tiny offsets
+// to create an extra-heavy bold appearance
+doc.text(
+  'SANYU HOSPITAL',
+  titleX,
+  titleY,
+  { align: 'center' }
+);
+
+doc.text(
+  'SANYU HOSPITAL',
+  titleX + 0.15,
+  titleY,
+  { align: 'center' }
+);
+
+doc.text(
+  'SANYU HOSPITAL',
+  titleX - 0.15,
+  titleY,
+  { align: 'center' }
+);
+
+doc.text(
+  'SANYU HOSPITAL',
+  titleX,
+  titleY + 0.12,
+  { align: 'center' }
+);
+
+
+cursorY += 13;
+
+
+// ==========================================
+// LOCATION - BOLD
+// ==========================================
+
+doc.setFont('helvetica', 'bold');
+doc.setFontSize(13);
+doc.setTextColor(0, 0, 0);
+
+doc.text(
+  'Located at Katooke-Wakiso District',
+  pageWidth / 2 + 10,
+  cursorY + 6,
+  { align: 'center' }
+);
+
+
+cursorY += 7;
+
+
+// ==========================================
+// CONTACT DETAILS - BOLD
+// ==========================================
+
+doc.setFont('helvetica', 'bold');
+doc.setFontSize(13);
+doc.setTextColor(0, 0, 0);
+
+doc.text(
+  'Tel: +256 708 657 717 | Email: sanyuhospital@gmail.com',
+  pageWidth / 2 + 10,
+  cursorY + 6,
+  { align: 'center' }
+);
+
+
+cursorY += 15;
+// ---------------- Outer Box ----------------
+
+// Small space between the box and paper edge
+const boxMargin = 6;
+
+const boxX = boxMargin;
+
+// Keep the current top position
+const boxY = cursorY;
+
+// Extend box almost to both left and right paper edges
+const boxWidth = pageWidth - (boxMargin * 2);
+
+// Extend box almost to bottom paper edge
+const boxHeight = pageHeight - boxY - boxMargin;
+
+doc.setDrawColor(0, 100, 0);
+doc.setLineWidth(0.8);
+
+doc.rect(
+  boxX,
+  boxY,
+  boxWidth,
+  boxHeight
+);
   // Title
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(headingFontSize);
   doc.text('Doctor Notes', boxX + boxWidth / 2, boxY + 10, { align: 'center' });
 
-  // ---------------- Top Section ----------------
-  const topY = boxY + 18;
-  const topHeight = 40;
-  const topLeftWidth = boxWidth * 0.5 - 2;
-  const topRightWidth = boxWidth * 0.5 - 2;
+ // ---------------- Top Section ----------------
 
-  doc.line(boxX, topY - 2, boxX + boxWidth, topY - 2);
-  doc.line(boxX + boxWidth / 2, topY, boxX + boxWidth / 2, topY + topHeight);
+const topY = boxY + 18;
+const topHeight = 40;
 
+const topLeftWidth = boxWidth * 0.5 - 2;
+const topRightWidth = boxWidth * 0.5 - 2;
+
+
+// Horizontal line below Doctor Notes title
+doc.line(
+  boxX,
+  topY - 2,
+  boxX + boxWidth,
+  topY - 2
+);
+
+
+// Shorter vertical divider between
+// Patient Info and Contact Info
+doc.line(
+  boxX + boxWidth / 2,
+  topY,
+  boxX + boxWidth / 2,
+  topY + topHeight - 10
+);
   // Top left: Patient Info
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(headingFontSize);
@@ -5234,16 +5567,37 @@ const topRightInfo = [
     });
   });
 
-  // ---------------- Lower Section ----------------
-  const sectionPadding = 6;
-  const lowerY = topY + topHeight + 5;
-  const lowerHeight = boxY + boxHeight - lowerY - 20;
-  const lowerLeftWidth = boxWidth * 0.35;
-  const lowerRightWidth = boxWidth - lowerLeftWidth - 10;
+// ---------------- Lower Section ----------------
 
-  doc.line(boxX + lowerLeftWidth + 5, lowerY, boxX + lowerLeftWidth + 5, lowerY + lowerHeight);
-  doc.line(boxX, lowerY - 3, boxX + boxWidth, lowerY - 3);
+const sectionPadding = 6;
 
+// Move lower section UP
+const lowerY = topY + topHeight - 5;
+
+// Automatically make it taller because it starts higher
+const lowerHeight = boxY + boxHeight - lowerY - 20;
+
+const lowerLeftWidth = boxWidth * 0.35;
+
+const lowerRightWidth = boxWidth - lowerLeftWidth - 10;
+
+
+// Vertical divider
+doc.line(
+  boxX + lowerLeftWidth + 5,
+  lowerY,
+  boxX + lowerLeftWidth + 5,
+  lowerY + lowerHeight
+);
+
+
+// Horizontal divider
+doc.line(
+  boxX,
+  lowerY - 3,
+  boxX + boxWidth,
+  lowerY - 3
+);
   // ---------------- Lower left: Vitals & Investigations ----------------
   let leftStartY = lowerY + sectionPadding;
 
@@ -5389,7 +5743,7 @@ if (
     'bold'
   );
 
-  doc.setFontSize(5.5);
+  doc.setFontSize(6);
 
 
   doc.text(
@@ -5430,7 +5784,7 @@ if (
     'normal'
   );
 
-  doc.setFontSize(5.5);
+  doc.setFontSize(7);
 
 
   meds.forEach((row, index) => {
@@ -5829,7 +6183,7 @@ if (cbcTestName) {
     // PRINT EACH CBC RESULT
     // --------------------------------------------------------
 
-    doc.setFontSize(5.5);
+    doc.setFontSize(7);
 
 cbcResults.forEach(result => {
 
@@ -6530,7 +6884,7 @@ if (
         'normal'
       );
 
-      doc.setFontSize(6);
+      doc.setFontSize(7);
 
 
       let resultY =
@@ -6953,6 +7307,7 @@ viewResultsButton.addEventListener('click', async () => {
 
 // Append the button
 recordElement.appendChild(viewResultsButton);
+
 async function openResultsPopup(testData, patientName, recordKey) {
   const popup = document.getElementById('viewResultsPopup');
   const container = document.getElementById('viewResultsContainer');
@@ -7577,8 +7932,8 @@ if (cbcGraphs) {
   //recordElement.appendChild(finnishButton);
 
 // Append the Upload Results input and Upload button to the record element
-recordElement.appendChild(uploadResultsInput);
-recordElement.appendChild(uploadButton);
+//recordElement.appendChild(uploadResultsInput);
+//recordElement.appendChild(uploadButton);
 
   // Append the delete button to the record element
   //recordElement.appendChild(deleteButton);

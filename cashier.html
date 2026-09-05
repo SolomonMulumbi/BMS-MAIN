@@ -42,7 +42,7 @@
         <div class="navbar nav_title" style="border: 0;">
           <a href="index.html" class="site_title">
             <img class="dashImg" src="BMS logo only.png" alt="Dashboard Image">
-            <span>BIBO MEDSYS</span>
+            <span id="home">BIBO MEDSYS</span>
         </a>
                 </div>
 
@@ -492,31 +492,164 @@ fullscreenButton.addEventListener('click', function() {
               <!-- Button to send a message -->
             </div>
             
-            <div class="dental-department-title">
-              <i class="fas fa-receipt"></i>
-              <span id="about">All Sales Receipts</span>
-              <!-- Add a span for displaying today's date -->
-              <span id="receipt-date" class="receipt-date"></span>
-              <div id="shift-countdown"></div>
-            </div>
+<div class="sales-receipts-header">
+
+  <!-- LEFT SIDE -->
+  <div class="sales-header-left">
+
+    <div class="sales-header-icon">
+      <i class="fas fa-receipt"></i>
+    </div>
+
+    <div class="sales-header-text">
+      <span id="about" class="sales-header-title">
+        All Sales Receipts
+      </span>
+
+      <span class="sales-header-subtitle">
+        Current shift transactions and payments
+      </span>
+    </div>
+
+  </div>
+
+
+  <!-- RIGHT SIDE -->
+  <div class="sales-header-right">
+
+    <!-- DATE -->
+    <div class="sales-header-info date-info">
+
+      <div class="sales-info-icon">
+        <i class="fas fa-calendar-alt"></i>
+      </div>
+
+      <div class="sales-info-text">
+        <small>Today</small>
+
+        <span
+          id="receipt-date"
+          class="receipt-date">
+        </span>
+      </div>
+
+    </div>
+
+
+    <!-- SHIFT COUNTDOWN -->
+    <div class="sales-header-info shift-info">
+
+      <div class="sales-info-icon">
+        <i class="fas fa-clock"></i>
+      </div>
+
+      <div class="sales-info-text">
+        <small>Current Shift</small>
+
+        <div id="shift-countdown">
+          Loading shift...
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
             
-              <!-- Button to open popup -->
-<div  style="margin-top: 30px;margin-bottom: 30px;" id="dailyExpenseContainer">
-  <h2 style="margin-top: 20px; color: white">Daily Expenses & Sales</h2>
+  <!-- ==========================================
+     DAILY EXPENSES & SALES
+========================================== -->
 
-<button id="openPopupButton">View Daily Recepit Sales</button>
-<button id="saveDailySummaryBtn">💾 Save Today's Summary</button>
+<div id="dailyExpenseContainer" class="finance-action-panel">
 
-<button id="launchExpensePanel">
-  <i class="fas fa-plus-circle"></i> Daily Expense
-</button>
+  <!-- HEADER -->
+  <div class="finance-panel-header">
+
+    <div class="finance-panel-icon">
+      <i class="fas fa-chart-pie"></i>
+    </div>
+
+    <div class="finance-panel-title">
+      <h2>Daily Expenses & Sales</h2>
+      <p>Manage today's sales, expenses and financial summaries</p>
+    </div>
+
+  </div>
 
 
-    <!-- Button to show the daily expense summary -->
-  <button id="showPopupButton">
-      <i class="fas fa-list-check" style="margin-right: 10px;"></i> Financial Summary
-  </button>
- 
+  <!-- ACTION BUTTONS -->
+  <div class="finance-actions">
+
+    <!-- DAILY SALES -->
+    <button id="openPopupButton" class="finance-action-btn sales-action">
+
+      <div class="finance-action-icon">
+        <i class="fas fa-receipt"></i>
+      </div>
+
+      <div class="finance-action-text">
+        <strong>Daily Sales</strong>
+        <span>View today's receipt sales</span>
+      </div>
+
+      <i class="fas fa-chevron-right action-arrow"></i>
+
+    </button>
+
+
+    <!-- SAVE SUMMARY -->
+    <button id="saveDailySummaryBtn" class="finance-action-btn save-action">
+
+      <div class="finance-action-icon">
+        <i class="fas fa-floppy-disk"></i>
+      </div>
+
+      <div class="finance-action-text">
+        <strong>Save Summary</strong>
+        <span>Save today's financial summary</span>
+      </div>
+
+      <i class="fas fa-chevron-right action-arrow"></i>
+
+    </button>
+
+
+    <!-- ADD EXPENSE -->
+    <button id="launchExpensePanel" class="finance-action-btn expense-action">
+
+      <div class="finance-action-icon">
+        <i class="fas fa-wallet"></i>
+      </div>
+
+      <div class="finance-action-text">
+        <strong>Daily Expense</strong>
+        <span>Record a new expense</span>
+      </div>
+
+      <i class="fas fa-plus action-arrow"></i>
+
+    </button>
+
+
+    <!-- FINANCIAL SUMMARY -->
+    <button id="showPopupButton" class="finance-action-btn summary-action">
+
+      <div class="finance-action-icon">
+        <i class="fas fa-chart-line"></i>
+      </div>
+
+      <div class="finance-action-text">
+        <strong>Financial Summary</strong>
+        <span>View income and expense report</span>
+      </div>
+
+      <i class="fas fa-chevron-right action-arrow"></i>
+
+    </button>
+
+  </div>
+
 </div>
 <div id="summaryPopup" class="summary-modal" style="display:none;">
   <h3>Hospital Financial Summary</h3>  
@@ -661,53 +794,150 @@ fullscreenButton.addEventListener('click', function() {
 <div id="root">
   <div class="container pt-5">
     <div class="row align-items-stretch">
+
       <!-- Available Cash -->
       <div class="c-dashboardInfo col-lg-3 col-md-6">
-        <div class="wrap">
-          <h4 class="heading heading5 hind-font medium-font-weight c-dashboardInfo__title">Available Cash</h4>
-          <span class="hind-font caption-12 c-dashboardInfo__count" id="cashTotal">UGX. 0.00</span>
+        <div class="wrap dashboard-card">
+
+          <div class="dashboard-icon cash-icon">
+            <i class="fa fa-money-bill-wave"></i>
+          </div>
+
+          <div class="dashboard-details">
+            <h4 class="heading heading5 hind-font medium-font-weight c-dashboardInfo__title">
+              Available Cash
+            </h4>
+
+            <span
+              class="hind-font caption-12 c-dashboardInfo__count"
+              id="cashTotal">
+              UGX. 0.00
+            </span>
+          </div>
+
         </div>
       </div>
+
 
       <!-- Mobile Money -->
       <div class="c-dashboardInfo col-lg-3 col-md-6">
-        <div class="wrap">
-          <h4 class="heading heading5 hind-font medium-font-weight c-dashboardInfo__title">Mobile Money</h4>
-          <span class="hind-font caption-12 c-dashboardInfo__count" id="mobileMoneyTotal">UGX. 0.00</span>
+        <div class="wrap dashboard-card">
+
+          <div class="dashboard-icon mobile-icon">
+            <i class="fa fa-mobile-alt"></i>
+          </div>
+
+          <div class="dashboard-details">
+            <h4 class="heading heading5 hind-font medium-font-weight c-dashboardInfo__title">
+              Mobile Money
+            </h4>
+
+            <span
+              class="hind-font caption-12 c-dashboardInfo__count"
+              id="mobileMoneyTotal">
+              UGX. 0.00
+            </span>
+          </div>
+
         </div>
       </div>
+
 
       <!-- Insurance -->
       <div class="c-dashboardInfo col-lg-3 col-md-6">
-        <div class="wrap">
-          <h4 class="heading heading5 hind-font medium-font-weight c-dashboardInfo__title">Insurance</h4>
-          <span class="hind-font caption-12 c-dashboardInfo__count" id="insuranceTotal">UGX. 0.00</span>
+        <div class="wrap dashboard-card">
+
+          <div class="dashboard-icon insurance-icon">
+            <i class="fa fa-shield-alt"></i>
+          </div>
+
+          <div class="dashboard-details">
+            <h4 class="heading heading5 hind-font medium-font-weight c-dashboardInfo__title">
+              Insurance
+            </h4>
+
+            <span
+              class="hind-font caption-12 c-dashboardInfo__count"
+              id="insuranceTotal">
+              UGX. 0.00
+            </span>
+          </div>
+
         </div>
       </div>
+
 
       <!-- Credit Card -->
       <div class="c-dashboardInfo col-lg-3 col-md-6">
-        <div class="wrap">
-          <h4 class="heading heading5 hind-font medium-font-weight c-dashboardInfo__title">Credit Card</h4>
-          <span class="hind-font caption-12 c-dashboardInfo__count" id="creditCardTotal">UGX. 0.00</span>
+        <div class="wrap dashboard-card">
+
+          <div class="dashboard-icon card-icon">
+            <i class="fa fa-credit-card"></i>
+          </div>
+
+          <div class="dashboard-details">
+            <h4 class="heading heading5 hind-font medium-font-weight c-dashboardInfo__title">
+              Credit Card
+            </h4>
+
+            <span
+              class="hind-font caption-12 c-dashboardInfo__count"
+              id="creditCardTotal">
+              UGX. 0.00
+            </span>
+          </div>
+
         </div>
       </div>
+
 
       <!-- Merchant -->
       <div class="c-dashboardInfo col-lg-3 col-md-6">
-        <div class="wrap">
-          <h4 class="heading heading5 hind-font medium-font-weight c-dashboardInfo__title">Merchant</h4>
-          <span class="hind-font caption-12 c-dashboardInfo__count" id="merchantTotal">UGX. 0.00</span>
+        <div class="wrap dashboard-card">
+
+          <div class="dashboard-icon merchant-icon">
+            <i class="fa fa-store"></i>
+          </div>
+
+          <div class="dashboard-details">
+            <h4 class="heading heading5 hind-font medium-font-weight c-dashboardInfo__title">
+              Merchant
+            </h4>
+
+            <span
+              class="hind-font caption-12 c-dashboardInfo__count"
+              id="merchantTotal">
+              UGX. 0.00
+            </span>
+          </div>
+
         </div>
       </div>
 
+
       <!-- Grand Total -->
       <div class="c-dashboardInfo col-lg-3 col-md-6">
-        <div class="wrap">
-          <h4 class="heading heading5 hind-font medium-font-weight c-dashboardInfo__title">Grand Total</h4>
-          <span class="hind-font caption-12 c-dashboardInfo__count" id="grandTotal">UGX. 0.00</span>
+        <div class="wrap dashboard-card grand-total-card">
+
+          <div class="dashboard-icon total-icon">
+            <i class="fa fa-coins"></i>
+          </div>
+
+          <div class="dashboard-details">
+            <h4 class="heading heading5 hind-font medium-font-weight c-dashboardInfo__title">
+              Grand Total
+            </h4>
+
+            <span
+              class="hind-font caption-12 c-dashboardInfo__count"
+              id="grandTotal">
+              UGX. 0.00
+            </span>
+          </div>
+
         </div>
       </div>
+
     </div>
   </div>
 </div>

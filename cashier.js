@@ -4442,27 +4442,9 @@ printButton.addEventListener('click', async () => {
   const patient = await getPatientDetails(patientName);
   const latestVisitData = await getLatestVisitData(patientName);
 
-  // Check if a signature is already saved
-  if (signatureData) {
-    const useSaved = confirm("A saved signature exists. Do you want to use it? Click Cancel to create a new signature.");
-    
-    if (!useSaved) {
-      // User wants to create a new signature
-      signaturePad.clear(); // clear old signature
-      overlay2.style.display = 'block';
-      signaturePopup.style.display = 'block';
-      return; // wait for user to save new signature
-    }
-    // If useSaved === true, proceed with printing
-  } else {
-    // No saved signature, show signature popup
-    overlay2.style.display = 'block';
-    signaturePopup.style.display = 'block';
-    return; // wait for user to save signature
-  }
 
   // Proceed to print with the current signatureData
-  printRecord(patient, record, recordKey, visitDetails, latestVisitData, signatureData);
+  printRecord(patient, record, recordKey, visitDetails, latestVisitData);
 });
 
   // Append the print button to the record element
@@ -4594,7 +4576,521 @@ function generateLatestVisitDetailsFromDisplay() {
 }
 
 
-async function printRecord(patient, record, recordKey, visitDetails, latestVisitData, signatureData) {
+function getPatientCBCGroup(patient) {
+
+    if (!patient || !patient.dob) {
+        return "general";
+    }
+
+    const parts = String(patient.dob).split("-");
+
+    if (parts.length !== 3) {
+        return "general";
+    }
+
+    const birthDate = new Date(
+        Number(parts[0]),
+        Number(parts[1]) - 1,
+        Number(parts[2])
+    );
+
+    if (Number.isNaN(birthDate.getTime())) {
+        return "general";
+    }
+
+    const today = new Date();
+
+    // Exact age in days — needed for neonates
+    const ageMilliseconds =
+        today.getTime() - birthDate.getTime();
+
+    const ageDays =
+        Math.floor(
+            ageMilliseconds / (1000 * 60 * 60 * 24)
+        );
+
+    let ageYears =
+        today.getFullYear() -
+        birthDate.getFullYear();
+
+    const monthDiff =
+        today.getMonth() -
+        birthDate.getMonth();
+
+    if (
+        monthDiff < 0 ||
+        (
+            monthDiff === 0 &&
+            today.getDate() < birthDate.getDate()
+        )
+    ) {
+        ageYears--;
+    }
+
+    const sex =
+        String(patient.sex || "")
+            .trim()
+            .toLowerCase();
+
+    let group = "general";
+
+
+    // Neonate: first 28 days of life
+    if (ageDays >= 0 && ageDays < 28) {
+
+        group = "neonate";
+
+    }
+
+    // Under 18 -> BC-2800 Child group
+    else if (ageYears >= 0 && ageYears < 18) {
+
+        group = "child";
+
+    }
+
+    else if (
+        sex === "male" ||
+        sex === "m" ||
+        sex === "man"
+    ) {
+
+        group = "adult_male";
+
+    }
+
+    else if (
+        sex === "female" ||
+        sex === "f" ||
+        sex === "woman"
+    ) {
+
+        group = "adult_female";
+
+    }
+
+
+    console.log("🧍 BC-2800 REFERENCE GROUP:", {
+        dob: patient.dob,
+        sex: patient.sex,
+        ageDays,
+        ageYears,
+        selectedGroup: group
+    });
+
+
+    return group;
+}
+function getCBCConfigKey(parameter) {
+
+    const key = String(parameter || '')
+        .trim()
+        .toUpperCase();
+
+    const map = {
+        'WBC': 'WBC',
+
+        'LYM #': 'LymphAbs',
+        'LYM#': 'LymphAbs',
+        'LYMPH #': 'LymphAbs',
+        'LYMPH#': 'LymphAbs',
+
+        'MID #': 'MidAbs',
+        'MID#': 'MidAbs',
+
+        'GRAN #': 'GranAbs',
+        'GRAN#': 'GranAbs',
+
+        'LYM %': 'LymphPct',
+        'LYM%': 'LymphPct',
+        'LYMPH %': 'LymphPct',
+        'LYMPH%': 'LymphPct',
+
+        'MID %': 'MidPct',
+        'MID%': 'MidPct',
+
+        'GRAN %': 'GranPct',
+        'GRAN%': 'GranPct',
+
+        'RBC': 'RBC',
+        'HGB': 'HGB',
+        'HCT': 'HCT',
+        'MCV': 'MCV',
+        'MCH': 'MCH',
+        'MCHC': 'MCHC',
+
+        'RDW-CV': 'RDW_CV',
+        'RDW CV': 'RDW_CV',
+
+        'RDW-SD': 'RDW_SD',
+        'RDW SD': 'RDW_SD',
+
+        'PLT': 'PLT',
+        'MPV': 'MPV',
+        'PDW': 'PDW',
+        'PCT': 'PCT'
+    };
+
+    return map[key] || parameter;
+}
+function getCBCReference(parameter, patient) {
+
+    const config = CBC_REFERENCE_CONFIG[parameter];
+
+    if (!config || !Array.isArray(config.ranges)) {
+        return null;
+    }
+
+    const group = getPatientCBCGroup(patient);
+
+    console.log("🧍 CBC RANGE GROUP:", {
+        dob: patient?.dob,
+        sex: patient?.sex,
+        age: getPatientAge(patient?.dob),
+        group
+    });
+
+    return config.ranges.find(
+        range => range.group === group
+    ) || null;
+}
+const CBC_REFERENCE_CONFIG = {
+
+    WBC: {
+        label: "WBC",
+        unit: "10⁹/L",
+        ranges: [
+            { group: "general", low: 4.0, high: 10.0 },
+            { group: "adult_male", low: 4.0, high: 10.0 },
+            { group: "adult_female", low: 4.0, high: 10.0 },
+            { group: "child", low: 5.0, high: 12.0 },
+            { group: "neonate", low: 15.0, high: 20.0 }
+        ]
+    },
+
+    LymphAbs: {
+        label: "LYM #",
+        unit: "10⁹/L",
+        ranges: [
+            { group: "general", low: 0.8, high: 4.0 },
+            { group: "adult_male", low: 0.8, high: 4.0 },
+            { group: "adult_female", low: 0.8, high: 4.0 },
+            { group: "child", low: 0.8, high: 4.0 },
+            { group: "neonate", low: 3.0, high: 12.0 }
+        ]
+    },
+
+    MidAbs: {
+        label: "MID #",
+        unit: "10⁹/L",
+        ranges: [
+            { group: "general", low: 0.1, high: 1.2 },
+            { group: "adult_male", low: 0.1, high: 1.2 },
+            { group: "adult_female", low: 0.1, high: 1.2 },
+            { group: "child", low: 0.1, high: 1.2 }
+        ]
+    },
+
+    GranAbs: {
+        label: "GRAN #",
+        unit: "10⁹/L",
+        ranges: [
+            { group: "general", low: 2.0, high: 7.0 },
+            { group: "adult_male", low: 2.0, high: 7.0 },
+            { group: "adult_female", low: 2.0, high: 7.0 },
+            { group: "child", low: 2.0, high: 7.0 }
+        ]
+    },
+
+    LymphPct: {
+        label: "LYM %",
+        unit: "%",
+        ranges: [
+            { group: "general", low: 20.0, high: 40.0 },
+            { group: "adult_male", low: 20.0, high: 40.0 },
+            { group: "adult_female", low: 20.0, high: 40.0 },
+            { group: "child", low: 20.0, high: 40.0 }
+        ]
+    },
+
+    MidPct: {
+        label: "MID %",
+        unit: "%",
+        ranges: [
+            { group: "general", low: 3.0, high: 14.0 },
+            { group: "adult_male", low: 3.0, high: 14.0 },
+            { group: "adult_female", low: 3.0, high: 14.0 },
+            { group: "child", low: 3.0, high: 14.0 }
+        ]
+    },
+
+    GranPct: {
+        label: "GRAN %",
+        unit: "%",
+        ranges: [
+            { group: "general", low: 50.0, high: 70.0 },
+            { group: "adult_male", low: 50.0, high: 70.0 },
+            { group: "adult_female", low: 50.0, high: 70.0 },
+            { group: "child", low: 50.0, high: 70.0 }
+        ]
+    },
+
+    HGB: {
+        label: "HGB",
+        unit: "g/dL",
+        ranges: [
+            { group: "general", low: 11.0, high: 16.0 },
+            { group: "adult_male", low: 12.0, high: 16.0 },
+            { group: "adult_female", low: 11.0, high: 15.0 },
+            { group: "child", low: 12.0, high: 15.5 },
+            { group: "neonate", low: 17.0, high: 20.0 }
+        ]
+    },
+
+    RBC: {
+        label: "RBC",
+        unit: "10¹²/L",
+        ranges: [
+            { group: "general", low: 3.50, high: 5.50 },
+            { group: "adult_male", low: 4.00, high: 5.50 },
+            { group: "adult_female", low: 3.50, high: 5.00 },
+            { group: "child", low: 4.00, high: 5.20 },
+            { group: "neonate", low: 6.00, high: 7.00 }
+        ]
+    },
+
+    HCT: {
+        label: "HCT",
+        unit: "%",
+        ranges: [
+            { group: "general", low: 37.0, high: 50.0 },
+            { group: "adult_male", low: 40.0, high: 50.0 },
+            { group: "adult_female", low: 37.0, high: 48.0 },
+            { group: "child", low: 35.0, high: 49.0 }
+        ]
+    },
+
+    MCV: {
+        label: "MCV",
+        unit: "fL",
+        ranges: [
+            { group: "general", low: 82.0, high: 95.0 },
+            { group: "adult_male", low: 82.0, high: 95.0 },
+            { group: "adult_female", low: 82.0, high: 95.0 },
+            { group: "child", low: 82.0, high: 95.0 }
+        ]
+    },
+
+    MCH: {
+        label: "MCH",
+        unit: "pg",
+        ranges: [
+            { group: "general", low: 27.0, high: 31.0 },
+            { group: "adult_male", low: 27.0, high: 31.0 },
+            { group: "adult_female", low: 27.0, high: 31.0 },
+            { group: "child", low: 27.0, high: 31.0 }
+        ]
+    },
+
+    MCHC: {
+        label: "MCHC",
+        unit: "g/dL",
+        ranges: [
+            { group: "general", low: 32.0, high: 36.0 },
+            { group: "adult_male", low: 32.0, high: 36.0 },
+            { group: "adult_female", low: 32.0, high: 36.0 },
+            { group: "child", low: 32.0, high: 36.0 }
+        ]
+    },
+
+    RDW_CV: {
+        label: "RDW-CV",
+        unit: "%",
+        ranges: [
+            { group: "general", low: 11.5, high: 14.5 },
+            { group: "adult_male", low: 11.5, high: 14.5 },
+            { group: "adult_female", low: 11.5, high: 14.5 },
+            { group: "child", low: 11.5, high: 14.5 }
+        ]
+    },
+
+    RDW_SD: {
+        label: "RDW-SD",
+        unit: "fL",
+        ranges: [
+            { group: "general", low: 35.0, high: 56.0 },
+            { group: "adult_male", low: 35.0, high: 56.0 },
+            { group: "adult_female", low: 35.0, high: 56.0 },
+            { group: "child", low: 35.0, high: 56.0 }
+        ]
+    },
+
+    PLT: {
+        label: "PLT",
+        unit: "10⁹/L",
+        ranges: [
+            { group: "general", low: 100, high: 300 },
+            { group: "adult_male", low: 100, high: 300 },
+            { group: "adult_female", low: 100, high: 300 },
+            { group: "child", low: 100, high: 300 },
+            { group: "neonate", low: 100, high: 300 }
+        ]
+    },
+
+    MPV: {
+        label: "MPV",
+        unit: "fL",
+        ranges: [
+            { group: "general", low: 7.0, high: 11.0 },
+            { group: "adult_male", low: 7.0, high: 11.0 },
+            { group: "adult_female", low: 7.0, high: 11.0 },
+            { group: "child", low: 7.0, high: 11.0 }
+        ]
+    },
+
+    PDW: {
+        label: "PDW",
+        unit: "fL",
+        ranges: [
+            { group: "general", low: 15.0, high: 17.0 },
+            { group: "adult_male", low: 15.0, high: 17.0 },
+            { group: "adult_female", low: 15.0, high: 17.0 },
+            { group: "child", low: 15.0, high: 17.0 }
+        ]
+    },
+
+    PCT: {
+        label: "PCT",
+        unit: "%",
+        ranges: [
+            { group: "general", low: 0.108, high: 0.282 },
+            { group: "adult_male", low: 0.108, high: 0.282 },
+            { group: "adult_female", low: 0.108, high: 0.282 },
+            { group: "child", low: 0.108, high: 0.282 }
+        ]
+    }
+};
+function getPatientAge(dob) {
+    if (!dob) return null;
+
+    const [year, month, day] = dob.split("-").map(Number);
+    const birthDate = new Date(year, month - 1, day);
+    const today = new Date();
+
+    let age = today.getFullYear() - birthDate.getFullYear();
+
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+
+    if (
+        monthDiff < 0 ||
+        (
+            monthDiff === 0 &&
+            today.getDate() < birthDate.getDate()
+        )
+    ) {
+        age--;
+    }
+
+    return age;
+}
+function getCBCReferenceRange(reference) {
+
+    if (!reference) {
+        return "-";
+    }
+
+    const hasLow =
+        reference.low !== null &&
+        reference.low !== undefined &&
+        reference.low !== "";
+
+    const hasHigh =
+        reference.high !== null &&
+        reference.high !== undefined &&
+        reference.high !== "";
+
+    if (hasLow && hasHigh) {
+        return `${reference.low} - ${reference.high}`;
+    }
+
+    if (hasLow) {
+        return `≥ ${reference.low}`;
+    }
+
+    if (hasHigh) {
+        return `≤ ${reference.high}`;
+    }
+
+    return "-";
+}
+function getCBCFlag(value, reference) {
+
+    if (!reference) {
+        return "";
+    }
+
+
+    const result =
+        Number(value);
+
+
+    if (!Number.isFinite(result)) {
+        return "";
+    }
+
+
+    const hasLow =
+        reference.low !== null &&
+        reference.low !== undefined &&
+        reference.low !== "";
+
+
+    const hasHigh =
+        reference.high !== null &&
+        reference.high !== undefined &&
+        reference.high !== "";
+
+
+    // Prevent null becoming Number(null) = 0
+
+    if (hasLow) {
+
+        const low =
+            Number(reference.low);
+
+
+        if (
+            Number.isFinite(low) &&
+            result < low
+        ) {
+
+            return "L";
+        }
+
+    }
+
+
+    if (hasHigh) {
+
+        const high =
+            Number(reference.high);
+
+
+        if (
+            Number.isFinite(high) &&
+            result > high
+        ) {
+
+            return "H";
+        }
+
+    }
+
+
+    return "";
+}
+
+async function printRecord(patient, record, recordKey, visitDetails, latestVisitData) {
   window.jsPDF = window.jspdf.jsPDF;
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -4612,43 +5108,157 @@ async function printRecord(patient, record, recordKey, visitDetails, latestVisit
   doc.addImage('sanyu.png', 'PNG', (pageWidth - watermarkSize) / 2, (pageHeight - watermarkSize) / 2, watermarkSize, watermarkSize);
   doc.setGState(new doc.GState({ opacity: 1 }));
 
-  // ---------------- Header ----------------
-  doc.addImage('sanyu.png', 'PNG', margin, cursorY, 20, 25);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(20);
-  doc.setTextColor(0, 100, 0);
-  doc.text('SANYU HOSPITAL ', pageWidth / 2 + 10, cursorY + 10, { align: 'center' });
-  cursorY += 13;
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(13);
-  doc.setTextColor(0, 0, 0);
-  doc.text('Located at Katooke-Wakiso District', pageWidth / 2 + 10, cursorY + 6, { align: 'center' });
-  cursorY += 7;
-  doc.text('Tel: +256 708 657 717 | Email: sanyuhospital@gmail.com', pageWidth / 2 + 10, cursorY + 6, { align: 'center' });
-  cursorY += 15;
+// ---------------- Header ----------------
 
-  // ---------------- Outer Box ----------------
-  const boxX = margin;
-  const boxY = cursorY;
-  const boxWidth = pageWidth - 2 * margin;
-  const boxHeight = pageHeight - boxY - margin;
-doc.setDrawColor(0, 100, 0);  doc.setLineWidth(0.8);
-  doc.rect(boxX, boxY, boxWidth, boxHeight);
+cursorY -= 8;
 
+doc.addImage(
+  'sanyu.png',
+  'PNG',
+  margin,
+  cursorY - 6,
+  40,
+  40
+);
+
+
+// ==========================================
+// MAIN HOSPITAL TITLE - EXTRA THICK
+// ==========================================
+
+doc.setFont('helvetica', 'bold');
+doc.setFontSize(20);
+doc.setTextColor(0, 100, 0);
+
+const titleX = pageWidth / 2 + 10;
+const titleY = cursorY + 10;
+
+// Draw multiple times with tiny offsets
+// to create an extra-heavy bold appearance
+doc.text(
+  'SANYU HOSPITAL',
+  titleX,
+  titleY,
+  { align: 'center' }
+);
+
+doc.text(
+  'SANYU HOSPITAL',
+  titleX + 0.15,
+  titleY,
+  { align: 'center' }
+);
+
+doc.text(
+  'SANYU HOSPITAL',
+  titleX - 0.15,
+  titleY,
+  { align: 'center' }
+);
+
+doc.text(
+  'SANYU HOSPITAL',
+  titleX,
+  titleY + 0.12,
+  { align: 'center' }
+);
+
+
+cursorY += 13;
+
+
+// ==========================================
+// LOCATION - BOLD
+// ==========================================
+
+doc.setFont('helvetica', 'bold');
+doc.setFontSize(13);
+doc.setTextColor(0, 0, 0);
+
+doc.text(
+  'Located at Katooke-Wakiso District',
+  pageWidth / 2 + 10,
+  cursorY + 6,
+  { align: 'center' }
+);
+
+
+cursorY += 7;
+
+
+// ==========================================
+// CONTACT DETAILS - BOLD
+// ==========================================
+
+doc.setFont('helvetica', 'bold');
+doc.setFontSize(13);
+doc.setTextColor(0, 0, 0);
+
+doc.text(
+  'Tel: +256 708 657 717 | Email: sanyuhospital@gmail.com',
+  pageWidth / 2 + 10,
+  cursorY + 6,
+  { align: 'center' }
+);
+
+
+cursorY += 15;
+// ---------------- Outer Box ----------------
+
+// Small space between the box and paper edge
+const boxMargin = 6;
+
+const boxX = boxMargin;
+
+// Keep the current top position
+const boxY = cursorY;
+
+// Extend box almost to both left and right paper edges
+const boxWidth = pageWidth - (boxMargin * 2);
+
+// Extend box almost to bottom paper edge
+const boxHeight = pageHeight - boxY - boxMargin;
+
+doc.setDrawColor(0, 100, 0);
+doc.setLineWidth(0.8);
+
+doc.rect(
+  boxX,
+  boxY,
+  boxWidth,
+  boxHeight
+);
   // Title
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(headingFontSize);
   doc.text('Doctor Notes', boxX + boxWidth / 2, boxY + 10, { align: 'center' });
 
-  // ---------------- Top Section ----------------
-  const topY = boxY + 18;
-  const topHeight = 40;
-  const topLeftWidth = boxWidth * 0.5 - 2;
-  const topRightWidth = boxWidth * 0.5 - 2;
+ // ---------------- Top Section ----------------
 
-  doc.line(boxX, topY - 2, boxX + boxWidth, topY - 2);
-  doc.line(boxX + boxWidth / 2, topY, boxX + boxWidth / 2, topY + topHeight);
+const topY = boxY + 18;
+const topHeight = 40;
 
+const topLeftWidth = boxWidth * 0.5 - 2;
+const topRightWidth = boxWidth * 0.5 - 2;
+
+
+// Horizontal line below Doctor Notes title
+doc.line(
+  boxX,
+  topY - 2,
+  boxX + boxWidth,
+  topY - 2
+);
+
+
+// Shorter vertical divider between
+// Patient Info and Contact Info
+doc.line(
+  boxX + boxWidth / 2,
+  topY,
+  boxX + boxWidth / 2,
+  topY + topHeight - 10
+);
   // Top left: Patient Info
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(headingFontSize);
@@ -4694,16 +5304,37 @@ const topRightInfo = [
     });
   });
 
-  // ---------------- Lower Section ----------------
-  const sectionPadding = 6;
-  const lowerY = topY + topHeight + 5;
-  const lowerHeight = boxY + boxHeight - lowerY - 20;
-  const lowerLeftWidth = boxWidth * 0.35;
-  const lowerRightWidth = boxWidth - lowerLeftWidth - 10;
+// ---------------- Lower Section ----------------
 
-  doc.line(boxX + lowerLeftWidth + 5, lowerY, boxX + lowerLeftWidth + 5, lowerY + lowerHeight);
-  doc.line(boxX, lowerY - 3, boxX + boxWidth, lowerY - 3);
+const sectionPadding = 6;
 
+// Move lower section UP
+const lowerY = topY + topHeight - 5;
+
+// Automatically make it taller because it starts higher
+const lowerHeight = boxY + boxHeight - lowerY - 20;
+
+const lowerLeftWidth = boxWidth * 0.35;
+
+const lowerRightWidth = boxWidth - lowerLeftWidth - 10;
+
+
+// Vertical divider
+doc.line(
+  boxX + lowerLeftWidth + 5,
+  lowerY,
+  boxX + lowerLeftWidth + 5,
+  lowerY + lowerHeight
+);
+
+
+// Horizontal divider
+doc.line(
+  boxX,
+  lowerY - 3,
+  boxX + boxWidth,
+  lowerY - 3
+);
   // ---------------- Lower left: Vitals & Investigations ----------------
   let leftStartY = lowerY + sectionPadding;
 
@@ -4761,6 +5392,270 @@ const topRightInfo = [
       });
     });
   }
+
+ // ============================================================
+// 3️⃣ MEDICATIONS — LOWER LEFT, UNDER VITALS / INVESTIGATIONS
+// ============================================================
+
+if (
+  record.results?.medication &&
+  Object.keys(record.results.medication).length > 0
+) {
+
+  // Space after vitals/investigations
+  leftStartY += 3;
+
+  const medicationX =
+    boxX + sectionPadding;
+
+  const medicationWidth =
+    lowerLeftWidth - (2 * sectionPadding);
+
+
+  // ---------------- Heading ----------------
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8);
+
+  doc.text(
+    'Medications:',
+    medicationX,
+    leftStartY
+  );
+
+  leftStartY += lineHeight;
+
+
+  // ---------------- Get medications ----------------
+  const medicationNodes =
+    record.results.medication;
+
+  const meds =
+    Object.keys(medicationNodes).map(key => {
+
+      const med =
+        medicationNodes[key] || {};
+
+      return {
+        name:
+          String(
+            med.medication || 'N/A'
+          ),
+
+        prescription:
+          String(
+            med.prescription || ''
+          )
+      };
+
+    });
+
+
+  // ==========================================================
+  // TWO COLUMNS
+  // ==========================================================
+
+  const colWidths = [
+    medicationWidth * 0.42, // Medication
+    medicationWidth * 0.58  // Prescription
+  ];
+
+  const rowHeight = 4;
+
+
+  // ---------------- Table Header ----------------
+
+  doc.setFillColor(235, 235, 235);
+
+  doc.rect(
+    medicationX,
+    leftStartY - rowHeight + 1,
+    medicationWidth,
+    rowHeight,
+    'F'
+  );
+
+
+  doc.setFont(
+    'helvetica',
+    'bold'
+  );
+
+  doc.setFontSize(6);
+
+
+  doc.text(
+    'Medication',
+    medicationX + 1,
+    leftStartY
+  );
+
+
+  doc.text(
+    'Prescription',
+    medicationX + colWidths[0] + 1,
+    leftStartY
+  );
+
+
+  // Header bottom line
+  doc.setDrawColor(180);
+
+  doc.line(
+    medicationX,
+    leftStartY + 1,
+    medicationX + medicationWidth,
+    leftStartY + 1
+  );
+
+
+  leftStartY +=
+    rowHeight + 1;
+
+
+  // ==========================================================
+  // MEDICATION ROWS
+  // ==========================================================
+
+  doc.setFont(
+    'helvetica',
+    'normal'
+  );
+
+  doc.setFontSize(7);
+
+
+  meds.forEach((row, index) => {
+
+    const y =
+      leftStartY;
+
+
+    // Alternate background
+    if (index % 2 === 0) {
+
+      doc.setFillColor(
+        248,
+        248,
+        248
+      );
+
+    } else {
+
+      doc.setFillColor(
+        255,
+        255,
+        255
+      );
+
+    }
+
+
+    doc.rect(
+      medicationX,
+      y - rowHeight + 1,
+      medicationWidth,
+      rowHeight,
+      'F'
+    );
+
+
+    const cells = [
+      row.name,
+      row.prescription
+    ];
+
+
+    cells.forEach(
+      (cellText, i) => {
+
+        const previousWidth =
+          colWidths
+            .slice(0, i)
+            .reduce(
+              (a, b) => a + b,
+              0
+            );
+
+
+        const x =
+          medicationX +
+          previousWidth;
+
+
+        let text =
+          String(cellText);
+
+
+        const maxTextWidth =
+          colWidths[i] - 2;
+
+
+        // Keep text inside column
+        while (
+          text.length > 0 &&
+          doc.getTextWidth(text) >
+            maxTextWidth
+        ) {
+
+          text =
+            text.slice(0, -1);
+
+        }
+
+
+        doc.text(
+          text,
+          x + 1,
+          y
+        );
+
+      }
+    );
+
+
+    // Row separator
+    doc.setDrawColor(180);
+    doc.setLineWidth(0.2);
+
+    doc.line(
+      medicationX,
+      y + 1,
+      medicationX + medicationWidth,
+      y + 1
+    );
+
+
+    leftStartY +=
+      rowHeight + 1;
+
+  });
+
+
+  leftStartY += 2;
+
+
+} else {
+
+  // Optional: show no medication message under vitals
+  leftStartY += 3;
+
+  doc.setFont(
+    'helvetica',
+    'italic'
+  );
+
+  doc.setFontSize(6);
+
+  doc.text(
+    'No medications recorded.',
+    boxX + sectionPadding,
+    leftStartY
+  );
+
+  leftStartY += lineHeight;
+
+}
+
 // ---------------- Lower right: Examination, Medications, Results ----------------
 const rightStartX = boxX + lowerLeftWidth + 10 + sectionPadding;
 let rightStartY = lowerY + sectionPadding;
@@ -4851,278 +5746,1071 @@ rightDetails.forEach(([k, v]) => {
   rightStartY += sectionSpacing; // small gap after main section
 });
 
-// ---------------- 2️⃣ Investigations Results ----------------
-if (record.results?.investigationsResults && Object.keys(record.results.investigationsResults).length > 0) {
-  try {
-    rightStartY += 2;
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(7);
-    doc.text('Laboratory Results:', rightStartX, rightStartY);
-    rightStartY += lineHeight;
 
-    doc.setFont('helvetica', 'normal');
+// ============================================================
+// BC-2800 CBC RESULTS + NORMAL RANGES + SMALL HISTOGRAMS
+// ============================================================
+
+const savedInvestigations =
+  record.results?.investigationsResults || {};
+
+const savedHistograms =
+  record.results?.cbcHistograms || {};
+
+
+// Find the CBC test regardless of exact test-name spelling
+const cbcTestName = Object.keys(savedInvestigations).find(name => {
+
+  const n = name.toLowerCase();
+
+  return (
+    n.includes('cbc') &&
+    (
+      n.includes('haematology') ||
+      n.includes('hematology')
+    )
+  );
+
+});
+
+
+if (cbcTestName) {
+
+  const cbcResults =
+    savedInvestigations[cbcTestName];
+
+  if (
+    Array.isArray(cbcResults) &&
+    cbcResults.length > 0
+  ) {
+
+    // --------------------------------------------------------
+    // TITLE
+    // --------------------------------------------------------
+
+    rightStartY += 3;
+
+    doc.setFont(
+      'helvetica',
+      'bold'
+    );
+
+    doc.setFontSize(8);
+
+    doc.text(
+      'CBC HAEMATOLOGY',
+      rightStartX,
+      rightStartY
+    );
+
+    rightStartY += 4;
+
+
+    // --------------------------------------------------------
+    // PATIENT REFERENCE GROUP
+    // --------------------------------------------------------
+
+    const patientForCBC =
+      window.currentPatient || patient || null;
+
+    const patientGroup =
+      getPatientCBCGroup(patientForCBC);
+
+    const groupLabel = {
+      adult_male: 'Adult Male',
+      adult_female: 'Adult Female',
+      child: 'Child',
+      neonate: 'Neonate',
+      general: 'General'
+    }[patientGroup] || 'General';
+
+
+    doc.setFont(
+      'helvetica',
+      'normal'
+    );
+
     doc.setFontSize(6);
 
-    const tableValues = [];      // ONLY for CBC / multi-parameter tests
-    const radioOnlyValues = [];  // For everything else (single-value tests or radio-only)
+    doc.text(
+      `Reference Group: ${groupLabel}`,
+      rightStartX,
+      rightStartY
+    );
 
-    const resultEntries = Object.entries(record.results.investigationsResults);
+    rightStartY += 3;
 
-    for (const [testName, vals] of resultEntries) {
-      if (!Array.isArray(vals) || vals.length === 0) continue;
 
-      const hasParameters = vals.some(v => v.parameter && v.parameter !== 'Result');
-      
-      // Check if this is a CBC/multi-parameter test
-      const isMultiParameterTest = hasParameters && vals.length > 1;
+    // --------------------------------------------------------
+    // CBC TABLE HEADER
+    // --------------------------------------------------------
 
-      if (isMultiParameterTest) {
-        // ---------------- Table entries (CBC or multi-parameter tests) ----------------
-        const testKey = testName.replace(/\s+/g, '_').toLowerCase();
-        try {
-          const snapshot = await get(ref(database, `tests/${testKey}`));
-          const testDef = snapshot.val();
-          let paramDefs = testDef?.parameters || [];
-          if (paramDefs && !Array.isArray(paramDefs)) paramDefs = Object.values(paramDefs);
+    const colParameter =
+      rightStartX;
 
-          vals.forEach(v => {
-            if (v.parameter && v.parameter !== 'Result') {
-              const paramDef = paramDefs.find(p => p.name === v.parameter) || {};
-              const valueWithUnit = `${v.parameter}: ${v.value}${paramDef.unit ? ` ${paramDef.unit}` : ''}`;
-              tableValues.push(valueWithUnit);
-            }
-          });
-        } catch {
-          vals.forEach(v => {
-            if (v.parameter && v.parameter !== 'Result') tableValues.push(`${v.parameter}: ${v.value}`);
-          });
-        }
+    const colResult =
+      rightStartX + 25;
 
-      } else {
-        // ---------------- Everything else (single-value or radio-only) ----------------
-        vals.forEach(v => {
-          const paramLabel = v.parameter && v.parameter !== 'Result' ? v.parameter : 'Result';
-          radioOnlyValues.push(`${testName}: ${v.value}`);
-        });
-      }
-    }
+    const colUnit =
+      rightStartX + 42;
 
-    // ---------------- Render CBC / multi-parameter Table ----------------
-    if (tableValues.length > 0) {
-      const cols = 4;
-      const colWidth = (lowerRightWidth - 2 * sectionPadding) / cols;
-      const rowHeight = 4;
-      const totalRows = Math.ceil(tableValues.length / cols);
+    const colRange =
+      rightStartX + 59;
 
-      for (let row = 0; row < totalRows; row++) {
-        const y = rightStartY + row * rowHeight;
-        for (let col = 0; col < cols; col++) {
-          const idx = row * cols + col;
-          if (idx >= tableValues.length) break;
-          const x = rightStartX + col * colWidth;
+    const colFlag =
+      rightStartX + 85;
 
-          doc.setLineWidth(0.3);
-          doc.rect(x, y - rowHeight + 1, colWidth, rowHeight);
 
-          let text = String(tableValues[idx]);
-          const maxTextWidth = colWidth - 2;
-          while (doc.getTextWidth(text) > maxTextWidth) {
-            text = text.slice(0, -1);
-          }
-          const textWidth = doc.getTextWidth(text);
-          const textX = x + (colWidth - textWidth) / 2;
-          const textY = y;
-          doc.text(text, textX, textY);
-        }
-      }
-      rightStartY += totalRows * rowHeight + 2;
-    }
+    doc.setFont(
+      'helvetica',
+      'bold'
+    );
 
-   // ---------------- Render all other results ----------------
-if (radioOnlyValues.length > 0) {
-  rightStartY += 4;
+    doc.setFontSize(5.5);
 
-  const boxX = rightStartX;
-  const boxY = rightStartY - 4;
-  const boxWidth = lowerRightWidth - 2 * sectionPadding;
-  const boxPadding = 4; // more padding
-  const lineHeightRadio = 4;
 
-  const boxHeight = radioOnlyValues.length * lineHeightRadio + boxPadding * 2;
-  doc.setLineWidth(0.5);
-  doc.rect(boxX, boxY, boxWidth, boxHeight);
+    doc.text(
+      'Parameter',
+      colParameter,
+      rightStartY
+    );
 
-  // Heading
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7);
-  doc.text('Other Results :', boxX + boxPadding, rightStartY);
-  rightStartY += lineHeightRadio;
+    doc.text(
+      'Result',
+      colResult,
+      rightStartY
+    );
 
-  // Center the text vertically inside the box
-  let textStartY = rightStartY + (boxHeight - lineHeightRadio * radioOnlyValues.length - lineHeightRadio) / 2;
+    doc.text(
+      'Unit',
+      colUnit,
+      rightStartY
+    );
 
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(6);
-  radioOnlyValues.forEach(val => {
-    doc.text(val, boxX + boxPadding, textStartY);
-    textStartY += lineHeightRadio;
-  });
+    doc.text(
+      'Normal Range',
+      colRange,
+      rightStartY
+    );
 
-  // Add extra spacing after the box
-  rightStartY += boxHeight + 6;
-}
+    doc.text(
+      'Flag',
+      colFlag,
+      rightStartY
+    );
 
-  } catch (err) {
-    console.warn("Error printing investigation results:", err);
+
+    rightStartY += 1;
+
+
+    // Header line
+    doc.setLineWidth(0.2);
+
+    doc.line(
+      rightStartX,
+      rightStartY,
+      colFlag + 8,
+      rightStartY
+    );
+
+    rightStartY += 3;
+
+
+    // --------------------------------------------------------
+    // PRINT EACH CBC RESULT
+    // --------------------------------------------------------
+
+    doc.setFontSize(7);
+
+cbcResults.forEach(result => {
+
+  // What we want to DISPLAY on the report
+  const parameter =
+    result.parameter || '-';
+
+  const value =
+    result.value ?? '-';
+
+
+  // ==========================================================
+  // CONVERT DISPLAY NAME TO CBC_REFERENCE_CONFIG KEY
+  // ==========================================================
+
+  const configKey =
+    getCBCConfigKey(parameter);
+
+
+  // ==========================================================
+  // GET REFERENCE RANGE
+  // ==========================================================
+
+  const reference =
+    getCBCReference(
+      configKey,
+      patientForCBC
+    );
+
+
+  const normalRange =
+    getCBCReferenceRange(
+      reference
+    );
+
+
+  // ==========================================================
+  // H / L FLAG
+  // ==========================================================
+
+  const flag =
+    getCBCFlag(
+      value,
+      reference
+    );
+
+
+  // ==========================================================
+  // UNIT
+  // ==========================================================
+
+  const config =
+    CBC_REFERENCE_CONFIG[
+      configKey
+    ];
+
+
+  const unit =
+    config?.unit || '-';
+
+
+  // ==========================================================
+  // PRINT PARAMETER
+  // ==========================================================
+
+  doc.setFont(
+    'helvetica',
+    'normal'
+  );
+
+  doc.text(
+    String(parameter),
+    colParameter,
+    rightStartY
+  );
+
+
+  // ==========================================================
+  // PRINT RESULT
+  // ==========================================================
+
+  if (flag) {
+
+    doc.setFont(
+      'helvetica',
+      'bold'
+    );
+
+  } else {
+
+    doc.setFont(
+      'helvetica',
+      'normal'
+    );
+
   }
 
-} else {
-  rightStartY += 2;
-  doc.setFont('helvetica', 'italic');
-  doc.setFontSize(7);
-  doc.text('No investigation results recorded.', rightStartX, rightStartY);
-  rightStartY += lineHeight;
+
+  doc.text(
+    String(value),
+    colResult,
+    rightStartY
+  );
+
+
+  // ==========================================================
+  // PRINT UNIT
+  // ==========================================================
+
+  doc.setFont(
+    'helvetica',
+    'normal'
+  );
+
+  doc.text(
+    String(unit),
+    colUnit,
+    rightStartY
+  );
+
+
+  // ==========================================================
+  // PRINT NORMAL RANGE
+  // ==========================================================
+
+  doc.text(
+    String(normalRange),
+    colRange,
+    rightStartY
+  );
+
+
+  // ==========================================================
+  // PRINT H / L
+  // ==========================================================
+
+  if (flag) {
+
+    doc.setFont(
+      'helvetica',
+      'bold'
+    );
+
+    doc.text(
+      String(flag),
+      colFlag,
+      rightStartY
+    );
+
+  }
+
+
+  rightStartY += 3;
+
+});
+    // Bottom line
+    doc.setLineWidth(0.2);
+
+    doc.line(
+      rightStartX,
+      rightStartY,
+      colFlag + 8,
+      rightStartY
+    );
+
+
+    rightStartY += 4;
+
+
+    // ========================================================
+    // PRINT SAVED BC-2800 HISTOGRAMS
+    // ========================================================
+
+    const histogramTestName =
+      Object.keys(savedHistograms)
+        .find(name => {
+
+          const n =
+            name.toLowerCase();
+
+          return (
+            n.includes('cbc') ||
+            n.includes('haematology') ||
+            n.includes('hematology')
+          );
+
+        });
+
+
+    if (histogramTestName) {
+
+      const histograms =
+        savedHistograms[
+          histogramTestName
+        ];
+
+
+      if (histograms) {
+
+        printCBCHistograms(
+          doc,
+          histograms,
+          rightStartX,
+          rightStartY,
+          28,     // graph width
+          18      // graph height
+        );
+
+
+        rightStartY += 23;
+
+      }
+
+    }
+
+  }
+
 }
 
 
-// 3️⃣ Medications Table (Compact, 3 Columns)
-if (record.results?.medication && Object.keys(record.results.medication).length > 0) {
-  rightStartY += 2;
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8);
-  doc.text('Medications:', rightStartX, rightStartY);
-  rightStartY += lineHeight;
 
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(6);
 
-  const medicationNodes = record.results.medication;
-  const meds = Object.keys(medicationNodes).map(key => {
-    const med = medicationNodes[key];
-    return {
-      name: String(med.medication || 'N/A'),
-      prescription: String(med.prescription || ''),
-      pieces: String(med.grams != null ? med.grams : '')
-    };
-  });
 
-  const cols = 3;
-  const colWidths = [
-    (lowerRightWidth - 2 * sectionPadding) * 0.4,
-    (lowerRightWidth - 2 * sectionPadding) * 0.4,
-    (lowerRightWidth - 2 * sectionPadding) * 0.2
+function printCBCHistograms(
+  doc,
+  histograms,
+  startX,
+  startY,
+  graphWidth = 28,
+  graphHeight = 18
+) {
+
+  if (!histograms) {
+    return;
+  }
+
+
+  const graphs = [
+    {
+      key: 'WBC',
+      title: 'WBC'
+    },
+    {
+      key: 'RBC',
+      title: 'RBC'
+    },
+    {
+      key: 'PLT',
+      title: 'PLT'
+    }
   ];
-  const rowHeight = 4;
 
-  meds.forEach((row, index) => {
-    const y = rightStartY;
 
-    const bgColor = index % 2 === 0 ? [245, 245, 245] : [255, 255, 255];
-    doc.setFillColor(...bgColor);
-    doc.rect(rightStartX, y - rowHeight + 1, colWidths.reduce((a,b)=>a+b,0), rowHeight, 'F');
+  const gap = 3;
 
-    const cells = [row.name, row.prescription, row.pieces];
-    cells.forEach((cellText, i) => {
-      const x = rightStartX + colWidths.slice(0,i).reduce((a,b)=>a+b,0);
-      let text = String(cellText);
-      const maxTextWidth = colWidths[i] - 2;
-      while (doc.getTextWidth(text) > maxTextWidth) text = text.slice(0, -1);
-      const textWidth = doc.getTextWidth(text);
-      const textX = x + (colWidths[i] - textWidth) / 2;
-      doc.text(text, textX, y);
-    });
 
-    doc.setDrawColor(180);
-    doc.setLineWidth(0.3);
-    doc.line(rightStartX, y + 1, rightStartX + colWidths.reduce((a,b)=>a+b,0), y + 1);
+  graphs.forEach(
+    (graph, graphIndex) => {
 
-    rightStartY += rowHeight + 1;
-  });
-} else {
-  rightStartY += 2;
-  doc.setFont('helvetica', 'italic');
-  doc.setFontSize(7);
-  doc.text('No medications recorded.', rightStartX, rightStartY);
-  rightStartY += lineHeight;
+      const rawPoints =
+        histograms[graph.key] ||
+        histograms[
+          graph.key.toLowerCase()
+        ];
+
+
+      if (!rawPoints) {
+        return;
+      }
+
+
+      // Firebase may return arrays as objects
+      const values =
+        Array.isArray(rawPoints)
+
+          ? rawPoints.map(Number)
+
+          : Object.keys(rawPoints)
+
+              .sort(
+                (a, b) =>
+                  Number(a) - Number(b)
+              )
+
+              .map(
+                key =>
+                  Number(rawPoints[key])
+              );
+
+
+      if (values.length === 0) {
+        return;
+      }
+
+
+      const x =
+        startX +
+        graphIndex *
+        (
+          graphWidth +
+          gap
+        );
+
+
+      const y =
+        startY;
+
+
+      // ------------------------------------------------------
+      // GRAPH TITLE
+      // ------------------------------------------------------
+
+      doc.setFont(
+        'helvetica',
+        'bold'
+      );
+
+      doc.setFontSize(5);
+
+      doc.text(
+        graph.title,
+        x + graphWidth / 2,
+        y,
+        {
+          align: 'center'
+        }
+      );
+
+
+      const graphTop =
+        y + 2;
+
+
+      // ------------------------------------------------------
+      // GRAPH BORDER
+      // ------------------------------------------------------
+
+      doc.setLineWidth(0.15);
+
+      doc.rect(
+        x,
+        graphTop,
+        graphWidth,
+        graphHeight
+      );
+
+
+      // ------------------------------------------------------
+      // NORMALIZE DATA
+      // ------------------------------------------------------
+
+      const cleanValues =
+        values.map(value => {
+
+          return Number.isFinite(value)
+            ? value
+            : 0;
+
+        });
+
+
+      const maxValue =
+        Math.max(
+          ...cleanValues,
+          1
+        );
+
+
+      // ------------------------------------------------------
+      // DRAW HISTOGRAM CURVE
+      // ------------------------------------------------------
+
+      doc.setLineWidth(0.25);
+
+
+      let previousX = null;
+      let previousY = null;
+
+
+      cleanValues.forEach(
+        (value, index) => {
+
+          const pointX =
+            x +
+            (
+              index /
+              Math.max(
+                cleanValues.length - 1,
+                1
+              )
+            ) *
+            graphWidth;
+
+
+          const pointY =
+            graphTop +
+            graphHeight -
+            (
+              value /
+              maxValue
+            ) *
+            graphHeight;
+
+
+          if (
+            previousX !== null &&
+            previousY !== null
+          ) {
+
+            doc.line(
+              previousX,
+              previousY,
+              pointX,
+              pointY
+            );
+
+          }
+
+
+          previousX =
+            pointX;
+
+          previousY =
+            pointY;
+
+        }
+      );
+
+
+      // ------------------------------------------------------
+      // SMALL AXIS LABELS
+      // ------------------------------------------------------
+
+      doc.setFont(
+        'helvetica',
+        'normal'
+      );
+
+      doc.setFontSize(3.8);
+
+
+      doc.text(
+        '0',
+        x,
+        graphTop +
+          graphHeight +
+          2
+      );
+
+
+      doc.text(
+        String(
+          cleanValues.length - 1
+        ),
+        x + graphWidth,
+        graphTop +
+          graphHeight +
+          2,
+        {
+          align: 'right'
+        }
+      );
+
+    }
+  );
+
 }
+// ============================================================
+// 2️⃣ OTHER INVESTIGATION RESULTS
+// CBC IS EXCLUDED — IT HAS ITS OWN PRINT SECTION
+// ============================================================
+
+if (
+  record.results?.investigationsResults &&
+  Object.keys(record.results.investigationsResults).length > 0
+) {
+
+  try {
+
+    const otherInvestigationValues = [];
+
+    const resultEntries =
+      Object.entries(
+        record.results.investigationsResults
+      );
 
 
-// ---------------- Procedures ----------------
-if (record.proceduresTaken && record.proceduresTaken.length > 0) {
-  rightStartY += 1; // smaller top spacing
+    // ========================================================
+    // COLLECT NON-CBC RESULTS ONLY
+    // ========================================================
+
+    for (const [testName, vals] of resultEntries) {
+
+      if (
+        !Array.isArray(vals) ||
+        vals.length === 0
+      ) {
+        continue;
+      }
+
+
+      // ------------------------------------------------------
+      // IDENTIFY CBC
+      // ------------------------------------------------------
+
+      const testText =
+        String(testName)
+          .trim()
+          .toLowerCase();
+
+
+      const isCBC =
+        testText.includes('cbc') &&
+        (
+          testText.includes('haematology') ||
+          testText.includes('hematology')
+        );
+
+
+      // CBC is printed separately with:
+      // Result + Unit + Normal Range + Flag + Histograms
+      if (isCBC) {
+
+        console.log(
+          "🩸 Skipping CBC from Other Results:",
+          testName
+        );
+
+        continue;
+
+      }
+
+
+      // ------------------------------------------------------
+      // ALL OTHER LABORATORY RESULTS
+      // ------------------------------------------------------
+
+      vals.forEach(v => {
+
+        if (
+          !v ||
+          v.value === undefined ||
+          v.value === null ||
+          String(v.value).trim() === ''
+        ) {
+          return;
+        }
+
+
+        const parameter =
+          String(
+            v.parameter || ''
+          ).trim();
+
+
+        // If this investigation has a meaningful parameter
+        if (
+          parameter &&
+          parameter !== 'Result' &&
+          parameter !== testName
+        ) {
+
+          otherInvestigationValues.push(
+            `${testName} - ${parameter}: ${v.value}`
+          );
+
+        }
+
+        // Normal single result / radio result
+        else {
+
+          otherInvestigationValues.push(
+            `${testName}: ${v.value}`
+          );
+
+        }
+
+      });
+
+    }
+
+
+    // ========================================================
+    // PRINT ONLY IF OTHER RESULTS EXIST
+    // ========================================================
+
+    if (
+      otherInvestigationValues.length > 0
+    ) {
+
+      rightStartY += 4;
+
+
+      // ------------------------------------------------------
+      // HEADING
+      // ------------------------------------------------------
+
+      doc.setFont(
+        'helvetica',
+        'bold'
+      );
+
+      doc.setFontSize(7);
+
+      doc.text(
+        'Other Laboratory Results:',
+        rightStartX,
+        rightStartY
+      );
+
+
+      rightStartY += 4;
+
+
+      // ------------------------------------------------------
+      // RESULT BOX
+      // ------------------------------------------------------
+
+      const resultBoxX =
+        rightStartX;
+
+      const resultBoxY =
+        rightStartY - 2;
+
+      const resultBoxWidth =
+        lowerRightWidth -
+        2 * sectionPadding;
+
+      const boxPadding = 3;
+
+      const resultLineHeight = 4;
+
+
+      // ------------------------------------------------------
+      // PREPARE WRAPPED TEXT FIRST
+      // ------------------------------------------------------
+
+      const printableLines = [];
+
+
+      otherInvestigationValues.forEach(
+        result => {
+
+          const wrapped =
+            doc.splitTextToSize(
+              result,
+              resultBoxWidth -
+              boxPadding * 2
+            );
+
+
+          wrapped.forEach(line => {
+
+            printableLines.push(
+              line
+            );
+
+          });
+
+        }
+      );
+
+
+      // ------------------------------------------------------
+      // CALCULATE BOX HEIGHT
+      // ------------------------------------------------------
+
+      const resultBoxHeight =
+        (
+          printableLines.length *
+          resultLineHeight
+        ) +
+        (
+          boxPadding * 2
+        );
+
+
+      // ------------------------------------------------------
+      // DRAW BOX
+      // ------------------------------------------------------
+
+      doc.setLineWidth(0.3);
+
+      doc.rect(
+        resultBoxX,
+        resultBoxY,
+        resultBoxWidth,
+        resultBoxHeight
+      );
+
+
+      // ------------------------------------------------------
+      // PRINT RESULTS
+      // ------------------------------------------------------
+
+      doc.setFont(
+        'helvetica',
+        'normal'
+      );
+
+      doc.setFontSize(7);
+
+
+      let resultY =
+        resultBoxY +
+        boxPadding +
+        2;
+
+
+      printableLines.forEach(line => {
+
+        doc.text(
+          String(line),
+          resultBoxX +
+          boxPadding,
+          resultY
+        );
+
+
+        resultY +=
+          resultLineHeight;
+
+      });
+
+
+      // Move next print section below box
+      rightStartY =
+        resultBoxY +
+        resultBoxHeight +
+        6;
+
+    }
+
+  }
+
+  catch (err) {
+
+    console.warn(
+      "Error printing other investigation results:",
+      err
+    );
+
+  }
+
+}
+// ============================================================
+// PROCEDURES — LOWER LEFT
+// ============================================================
+
+if (
+  record.proceduresTaken &&
+  record.proceduresTaken.length > 0
+) {
+
+  leftStartY += 2;
+
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
-  doc.text('Procedures:', rightStartX, rightStartY);
-  rightStartY += lineHeight - 2; // reduce spacing after heading
+
+  doc.text(
+    'Procedures:',
+    boxX + sectionPadding,
+    leftStartY
+  );
+
+  leftStartY += lineHeight - 2;
+
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7);
+
 
   record.proceduresTaken.forEach(proc => {
-    const text = `${proc.category || ''}: ${proc.name || ''}`;
-    const lines = doc.splitTextToSize(text, lowerRightWidth - 2 * sectionPadding);
+
+    const text =
+      `${proc.category || ''}: ${proc.name || ''}`;
+
+    const lines =
+      doc.splitTextToSize(
+        text,
+        lowerLeftWidth - 2 * sectionPadding
+      );
+
     lines.forEach(line => {
-      doc.text(line, rightStartX, rightStartY);
-      rightStartY += lineHeight - 2; // tighter line spacing
+
+      doc.text(
+        line,
+        boxX + sectionPadding,
+        leftStartY
+      );
+
+      leftStartY += lineHeight - 2;
+
     });
+
   });
+
 } else {
-  rightStartY += 1;
+
+  leftStartY += 2;
+
   doc.setFont('helvetica', 'italic');
   doc.setFontSize(7);
-  doc.text('No procedures recorded.', rightStartX, rightStartY);
-  rightStartY += lineHeight - 2;
+
+  doc.text(
+    'No procedures recorded.',
+    boxX + sectionPadding,
+    leftStartY
+  );
+
+  leftStartY += lineHeight - 2;
 }
 
-// ---------------- Services ----------------
-if (record.servicesTaken && record.servicesTaken.length > 0) {
-  rightStartY += 1; // smaller top spacing
+
+// ============================================================
+// SERVICES — LOWER LEFT
+// ============================================================
+
+if (
+  record.servicesTaken &&
+  record.servicesTaken.length > 0
+) {
+
+  leftStartY += 2;
+
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
-  doc.text('Services:', rightStartX, rightStartY);
-  rightStartY += lineHeight - 2; // reduce spacing after heading
+
+  doc.text(
+    'Services:',
+    boxX + sectionPadding,
+    leftStartY
+  );
+
+  leftStartY += lineHeight - 2;
+
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7);
+
 
   record.servicesTaken.forEach(srv => {
-    const text = `${srv.category || ''}: ${srv.name || ''}`;
-    const lines = doc.splitTextToSize(text, lowerRightWidth - 2 * sectionPadding);
+
+    const text =
+      `${srv.category || ''}: ${srv.name || ''}`;
+
+    const lines =
+      doc.splitTextToSize(
+        text,
+        lowerLeftWidth - 2 * sectionPadding
+      );
+
     lines.forEach(line => {
-      doc.text(line, rightStartX, rightStartY);
-      rightStartY += lineHeight - 2; // tighter line spacing
+
+      doc.text(
+        line,
+        boxX + sectionPadding,
+        leftStartY
+      );
+
+      leftStartY += lineHeight - 2;
+
     });
+
   });
+
 } else {
-  rightStartY += 1;
+
+  leftStartY += 2;
+
   doc.setFont('helvetica', 'italic');
   doc.setFontSize(7);
-  doc.text('No services recorded.', rightStartX, rightStartY);
-  rightStartY += lineHeight - 2;
+
+  doc.text(
+    'No services recorded.',
+    boxX + sectionPadding,
+    leftStartY
+  );
+
+  leftStartY += lineHeight - 2;
 }
 
-// ---------------- Signature ----------------
-const signatureWidth = 60;  // adjust width of the signature
-const signatureHeight = 30; // adjust height
-const signatureX = boxX + 5; // left margin inside your box
-const signatureY = boxY + boxHeight - signatureHeight - 5; // leave small margin from bottom
-
-// Label
-doc.setFont('helvetica', 'bold');
-doc.setFontSize(10);
-doc.text("Doctor's Signature:", signatureX, signatureY - 2);
-
-// Draw the actual signature image if available
-if (signatureData) {
-  doc.addImage(signatureData, 'PNG', signatureX, signatureY, signatureWidth, signatureHeight);
-} else {
-  // fallback line if no signature provided
-  doc.setFont('helvetica', 'normal');
-  doc.text("____________________", signatureX, signatureY + 10);
-}
+  // ---------------- Signature ----------------
+  const signatureY = boxY + boxHeight - 6;
+  doc.setFont('helvetica', 'bold');
+  doc.text("Doctor's Signature: ____________________", boxX + 5, signatureY);
 
   // ---------------- Print ----------------
   doc.autoPrint();
   doc.output('dataurlnewwindow');
 }
+
 
 
 // Create a button for printing the test invoice
@@ -5373,6 +7061,675 @@ finnishButton.addEventListener('click', () => {
 recordElement.appendChild(deleteButton);
   recordKeyElement.setAttribute('data-record-key', recordKey);
 */
+
+const recordKeyElement = document.createElement('h4');
+recordKeyElement.textContent = 'Record Key: ' + recordKey;
+//recordElement.appendChild(recordKeyElement);
+
+// Create View Results button
+const viewResultsButton = document.createElement('button');
+viewResultsButton.textContent = 'View Results';
+viewResultsButton.classList.add('view-results-button');
+
+// Create the icon element (using Font Awesome's "fa-eye" icon)
+const iconElement = document.createElement('i');
+iconElement.classList.add('fas', 'fa-eye'); 
+viewResultsButton.appendChild(iconElement);
+
+// Add event listener
+viewResultsButton.addEventListener('click', async () => {
+  const patientName = patient.patientId;
+  const recordKey = recordKeyElement.textContent.replace('Record Key: ', '');
+
+  // Reference the test node in Firebase
+  const testRef = ref(database, `patients/${patientName}/testsTaken/${recordKey}`);
+
+  try {
+    const snapshot = await get(testRef);
+    const testData = snapshot.val();
+
+    if (testData) {
+      if (testData.resultFileURL) {
+        // Open the file if it exists
+        window.open(testData.resultFileURL, '_blank');
+      } else if (testData.results) {
+        // Show results in a popup
+        openResultsPopup(testData, patientName, recordKey);
+      } else {
+        showMessage('No results found for this test.');
+      }
+    } else {
+      showMessage('Test data not found.');
+    }
+  } catch (error) {
+    console.error('Error retrieving test data:', error);
+    showMessage('Error retrieving test data. Please try again.');
+  }
+});
+
+// Append the button
+recordElement.appendChild(viewResultsButton);
+
+async function openResultsPopup(testData, patientName, recordKey) {
+  const popup = document.getElementById('viewResultsPopup');
+  const container = document.getElementById('viewResultsContainer');
+  const header = document.getElementById('viewResultsHeader');
+
+  header.textContent = `${recordKey} - Results for PI- ${patientName}`;
+  container.innerHTML = '';
+console.log("🔥 FULL TEST DATA:", testData);
+console.log("📊 RESULTS:", testData.results);
+console.log(
+  "📊 SAVED CBC HISTOGRAMS:",
+  testData.results?.cbcHistograms
+);
+  async function getTestDef(testName) {
+    const testKey = testName.replace(/\s+/g, '_').toLowerCase();
+    const snapshot = await get(ref(database, `tests/${testKey}`));
+    return snapshot.val();
+  }
+
+  function buildCBCSavedGraphs(cbcHistograms) {
+
+  if (!cbcHistograms) {
+    return null;
+  }
+
+  // cbcHistograms is saved using the test name:
+  // cbcHistograms["CBC Haematology"] = { WBC, RBC, PLT }
+  const testNames =
+    Object.keys(cbcHistograms);
+
+  if (testNames.length === 0) {
+    return null;
+  }
+
+  const graphSection =
+    document.createElement('div');
+
+  graphSection.className =
+    'cbc-saved-graphs-section';
+
+
+  const heading =
+    document.createElement('h4');
+
+  heading.textContent =
+    'BC-2800 Histograms';
+
+  graphSection.appendChild(heading);
+
+
+  testNames.forEach(testName => {
+
+    const histograms =
+      cbcHistograms[testName];
+
+    if (!histograms) {
+      return;
+    }
+
+
+    const testTitle =
+      document.createElement('h5');
+
+    testTitle.textContent =
+      testName;
+
+    graphSection.appendChild(
+      testTitle
+    );
+
+
+    const graphsContainer =
+      document.createElement('div');
+
+    graphsContainer.className =
+      'cbc-saved-graphs';
+
+
+    [
+      { key: 'WBC', title: 'WBC Histogram' },
+      { key: 'RBC', title: 'RBC Histogram' },
+      { key: 'PLT', title: 'PLT Histogram' }
+
+    ].forEach(graph => {
+
+      // Accept uppercase or lowercase keys
+      const points =
+        histograms[graph.key] ||
+        histograms[graph.key.toLowerCase()];
+
+
+      if (!points) {
+        return;
+      }
+
+
+      // Firebase may return an object instead of an Array.
+      const values =
+        Array.isArray(points)
+          ? points
+          : Object.keys(points)
+              .sort(
+                (a, b) =>
+                  Number(a) - Number(b)
+              )
+              .map(key =>
+                Number(points[key])
+              );
+
+
+      if (values.length === 0) {
+        return;
+      }
+
+
+      const graphBox =
+        document.createElement('div');
+
+      graphBox.className =
+        'cbc-saved-graph-box';
+
+
+      const title =
+        document.createElement('div');
+
+      title.className =
+        'cbc-saved-graph-title';
+
+      title.textContent =
+        graph.title;
+
+      graphBox.appendChild(title);
+
+
+      const canvas =
+        document.createElement('canvas');
+
+      canvas.width = 320;
+      canvas.height = 150;
+
+      graphBox.appendChild(canvas);
+
+      graphsContainer.appendChild(
+        graphBox
+      );
+
+
+      // Draw after canvas exists
+      requestAnimationFrame(() => {
+
+        drawSavedCBCHistogram(
+          canvas,
+          values,
+          graph.key
+        );
+
+      });
+
+    });
+
+
+    graphSection.appendChild(
+      graphsContainer
+    );
+
+  });
+
+
+  return graphSection;
+}
+function drawSavedCBCHistogram(
+  canvas,
+  values,
+  label
+) {
+
+  if (
+    !canvas ||
+    !Array.isArray(values) ||
+    values.length === 0
+  ) {
+    return;
+  }
+
+
+  const ctx =
+    canvas.getContext('2d');
+
+
+  const width =
+    canvas.width;
+
+  const height =
+    canvas.height;
+
+
+  // Padding
+  const left = 30;
+  const right = 10;
+  const top = 15;
+  const bottom = 25;
+
+
+  const graphWidth =
+    width - left - right;
+
+  const graphHeight =
+    height - top - bottom;
+
+
+  // Clear
+  ctx.clearRect(
+    0,
+    0,
+    width,
+    height
+  );
+
+
+  // White background
+  ctx.fillStyle = '#ffffff';
+
+  ctx.fillRect(
+    0,
+    0,
+    width,
+    height
+  );
+
+
+  // ============================================
+  // AXES
+  // ============================================
+
+  ctx.strokeStyle = '#94a3b8';
+  ctx.lineWidth = 1;
+
+  ctx.beginPath();
+
+  ctx.moveTo(left, top);
+
+  ctx.lineTo(
+    left,
+    height - bottom
+  );
+
+  ctx.lineTo(
+    width - right,
+    height - bottom
+  );
+
+  ctx.stroke();
+
+
+  // ============================================
+  // FIND MAXIMUM VALUE
+  // ============================================
+
+  const numericValues =
+    values.map(value => {
+
+      const number =
+        Number(value);
+
+      return Number.isFinite(number)
+        ? number
+        : 0;
+
+    });
+
+
+  const maxValue =
+    Math.max(
+      ...numericValues,
+      1
+    );
+
+
+  // ============================================
+  // DRAW HISTOGRAM
+  // ============================================
+
+  ctx.beginPath();
+
+  numericValues.forEach(
+    (value, index) => {
+
+      const x =
+        left +
+        (
+          index /
+          Math.max(
+            numericValues.length - 1,
+            1
+          )
+        ) *
+        graphWidth;
+
+
+      const y =
+        top +
+        graphHeight -
+        (
+          value /
+          maxValue
+        ) *
+        graphHeight;
+
+
+      if (index === 0) {
+
+        ctx.moveTo(x, y);
+
+      } else {
+
+        ctx.lineTo(x, y);
+
+      }
+
+    }
+  );
+
+
+  // Different analyzer curves
+  if (label === 'WBC') {
+
+    ctx.strokeStyle =
+      '#2563eb';
+
+  } else if (label === 'RBC') {
+
+    ctx.strokeStyle =
+      '#dc2626';
+
+  } else {
+
+    ctx.strokeStyle =
+      '#16a34a';
+
+  }
+
+
+  ctx.lineWidth = 1.5;
+
+  ctx.stroke();
+
+
+  // ============================================
+  // LABELS
+  // ============================================
+
+  ctx.fillStyle =
+    '#64748b';
+
+  ctx.font =
+    '10px Arial';
+
+
+  ctx.fillText(
+    '0',
+    left - 3,
+    height - 8
+  );
+
+
+  ctx.fillText(
+    String(
+      numericValues.length - 1
+    ),
+    width - 30,
+    height - 8
+  );
+
+
+  ctx.fillText(
+    String(maxValue),
+    3,
+    top + 5
+  );
+
+}
+async function buildInvestigationSection(data) {
+  if (!data || Object.keys(data).length === 0) return null;
+
+  const sectionDiv = document.createElement('div');
+  sectionDiv.classList.add('result-section');
+
+  const titleEl = document.createElement('h4');
+  titleEl.textContent = 'Investigations';
+  titleEl.style.marginBottom = '6px';
+  sectionDiv.appendChild(titleEl);
+
+  // ---------------- Color guide ----------------
+  const guideDiv = document.createElement('div');
+  guideDiv.style.display = 'flex';
+  guideDiv.style.gap = '10px';
+  guideDiv.style.marginBottom = '8px';
+  
+  const colors = [
+    { color: 'blue', text: 'Below Normal' },
+    { color: 'green', text: 'Within Normal' },
+    { color: 'red', text: 'Above Normal' }
+  ];
+
+  colors.forEach(c => {
+    const item = document.createElement('div');
+    item.style.display = 'flex';
+    item.style.alignItems = 'center';
+    item.style.gap = '4px';
+
+    const colorBox = document.createElement('div');
+    colorBox.style.width = '12px';
+    colorBox.style.height = '12px';
+    colorBox.style.backgroundColor = c.color;
+    colorBox.style.border = '1px solid #000';
+    item.appendChild(colorBox);
+
+    const label = document.createElement('span');
+    label.textContent = c.text;
+    label.style.fontSize = '12px';
+    item.appendChild(label);
+
+    guideDiv.appendChild(item);
+  });
+
+  sectionDiv.appendChild(guideDiv);
+  // ----------------------------------------------
+
+  for (const [testName, results] of Object.entries(data)) {
+    const testDiv = document.createElement('div');
+    testDiv.classList.add('test-result-block');
+    testDiv.style.marginBottom = '10px';
+
+    const nameEl = document.createElement('h5');
+    nameEl.textContent = isNaN(testName) ? testName : `Test ${parseInt(testName) + 1}`;
+    nameEl.style.marginBottom = '4px';
+    testDiv.appendChild(nameEl);
+
+    const testDef = await getTestDef(testName);
+    let paramDefs = testDef?.parameters || [];
+    if (paramDefs && !Array.isArray(paramDefs)) paramDefs = Object.values(paramDefs);
+
+    const table = document.createElement('table');
+    table.classList.add('results-table');
+
+    const thead = document.createElement('thead');
+    const headerRow = document.createElement('tr');
+    ['Parameter', 'Value', 'Normal Range', 'Unit'].forEach(text => {
+      const th = document.createElement('th');
+      th.textContent = text;
+      headerRow.appendChild(th);
+    });
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
+
+    const addRow = (parameter, value, normal, unit) => {
+      const tr = document.createElement('tr');
+      [parameter, value, normal, unit].forEach((val, idx) => {
+        const td = document.createElement('td');
+        td.textContent = val;
+
+        // Color the value cell (index 1) based on normal range
+        if (idx === 1 && normal) {
+          const numericVal = parseFloat(value);
+          const rangeMatch = normal.match(/([\d.]+)\s*-\s*([\d.]+)/);
+          if (rangeMatch) {
+            const min = parseFloat(rangeMatch[1]);
+            const max = parseFloat(rangeMatch[2]);
+            if (!isNaN(numericVal)) {
+              if (numericVal < min) td.style.color = 'blue';
+              else if (numericVal > max) td.style.color = 'red';
+              else td.style.color = 'green';
+            }
+          } else {
+            const singleVal = parseFloat(normal);
+            if (!isNaN(numericVal) && !isNaN(singleVal)) {
+              td.style.color = numericVal === singleVal ? 'green' : 'red';
+            }
+          }
+        }
+
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    };
+
+    if (Array.isArray(results)) {
+      results.forEach(r => {
+        const paramDef = paramDefs.find(p => p.name === r.parameter) || {};
+        addRow(
+          r.parameter || '-',
+          r.value || '-',
+          paramDef.normal || '-',
+          paramDef.unit || '-'
+        );
+      });
+    } else if (typeof results === 'object') {
+      Object.entries(results).forEach(([paramKey, paramVal]) => {
+        let parameter = paramKey;
+        let value = '';
+        let normal = '';
+        let unit = '';
+
+        if (typeof paramVal === 'object') {
+          parameter = paramVal.parameter || paramKey;
+          value = paramVal.value || '';
+          const paramDef = paramDefs.find(p => p.name === parameter) || {};
+          normal = paramDef.normal || '';
+          unit = paramDef.unit || '';
+        } else {
+          value = paramVal;
+        }
+
+        addRow(parameter, value, normal, unit);
+      });
+    }
+
+    table.appendChild(tbody);
+    testDiv.appendChild(table);
+    sectionDiv.appendChild(testDiv);
+  }
+
+  return sectionDiv;
+}
+
+  function buildSimpleSection(title, data) {
+  if (!data || Object.keys(data).length === 0) return null;
+
+  const sectionDiv = document.createElement('div');
+  sectionDiv.classList.add('result-section');
+
+  const titleEl = document.createElement('h4');
+  titleEl.textContent = title;
+  titleEl.style.marginBottom = '6px';
+  sectionDiv.appendChild(titleEl);
+
+  const container = document.createElement('div');
+  container.style.display = 'flex';
+  container.style.flexWrap = 'wrap';
+  container.style.gap = '8px'; // spacing between blocks
+  sectionDiv.appendChild(container);
+
+  Object.entries(data).forEach(([key, val]) => {
+    const block = document.createElement('div');
+    block.style.background = '#f9f9f9';
+    block.style.padding = '6px 10px';
+    block.style.borderRadius = '5px';
+    block.style.flex = '1 1 calc(33% - 8px)'; // 3 per row, adjust if needed
+    block.style.minWidth = '120px'; // ensures small blocks don't shrink too much
+    block.style.boxSizing = 'border-box';
+    block.style.display = 'flex';
+    block.style.flexDirection = 'column';
+
+    const nameEl = document.createElement('strong');
+    nameEl.textContent = isNaN(key) ? key : `Item ${parseInt(key) + 1}`;
+    nameEl.style.marginBottom = '2px';
+    block.appendChild(nameEl);
+
+    const valueEl = document.createElement('span');
+    valueEl.textContent = typeof val === 'object' ? (val.value || '-') : val;
+    valueEl.style.fontSize = '13px';
+    block.appendChild(valueEl);
+
+    container.appendChild(block);
+  });
+
+  return sectionDiv;
+}
+
+// ============================================
+// INVESTIGATION RESULTS
+// ============================================
+
+const investigationSection =
+  await buildInvestigationSection(
+    testData.results?.investigationsResults
+  );
+
+if (investigationSection) {
+  container.appendChild(
+    investigationSection
+  );
+}
+
+
+// ============================================
+// SAVED BC-2800 HISTOGRAMS
+// ============================================
+
+const cbcGraphs =
+  buildCBCSavedGraphs(
+    testData.results?.cbcHistograms
+  );
+
+if (cbcGraphs) {
+  container.appendChild(
+    cbcGraphs
+  );
+}  const proceduresSection = buildSimpleSection('Procedures', testData.results?.proceduresResults);
+  const servicesSection = buildSimpleSection('Services', testData.results?.servicesResults);
+
+  [investigationSection, proceduresSection, servicesSection].forEach(sec => {
+    if (sec) container.appendChild(sec);
+  });
+
+  if (!investigationSection && !proceduresSection && !servicesSection) {
+    const p = document.createElement('p');
+    p.textContent = 'No results available for this record.';
+    container.appendChild(p);
+  }
+
+  popup.style.display = 'flex';
+  const closeBtn = popup.querySelector('.close-popup-button');
+  closeBtn.onclick = () => { popup.style.display = 'none'; };
+}
+
+
+
   return recordElement;
 }
 /*
@@ -6938,54 +9295,159 @@ const todayReceipts = receipts.filter(({ data: receipt }) => {
   return receiptDate >= shiftStart && receiptDate <= shiftEnd;
 });
 
-todayReceipts.sort((a, b) => b.data.timestamp - a.data.timestamp); // Latest first
+todayReceipts.sort(
+  (a, b) =>
+    (Number(b.data.timestamp) || 0) -
+    (Number(a.data.timestamp) || 0)
+);
+
 const totalReceipts = todayReceipts.length;
 
 
-    todayReceipts.forEach(({id, data: receipt}, index) => {
-      const row = document.createElement('tr');
-      const formattedReceiptDate = new Date(receipt.timestamp).toLocaleString();
+todayReceipts.forEach(({ id, data: receipt }, index) => {
 
-      const totalAmount = parseFloat(receipt.totalAmount) || 0;
-      const balance = parseFloat(receipt.balance) || 0;
+  const row =
+    document.createElement('tr');
 
-      let amountTendered = (balance > 0 && balance < totalAmount)
+
+  // ------------------------------------------
+  // DATE
+  // ------------------------------------------
+
+  const timestamp =
+    Number(receipt.timestamp) || 0;
+
+  const formattedReceiptDate =
+    timestamp
+      ? new Date(timestamp).toLocaleString()
+      : '';
+
+
+  // ------------------------------------------
+  // SAFE NUMERIC VALUES
+  // ------------------------------------------
+
+  const totalAmount =
+    Number(receipt.totalAmount) || 0;
+
+  const balance =
+    Number(receipt.balance) || 0;
+
+
+  // Use saved amountTendered if available.
+  // Otherwise calculate it from total and balance.
+  let amountTendered;
+
+  if (
+    receipt.amountTendered !== undefined &&
+    receipt.amountTendered !== null &&
+    receipt.amountTendered !== ''
+  ) {
+
+    amountTendered =
+      Number(receipt.amountTendered) || 0;
+
+  } else {
+
+    amountTendered =
+      (balance > 0 && balance < totalAmount)
         ? totalAmount - balance
         : totalAmount;
+  }
 
-      // Track totals for each payment mode
-      if (receipt.paymentMode?.toLowerCase() === 'cash') {
-        cashTotal += amountTendered;
-      } else if (receipt.paymentMode?.toLowerCase() === 'mobile money') {
-        mobileMoneyTotal += amountTendered;
-      } else if (receipt.paymentMode?.toLowerCase() === 'insurance') {
-        insuranceTotal += amountTendered;
-      } else if (receipt.paymentMode?.toLowerCase() === 'credit card') {
-        creditCardTotal += amountTendered;
-      } else if (receipt.paymentMode?.toLowerCase() === 'merchant') {
-        merchantTotal += amountTendered;
-      }
 
-      const receiptNumber = String(totalReceipts - index).padStart(3, '0');
-      const rowHTML = `
-      <td>${receiptNumber}</td>
-      <td>${receipt.patientId || ''}</td>
-      <td>${receipt.department || ''}</td>
-      <td>${receipt.paymentMode || ''}</td>
-      <td>${receipt.testsTaken || ''}</td>
-      <td>${receipt.totalAmount.toFixed(2)}</td>
-      <td>${receipt.amountTendered.toFixed(2)}</td>
-      <td>${receipt.balance.toFixed(2)}</td>
-      <td>${formattedReceiptDate}</td>
-      <td>
-        <button class="print-btn" data-receipt-no="${receiptNumber}">Print</button>
-<button class="delete-btn" data-receipt-id="${id}" style="background-color: red; color: white;">🗑 Delete</button>
-      </td>
-    `;
-    
-      row.innerHTML = rowHTML;
-      tableBody.appendChild(row);
-    });
+  // ------------------------------------------
+  // PAYMENT MODE TOTALS
+  // ------------------------------------------
+
+  const paymentMode =
+    String(receipt.paymentMode || '')
+      .trim()
+      .toLowerCase();
+
+
+  if (paymentMode === 'cash') {
+
+    cashTotal += amountTendered;
+
+  } else if (paymentMode === 'mobile money') {
+
+    mobileMoneyTotal += amountTendered;
+
+  } else if (paymentMode === 'insurance') {
+
+    insuranceTotal += amountTendered;
+
+  } else if (paymentMode === 'credit card') {
+
+    creditCardTotal += amountTendered;
+
+  } else if (paymentMode === 'merchant') {
+
+    merchantTotal += amountTendered;
+  }
+
+
+  // ------------------------------------------
+  // RECEIPT NUMBER
+  // ------------------------------------------
+
+  const receiptNumber =
+    String(totalReceipts - index)
+      .padStart(3, '0');
+
+
+  // ------------------------------------------
+  // TABLE ROW
+  // ------------------------------------------
+
+  const rowHTML = `
+
+    <td>${receiptNumber}</td>
+
+    <td>${receipt.patientId || ''}</td>
+
+    <td>${receipt.department || ''}</td>
+
+    <td>${receipt.paymentMode || ''}</td>
+
+    <td>${receipt.testsTaken || ''}</td>
+
+    <td>${totalAmount.toFixed(2)}</td>
+
+    <td>${amountTendered.toFixed(2)}</td>
+
+    <td>${balance.toFixed(2)}</td>
+
+    <td>${formattedReceiptDate}</td>
+
+    <td>
+
+      <button
+        class="print-btn"
+        data-receipt-no="${receiptNumber}">
+        Print
+      </button>
+
+      <button
+        class="delete-btn"
+        data-receipt-id="${id}"
+        style="background-color:red; color:white;">
+        🗑 Delete
+      </button>
+
+    </td>
+  `;
+
+
+  row.innerHTML =
+    rowHTML;
+
+  tableBody.appendChild(
+    row
+  );
+
+});
   // Global variable to store last deleted receipt data
 let lastDeletedReceipt = null;
 let undoTimeoutId = null;
@@ -7167,7 +9629,7 @@ tableBody.addEventListener('click', function (e) {
     });
   });
 }
-
+loadSalesReceipts()
 function printReceipt(receipt) {
   const receiptWindow = window.open('', '_blank');
 
@@ -7313,7 +9775,6 @@ function printReceipt(receipt) {
 }
 
 
-loadSalesReceipts()
 
 document.getElementById('receiptSearchBar').addEventListener('input', function(e) {
   const searchTerm = e.target.value.toLowerCase();
@@ -7514,13 +9975,32 @@ let globalExpenseSnap = null;
 let globalDailyTotals = {};
 let globalSortedDates = [];
 async function renderSummaries(startDate = null, endDate = null) {
-  summaryContent.innerHTML = '';
+
+  // ==========================================
+  // SHOW SUMMARY LOADER
+  // ==========================================
+
+  summaryContent.innerHTML = `
+    <div class="summary-loader-container">
+
+      <div class="summary-loader">
+        <div class="summary-loader-ring"></div>
+
+        <div class="summary-loader-text">
+          <strong>Loading Financial Summary</strong>
+          <span>Please wait while BIBO prepares the report...</span>
+        </div>
+      </div>
+
+    </div>
+  `;
 
   const formatUGX = (value) => new Intl.NumberFormat('en-UG', {
     style: 'currency',
     currency: 'UGX',
     minimumFractionDigits: 0
   }).format(value);
+
 
   const now = new Date();
 
@@ -7566,13 +10046,22 @@ async function renderSummaries(startDate = null, endDate = null) {
 
   try {
     const dbRef = ref(database);
-    const [salesSnap, expenseSnap] = await Promise.all([
-      get(child(dbRef, 'salesReceipts')),
-      get(child(dbRef, 'daily_expenses'))
-    ]);
+const [salesSnap, expenseSnap] = await Promise.all([
+  get(child(dbRef, 'salesReceipts')),
+  get(child(dbRef, 'daily_expenses'))
+]);
 
-    globalExpenseSnap = expenseSnap;
-    const dailyTotals = {};
+
+// ==========================================
+// DATA LOADED — REMOVE LOADER
+// ==========================================
+
+summaryContent.innerHTML = '';
+
+
+globalExpenseSnap = expenseSnap;
+
+const dailyTotals = {};
 
     // --- Process sales ---
     if (salesSnap.exists()) {

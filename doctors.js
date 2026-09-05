@@ -4159,44 +4159,157 @@ async function printRecord(patient, record, recordKey, visitDetails, latestVisit
   doc.addImage('sanyu.png', 'PNG', (pageWidth - watermarkSize) / 2, (pageHeight - watermarkSize) / 2, watermarkSize, watermarkSize);
   doc.setGState(new doc.GState({ opacity: 1 }));
 
-  // ---------------- Header ----------------
-  cursorY -= 8;
-doc.addImage('sanyu.png', 'PNG', margin, cursorY - 6, 40, 40);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(20);
-  doc.setTextColor(0, 100, 0);
-  doc.text('SANYU HOSPITAL ', pageWidth / 2 + 10, cursorY + 10, { align: 'center' });
-  cursorY += 13;
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(13);
-  doc.setTextColor(0, 0, 0);
-  doc.text('Located at Katooke-Wakiso District', pageWidth / 2 + 10, cursorY + 6, { align: 'center' });
-  cursorY += 7;
-  doc.text('Tel: +256 708 657 717 | Email: sanyuhospital@gmail.com', pageWidth / 2 + 10, cursorY + 6, { align: 'center' });
-  cursorY += 15;
+// ---------------- Header ----------------
 
-  // ---------------- Outer Box ----------------
-  const boxX = margin;
-  const boxY = cursorY;
-  const boxWidth = pageWidth - 2 * margin;
-  const boxHeight = pageHeight - boxY - margin;
-doc.setDrawColor(0, 100, 0);  doc.setLineWidth(0.8);
-  doc.rect(boxX, boxY, boxWidth, boxHeight);
+cursorY -= 8;
 
+doc.addImage(
+  'sanyu.png',
+  'PNG',
+  margin,
+  cursorY - 6,
+  40,
+  40
+);
+
+
+// ==========================================
+// MAIN HOSPITAL TITLE - EXTRA THICK
+// ==========================================
+
+doc.setFont('helvetica', 'bold');
+doc.setFontSize(20);
+doc.setTextColor(0, 100, 0);
+
+const titleX = pageWidth / 2 + 10;
+const titleY = cursorY + 10;
+
+// Draw multiple times with tiny offsets
+// to create an extra-heavy bold appearance
+doc.text(
+  'SANYU HOSPITAL',
+  titleX,
+  titleY,
+  { align: 'center' }
+);
+
+doc.text(
+  'SANYU HOSPITAL',
+  titleX + 0.15,
+  titleY,
+  { align: 'center' }
+);
+
+doc.text(
+  'SANYU HOSPITAL',
+  titleX - 0.15,
+  titleY,
+  { align: 'center' }
+);
+
+doc.text(
+  'SANYU HOSPITAL',
+  titleX,
+  titleY + 0.12,
+  { align: 'center' }
+);
+
+
+cursorY += 13;
+
+
+// ==========================================
+// LOCATION - BOLD
+// ==========================================
+
+doc.setFont('helvetica', 'bold');
+doc.setFontSize(13);
+doc.setTextColor(0, 0, 0);
+
+doc.text(
+  'Located at Katooke-Wakiso District',
+  pageWidth / 2 + 10,
+  cursorY + 6,
+  { align: 'center' }
+);
+
+
+cursorY += 7;
+
+
+// ==========================================
+// CONTACT DETAILS - BOLD
+// ==========================================
+
+doc.setFont('helvetica', 'bold');
+doc.setFontSize(13);
+doc.setTextColor(0, 0, 0);
+
+doc.text(
+  'Tel: +256 708 657 717 | Email: sanyuhospital@gmail.com',
+  pageWidth / 2 + 10,
+  cursorY + 6,
+  { align: 'center' }
+);
+
+
+cursorY += 15;
+// ---------------- Outer Box ----------------
+
+// Small space between the box and paper edge
+const boxMargin = 6;
+
+const boxX = boxMargin;
+
+// Keep the current top position
+const boxY = cursorY;
+
+// Extend box almost to both left and right paper edges
+const boxWidth = pageWidth - (boxMargin * 2);
+
+// Extend box almost to bottom paper edge
+const boxHeight = pageHeight - boxY - boxMargin;
+
+doc.setDrawColor(0, 100, 0);
+doc.setLineWidth(0.8);
+
+doc.rect(
+  boxX,
+  boxY,
+  boxWidth,
+  boxHeight
+);
   // Title
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(headingFontSize);
   doc.text('Doctor Notes', boxX + boxWidth / 2, boxY + 10, { align: 'center' });
 
-  // ---------------- Top Section ----------------
-  const topY = boxY + 18;
-  const topHeight = 40;
-  const topLeftWidth = boxWidth * 0.5 - 2;
-  const topRightWidth = boxWidth * 0.5 - 2;
+ // ---------------- Top Section ----------------
 
-  doc.line(boxX, topY - 2, boxX + boxWidth, topY - 2);
-  doc.line(boxX + boxWidth / 2, topY, boxX + boxWidth / 2, topY + topHeight);
+const topY = boxY + 18;
+const topHeight = 40;
 
+const topLeftWidth = boxWidth * 0.5 - 2;
+const topRightWidth = boxWidth * 0.5 - 2;
+
+
+// Horizontal line below Doctor Notes title
+doc.line(
+  boxX,
+  topY - 2,
+  boxX + boxWidth,
+  topY - 2
+);
+
+
+// Shorter vertical divider between
+// Patient Info and Contact Info
+doc.line(
+  boxX + boxWidth / 2,
+  topY,
+  boxX + boxWidth / 2,
+  topY + topHeight - 10
+);
   // Top left: Patient Info
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(headingFontSize);
@@ -4242,16 +4355,37 @@ const topRightInfo = [
     });
   });
 
-  // ---------------- Lower Section ----------------
-  const sectionPadding = 6;
-  const lowerY = topY + topHeight + 5;
-  const lowerHeight = boxY + boxHeight - lowerY - 20;
-  const lowerLeftWidth = boxWidth * 0.35;
-  const lowerRightWidth = boxWidth - lowerLeftWidth - 10;
+// ---------------- Lower Section ----------------
 
-  doc.line(boxX + lowerLeftWidth + 5, lowerY, boxX + lowerLeftWidth + 5, lowerY + lowerHeight);
-  doc.line(boxX, lowerY - 3, boxX + boxWidth, lowerY - 3);
+const sectionPadding = 6;
 
+// Move lower section UP
+const lowerY = topY + topHeight - 5;
+
+// Automatically make it taller because it starts higher
+const lowerHeight = boxY + boxHeight - lowerY - 20;
+
+const lowerLeftWidth = boxWidth * 0.35;
+
+const lowerRightWidth = boxWidth - lowerLeftWidth - 10;
+
+
+// Vertical divider
+doc.line(
+  boxX + lowerLeftWidth + 5,
+  lowerY,
+  boxX + lowerLeftWidth + 5,
+  lowerY + lowerHeight
+);
+
+
+// Horizontal divider
+doc.line(
+  boxX,
+  lowerY - 3,
+  boxX + boxWidth,
+  lowerY - 3
+);
   // ---------------- Lower left: Vitals & Investigations ----------------
   let leftStartY = lowerY + sectionPadding;
 
@@ -4397,7 +4531,7 @@ if (
     'bold'
   );
 
-  doc.setFontSize(5.5);
+  doc.setFontSize(6);
 
 
   doc.text(
@@ -4438,7 +4572,7 @@ if (
     'normal'
   );
 
-  doc.setFontSize(5.5);
+  doc.setFontSize(7);
 
 
   meds.forEach((row, index) => {
@@ -4837,7 +4971,7 @@ if (cbcTestName) {
     // PRINT EACH CBC RESULT
     // --------------------------------------------------------
 
-    doc.setFontSize(5.5);
+    doc.setFontSize(7);
 
 cbcResults.forEach(result => {
 
@@ -4993,8 +5127,6 @@ cbcResults.forEach(result => {
   rightStartY += 3;
 
 });
-
-
     // Bottom line
     doc.setLineWidth(0.2);
 
@@ -5540,7 +5672,7 @@ if (
         'normal'
       );
 
-      doc.setFontSize(6);
+      doc.setFontSize(7);
 
 
       let resultY =
