@@ -9199,12 +9199,12 @@ function getCurrentShift() {
 
   let shiftStart, shiftEnd, shiftName, nextShiftStart;
 
-  // Morning shift: 08:00 AM - 06:00 PM
+  // Morning shift: 07:30 AM - 07:30 PM
   const morningStart = new Date(now);
-  morningStart.setHours(8, 0, 0, 0);
+  morningStart.setHours(7, 30, 0, 0);
 
   const morningEnd = new Date(now);
-  morningEnd.setHours(18, 0, 0, 0);
+  morningEnd.setHours(19, 30, 0, 0);
 
   if (now >= morningStart && now < morningEnd) {
     // Morning Shift
@@ -9213,7 +9213,7 @@ function getCurrentShift() {
     shiftName = "Morning Shift";
     nextShiftStart = shiftEnd; // next shift = night
   } else {
-    // Night Shift: 06:00 PM - 08:00 AM
+    // Night Shift: 07:30 PM - 07:30 AM
     if (now >= morningEnd) {
       shiftStart = morningEnd;
       shiftEnd = new Date(morningStart);
@@ -9224,12 +9224,19 @@ function getCurrentShift() {
       shiftStart = new Date(morningEnd);
       shiftStart.setDate(shiftStart.getDate() - 1);
     }
+
     shiftName = "Night Shift";
     nextShiftStart = shiftEnd; // next shift = morning
   }
 
   // Format date like: Thu, 28th Aug 2025
-  const options = { weekday: "short", day: "numeric", month: "short", year: "numeric" };
+  const options = {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    year: "numeric"
+  };
+
   let dateStr = shiftStart.toLocaleDateString("en-GB", options);
 
   // Add ordinal suffix (st, nd, rd, th)
@@ -9238,13 +9245,19 @@ function getCurrentShift() {
                : (day % 10 === 2 && day !== 12) ? "nd"
                : (day % 10 === 3 && day !== 13) ? "rd"
                : "th";
+
   dateStr = dateStr.replace(/\d+/, day + suffix);
 
   const shiftLabel = `${dateStr} - ${shiftName}`;
 
-  return { shiftName, shiftStart, shiftEnd, shiftLabel, nextShiftStart };
+  return {
+    shiftName,
+    shiftStart,
+    shiftEnd,
+    shiftLabel,
+    nextShiftStart
+  };
 }
-
 
 // Show on receipt
 const { shiftLabel, nextShiftStart } = getCurrentShift();
