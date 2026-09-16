@@ -16,6 +16,20 @@ const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 const auth = getAuth(app); // Initialize Firebase Authentication
 
+const testUserRef = ref(
+    database,
+    "systemUsers/kJHkYow8ikXbIunEIc3Hee9344y1"
+);
+
+get(testUserRef)
+    .then(snapshot => {
+      //  console.log("🔥 DIRECT USER TEST");
+       // console.log("Exists:", snapshot.exists());
+       // console.log("Data:", snapshot.val());
+    })
+    .catch(error => {
+       // console.error("🔥 DIRECT USER TEST ERROR:", error);
+    });
 if ('serviceWorker' in navigator) {
 window.addEventListener('load', () => {
   navigator.serviceWorker.register('service-worker.js')
@@ -230,6 +244,60 @@ signInWithPopup(auth, provider)
   });
 }
 
+// ==========================================
+// BIBO USER ACCESS SYSTEM
+// ==========================================
+
+// ==========================================
+// BIBO AUTHORIZATION SYSTEM
+// ==========================================
+
+// ==========================================
+// BIBO UI PERMISSION SYSTEM
+// ==========================================
+
+function applyBiboPermissions(role) {
+
+    role = String(role || "")
+        .trim()
+        .toLowerCase();
+
+    console.log("🔐 Applying UI permissions for:", role);
+
+    const protectedElements =
+        document.querySelectorAll('[data-permission]');
+
+    protectedElements.forEach((element) => {
+
+        const allowedRoles = String(
+            element.dataset.permission || ""
+        )
+            .toLowerCase()
+            .split(/\s+/)
+            .filter(Boolean);
+
+        // Admin sees everything
+        if (role === "admin") {
+            element.style.removeProperty("display");
+            return;
+        }
+
+        // Role is allowed
+        if (allowedRoles.includes(role)) {
+            element.style.removeProperty("display");
+        }
+
+        // Role is NOT allowed
+        else {
+            element.style.setProperty(
+                "display",
+                "none",
+                "important"
+            );
+        }
+    });
+}
+
 // Display the email sign-in popup on page load
 window.addEventListener('load', function() {
 auth.onAuthStateChanged(function(user) {
@@ -270,24 +338,70 @@ get(staffRef)
   });
 }
 
-// Function to update the patients count
+// ==========================================
+// UPDATE TOTAL PATIENTS COUNT
+// Uses meta/patientCount instead of
+// downloading the entire patients node
+// ==========================================
+
 function updatePatientsCount() {
-const patientsRef = ref(database, "patients");
 
-get(patientsRef)
-  .then(snapshot => {
-    const patientsData = snapshot.val();
-    const patientsCount = patientsData ? Object.keys(patientsData).length : 0;
+  const patientCountRef = ref(
+    database,
+    "meta/patientCount"
+  );
 
-    // Update the patients count in the HTML
-    const patientsCountElement = document.getElementById("patientsCount");
-    if (patientsCountElement) {
-      patientsCountElement.innerText = patientsCount.toString();
-    }
-  })
-  .catch(error => {
-    console.error("Error fetching patients count:", error);
-  });
+  get(patientCountRef)
+    .then(snapshot => {
+
+      let patientsCount = 0;
+
+      if (snapshot.exists()) {
+
+        // patientCount is the NEXT patient number
+        const nextPatientNumber =
+          Number(snapshot.val());
+
+        if (!isNaN(nextPatientNumber)) {
+
+          // Example:
+          // patientCount = 4282
+          // registered patients = 4281
+          patientsCount = Math.max(
+            0,
+            nextPatientNumber - 1
+          );
+
+        }
+
+      }
+
+      // Update HTML
+      const patientsCountElement =
+        document.getElementById("patientsCount");
+
+      if (patientsCountElement) {
+
+        patientsCountElement.innerText =
+          patientsCount.toLocaleString();
+
+      }
+
+      console.log(
+        "👥 Total Patients:",
+        patientsCount
+      );
+
+    })
+    .catch(error => {
+
+      console.error(
+        "❌ Error fetching patient count:",
+        error
+      );
+
+    });
+
 }
 
 // Update counts initially
@@ -2890,125 +3004,224 @@ messageInput.addEventListener('keydown', (event) => {
     sendMessage();
   }
 });
+// ==========================================
+// TODAY'S PATIENT REGISTRATIONS ONLY
+// ==========================================
 
-const registrationRateDiv = document.getElementById('registrationRate');
+const registrationRateDiv =
+  document.getElementById('registrationRate');
 
-// Function to retry fetching data until success
-const fetchPatientDataWithRetry = async (retries = 5, delay = 2000) => {
+
+// ==========================================
+// FETCH PATIENT DATA WITH RETRY
+// ==========================================
+
+const fetchPatientDataWithRetry = async (
+  retries = 5,
+  delay = 2000
+) => {
+
   try {
-    const patientsRef = ref(database, 'patients');
-    
-    // Fetch patient records
-    const snapshot = await get(patientsRef);
+
+    const patientsRef =
+      ref(database, 'patients');
+
+    const snapshot =
+      await get(patientsRef);
+
 
     if (snapshot.exists()) {
+
       return snapshot.val();
-    } else {
-      throw new Error("No patient data available.");
+
     }
+
+    // No patients
+    return {};
+
   } catch (error) {
+
     if (retries === 0) {
-      throw new Error("Failed to fetch data after multiple attempts.");
+      throw error;
     }
-    console.log(`Retrying... (${retries} attempts left)`);
-    await new Promise(resolve => setTimeout(resolve, delay)); // Wait before retrying
-    return fetchPatientDataWithRetry(retries - 1, delay); // Retry recursively
+
+
+    console.log(
+      `Retrying patient data... (${retries} attempts left)`
+    );
+
+
+    await new Promise(
+      resolve => setTimeout(resolve, delay)
+    );
+
+
+    return fetchPatientDataWithRetry(
+      retries - 1,
+      delay
+    );
+
   }
+
 };
+
+
+// ==========================================
+// GET TODAY'S REGISTRATIONS
+// ==========================================
+
 const calculateRegistrationRate = async () => {
+
   try {
 
-    // Fetch patient data
-    const patients = await fetchPatientDataWithRetry();
-
-    const patientList = Object.values(patients);
-
-    // Current date
-    const today = new Date().toISOString().split('T')[0];
-
-    // Registrations today
-    const todayCount = patientList.filter(patient =>
-      patient.registrationDate &&
-      patient.registrationDate.startsWith(today)
-    ).length;
-
-    // Total registrations
-    const totalCount = patientList.length;
-
-    // Average daily registration rate
-    const avgDailyRate = (totalCount / 30).toFixed(2);
-
-
-    // Display registration statistics
+    // Loading display
     registrationRateDiv.innerHTML = `
+
+      <div class="registration-loading">
+
+        <i class="fas fa-spinner fa-spin"></i>
+
+        <span>
+          Loading today's registrations...
+        </span>
+
+      </div>
+
+    `;
+
+
+    // Get patients
+    const patients =
+      await fetchPatientDataWithRetry();
+
+
+    const patientList =
+      Object.values(patients);
+
+
+    // ==========================================
+    // GET TODAY'S LOCAL DATE
+    // ==========================================
+
+    const now = new Date();
+
+    const year =
+      now.getFullYear();
+
+    const month =
+      String(now.getMonth() + 1)
+        .padStart(2, '0');
+
+    const day =
+      String(now.getDate())
+        .padStart(2, '0');
+
+
+    const today =
+      `${year}-${month}-${day}`;
+
+
+    // ==========================================
+    // COUNT TODAY'S REGISTRATIONS
+    // ==========================================
+
+    const todayCount =
+      patientList.filter(patient => {
+
+        if (!patient?.registrationDate) {
+          return false;
+        }
+
+
+        return String(
+          patient.registrationDate
+        ).startsWith(today);
+
+      }).length;
+
+
+    // ==========================================
+    // DISPLAY ONLY TODAY'S REGISTRATIONS
+    // ==========================================
+
+    registrationRateDiv.innerHTML = `
+
       <div class="registration-stats">
 
         <div class="registration-stat-card">
 
-          <div class="registration-stat-icon total-registration-icon">
-            <i class="fas fa-users"></i>
-          </div>
+          <div class="
+            registration-stat-icon
+            today-registration-icon
+          ">
 
-          <div class="registration-stat-info">
-            <span>Total Registrations</span>
-            <strong>${totalCount}</strong>
-          </div>
-
-        </div>
-
-
-        <div class="registration-stat-card">
-
-          <div class="registration-stat-icon today-registration-icon">
             <i class="fas fa-user-plus"></i>
+
           </div>
 
-          <div class="registration-stat-info">
-            <span>Today's Registrations</span>
-            <strong>${todayCount}</strong>
-          </div>
-
-        </div>
-
-
-        <div class="registration-stat-card">
-
-          <div class="registration-stat-icon rate-registration-icon">
-            <i class="fas fa-chart-line"></i>
-          </div>
 
           <div class="registration-stat-info">
 
-            <span>Average Daily Rate</span>
+            <span>
+              Today's Registrations
+            </span>
 
-            <div class="registration-rate-value">
-              <strong>${avgDailyRate}</strong>
-              <small>patients / day</small>
-            </div>
+            <strong>
+              ${todayCount.toLocaleString()}
+            </strong>
 
           </div>
 
         </div>
 
       </div>
+
     `;
+
+
+    console.log(
+      "📅 Registration date:",
+      today
+    );
+
+    console.log(
+      "🆕 Today's Registrations:",
+      todayCount
+    );
+
 
   } catch (error) {
 
-    console.error("Error fetching patient data:", error);
+    console.error(
+      "❌ Error fetching today's registrations:",
+      error
+    );
+
 
     registrationRateDiv.innerHTML = `
+
       <div class="registration-error">
+
         <i class="fas fa-circle-exclamation"></i>
-        <span>Unable to load registration statistics.</span>
+
+        <span>
+          Unable to load today's registrations.
+        </span>
+
       </div>
+
     `;
+
   }
+
 };
 
-// Call the function on page load
-calculateRegistrationRate();
 
+// ==========================================
+// LOAD
+// ==========================================
+
+calculateRegistrationRate();
 
 
 // References to DOM elements
@@ -3089,3 +3302,6 @@ popupOverlay3.addEventListener("click", () => {
   reportDetailsPopup.style.display = "none";
   popupOverlay3.style.display = "none";
 });
+
+
+

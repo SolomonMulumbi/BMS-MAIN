@@ -1189,8 +1189,21 @@ providerSelect.value = selectedProvider;
 
 
 const costPriceCell = document.createElement('td');
-costPriceCell.textContent = patient.costPrice || '—';
+costPriceCell.textContent = "0";
+
+if (window.biboUserRole === "admin") {
+    costPriceCell.textContent = patient.costPrice ?? "0";
+}
+
 row.appendChild(costPriceCell);
+
+window.addEventListener("biboAccessReady", (event) => {
+    if (event.detail.role === "admin") {
+        costPriceCell.textContent = patient.costPrice ?? "0";
+    } else {
+        costPriceCell.textContent = "0";
+    }
+}, { once: true });
 
 // --- Price Per Piece ---
 const priceCell = document.createElement('td');
@@ -1211,8 +1224,28 @@ const revenueCell = document.createElement('td');
 revenueCell.classList.add('revenue-cell');
 
 const estimatedRevenue = initialStock * defaultPrice;
-revenueCell.textContent = `${estimatedRevenue.toLocaleString('en')}.00`;
+
+// Set immediately if role is already available
+if (window.biboUserRole === "admin") {
+    revenueCell.textContent = `${estimatedRevenue.toLocaleString('en')}.00`;
+} else {
+    revenueCell.textContent = "0.00";
+}
+
 row.appendChild(revenueCell);
+
+// If permissions haven't loaded yet, update when they become ready
+if (!window.biboUserRole) {
+    window.addEventListener("biboAccessReady", (event) => {
+
+        if (event.detail.role === "admin") {
+            revenueCell.textContent = `${estimatedRevenue.toLocaleString('en')}.00`;
+        } else {
+            revenueCell.textContent = "0.00";
+        }
+
+    }, { once: true });
+}
 
 function updatePrices(provider) {
   document.querySelectorAll('.price-per-piece-cell').forEach((cell) => {

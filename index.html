@@ -403,7 +403,7 @@ fullscreenButton.addEventListener('click', function() {
             </div>
 
             <div class="survey-info">
-                <span class="survey-label">Patients</span>
+                <span class="survey-label">Total Registrations</span>
                 <span class="count2" id="patientsCount">0</span>
             </div>
         </div>
@@ -469,7 +469,7 @@ fullscreenButton.addEventListener('click', function() {
 </div>
 
   
- <div id="registrationRate" class="registration-rate">
+ <div  id="registrationRate" class="registration-rate">
     <div class="registration-loading">
         <i class="fas fa-spinner fa-spin"></i>
         <span>Loading registration statistics...</span>
@@ -495,7 +495,7 @@ fullscreenButton.addEventListener('click', function() {
       <button id="clear-filter-button"><i class="fas fa-refresh"></i> Refresh Filter</button>
     
     </section>
-  <div class="medicine-search-container">
+  <div data-permission="admin laboratory" class="medicine-search-container">
 
     <div class="medicine-search-header">
         <div class="medicine-search-icon">
@@ -1422,7 +1422,7 @@ tr:hover {
 <script type="module" src="index.js">
  
 </script>
-
+<script type="module" src="page-access.js"></script>
 
   </body>
 <!-- partial -->
@@ -1430,4 +1430,6 @@ tr:hover {
 <script src='https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js'></script><script  src="./portal.js"></script>
 
 </body>
+
+
 </html>
