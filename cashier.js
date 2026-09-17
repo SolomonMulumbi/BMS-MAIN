@@ -702,12 +702,73 @@ searchInput.addEventListener('input', () => {
   renderPatients();
 });
 
-// Fetch patient data from Firebase
-onValue(patientsRef, (snapshot) => {
-  patientsData = snapshot.val() ? Object.values(snapshot.val()).reverse() : [];
-  // Update the pagination and render the patients
-  renderPatients();
-});
+// ====================== PATIENT LOADING ======================
+
+let patientsLoaded = false;
+let loading = false;
+
+const paginationDiv = document.getElementById("pagination");
+
+// Show placeholders immediately
+renderPlaceholders(patientsPerPage);
+
+// Load patients from Firebase
+onValue(
+    patientsRef,
+
+    (snapshot) => {
+        loading = true;
+
+        const data = snapshot.val();
+
+        patientsData = data
+            ? Object.entries(data).map(([key, value]) => ({
+                id: key,
+                ...value
+            })).reverse()
+            : [];
+
+        patientsLoaded = true;
+        loading = false;
+
+        console.log(`✅ ${patientsData.length} patients loaded`);
+
+        // Keep page valid instead of always forcing page 1
+        const totalPages = Math.max(
+            1,
+            Math.ceil(patientsData.length / patientsPerPage)
+        );
+
+        if (currentPage > totalPages) {
+            currentPage = totalPages;
+        }
+
+        renderPatients();
+
+        // Duplicate detection runs after rendering
+        setTimeout(() => {
+            checkDuplicatePatients();
+        }, 100);
+    },
+
+    (error) => {
+        loading = false;
+        patientsLoaded = true;
+
+        console.error("❌ Failed to load patients:", error);
+
+        patientsContainer.innerHTML = `
+            <div style="
+                padding:20px;
+                text-align:center;
+                color:#7a8780;
+                font-size:11px;
+            ">
+                Unable to load patient records.
+            </div>
+        `;
+    }
+);
 
 
 // Function to check if it's today's date (helper function)
@@ -861,7 +922,7 @@ function openWishesPopup(patient) {
     + `Your health is important to us, and we are here to ensure you have a healthy and vibrant year ahead. 💪\n\n`
     + `Feel free to pass by and get the best care. 🚶‍♂️🚶‍♀️\n\n`
     + `Address: ${hospitalInfo}\n\n`
-    + `Contact us at +256 782 477 517 for any inquiries. 📞`;
+    + `Contact us at +256 708 657 717 for any inquiries. 📞`;
 
   const sendButton = document.createElement('button');
   sendButton.textContent = '🎉Send Wishes';
@@ -984,55 +1045,9 @@ function renderPlaceholders(rows = 5) {
 
 let lastFetchedKey = null;
 const batchSize = 40;
-let loading = false;
-
-const paginationDiv = document.getElementById('pagination');
 
 // ====================== FETCH IN BATCHES ======================
-async function fetchPatientsBatch() {
-  if (loading) return;
-  loading = true;
 
-  // Show skeleton immediately
-  renderPlaceholders(patientsPerPage);
-
-  let patientsQuery;
-  if (lastFetchedKey) {
-    patientsQuery = query(
-      patientsRef,
-      orderByKey(),
-      startAfter(lastFetchedKey),
-      limitToFirst(batchSize)
-    );
-  } else {
-    patientsQuery = query(
-      patientsRef,
-      orderByKey(),
-      limitToFirst(batchSize)
-    );
-  }
-
-  try {
-    const snapshot = await get(patientsQuery);
-    if (snapshot.exists()) {
-      const data = snapshot.val();
-      const newPatients = Object.keys(data).map(key => ({
-        id: key,
-        ...data[key],
-      }));
-
-      lastFetchedKey = newPatients[newPatients.length - 1].id;
-      patientsData = [...patientsData, ...newPatients];
-      renderPatients(); // render first page
-    } else {
-      renderPatients();
-    }
-  } catch (error) {
-    console.error('Error fetching patients:', error);
-  } finally {
-    loading = false;
-  }
-}
 
 // ====================== RENDER FUNCTION ======================
 function renderPatients() {
@@ -3041,9 +3056,9 @@ if (shouldPrint) {
         </div>
         <div class="hospital-details">
           <h1>SANYU HOSPITAL </h1>
-          <p>Plot 294 Kevina Road, Nsambya-Kampala</p>
-          <p>Phone: +256 782 477 517</p>
-          <p>Email: info@keahmedicals.com</p>
+          <p>Address: Katooke-Wakiso District</p>
+          <p>Phone: +256 708 657 717</p>
+          <p>Email: sanyuhospital@gmail.com</p>
         </div>
         <div class="receipt">
           <h2>Payment Receipt</h2>
@@ -3738,9 +3753,9 @@ confirmMedicinePaymentButton.addEventListener('click', async () => {
           </div>
           <div class="hospital-details">
             <h1>SANYU HOSPITAL  </h1>
-            <p>Address: Located at Katooke-Wakiso District</p>
-            <p>Phone: +256 782 477 517</p>
-            <p>Email: info@keahmedicals.com</p>
+            <p>Address: Katooke-Wakiso District</p>
+            <p>Phone: +256 708 657 717</p>
+            <p>Email: sanyuhospital@gmail.com</p>
           </div>
           <div class="date-time">
             <p><strong>Date:</strong> ${now.toLocaleDateString()}</p>
@@ -4044,9 +4059,9 @@ if (shouldPrint) {
       </div>
       <div class="hospital-details">
         <h1>SANYU HOSPITAL  </h1>
-        <p>Address: Located at Katooke-Wakiso District</p>
-        <p>Phone: +256 782 477 517</p>
-        <p>Email: info@keahmedicals.com</p>
+        <p>Address: Katooke-Wakiso District</p>
+        <p>Phone: +256 708 657 717</p>
+        <p>Email: sanyuhospital@gmail.com</p>
       </div>
       <div class="date-time">
         <p><strong>Date:</strong> ${now.toLocaleDateString()}</p>
@@ -4233,7 +4248,7 @@ function generateWhatsAppMessage(fileURL) {
   // Customize the message content here based on the patient's information and the file URL
   const patientName = patient.name; // Replace with the actual patient's name
   const hospitalName = 'SANYU HOSPITAL  '; // Replace with the hospital's name
-  const contactNumber = '+256 782 477 517'; // Replace with the hospital's contact number
+  const contactNumber = '+256 708 657 717'; // Replace with the hospital's contact number
 
   // Create the message text with the file URL
   const message = `Hello ${patientName},\n\nThis is ${hospitalName}. We are pleased to share your latest medical results with you. Please click on the link below to access your results:\n\n${fileURL}\n\nFor any questions or assistance, feel free to contact us at ${contactNumber}.\n\nThank you for choosing ${hospitalName} for your healthcare needs. We value your trust and are here to assist you with any medical concerns.\n\nBest regards,\n${hospitalName}`;
@@ -6842,8 +6857,8 @@ const invoiceContent = `
       <h2>SANYU HOSPITAL  </h2>
       <p>Katooke</p>
       <p>Wakiso District (Uganda)</p>
-      <p>Phone: +256 782 477 517</p>
-      <p>Email: info@keahmedicals.com</p>
+      <p>Phone: +256 708 657 717</p>
+      <p>Email: sanyuhospital@gmail.com</p>
     </div>
     <div class="invoice-details">
       <h1>Test Invoice</h1>
@@ -8938,9 +8953,9 @@ if (shouldPrint) {
 
     <div class="hospital-details">
       <h1>SANYU HOSPITAL  </h1>
-      <p>Address: Located at Katooke-Wakiso District</p>
-      <p>Phone: +256 782 477 517</p>
-      <p>Email: info@keahmedicals.com</p>
+      <p>Address: Katooke-Wakiso District</p>
+      <p>Phone: +256 708 657 717</p>
+      <p>Email: sanyuhospital@gmail.com</p>
     </div>
 
     <div class="date-time">
@@ -9155,492 +9170,593 @@ reportForm.addEventListener("submit", (e) => {
   reportPopup.style.display = "none";
   popupOverlay2.style.display = "none";
 });
+
+
 function loadSalesReceipts() {
-  const receiptsRef = ref(database, 'salesReceipts');
-  const tableBody = document.querySelector('#salesReceiptsTable tbody');
-  
-  // Select the elements where totals will be displayed
-  const availableCashElement = document.querySelector('#cashTotal'); // Available Cash
-  const mobileMoneyElement = document.querySelector('#mobileMoneyTotal'); // Mobile Money
-  const insuranceElement = document.querySelector('#insuranceTotal'); // Insurance
-  const creditCardElement = document.querySelector('#creditCardTotal'); // Credit Card
-  const merchantElement = document.querySelector('#merchantTotal'); // Merchant
-  const grandTotalElement = document.querySelector('#grandTotal'); // Grand Total
+    const receiptsRef = ref(database, 'salesReceipts');
+    const tableBody = document.querySelector('#salesReceiptsTable tbody');
 
-  // Update today's date in the title
-  const today = new Date();
-  const formattedDate = today.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
-  document.getElementById('receipt-date').textContent = ` - ${formattedDate}`;
+    const availableCashElement = document.querySelector('#cashTotal');
+    const mobileMoneyElement = document.querySelector('#mobileMoneyTotal');
+    const insuranceElement = document.querySelector('#insuranceTotal');
+    const creditCardElement = document.querySelector('#creditCardTotal');
+    const merchantElement = document.querySelector('#merchantTotal');
+    const grandTotalElement = document.querySelector('#grandTotal');
+    const receiptDateElement = document.getElementById('receipt-date');
+    const countdownElement = document.getElementById('shift-countdown');
 
-  tableBody.innerHTML = ''; // Clear table
-
-  // Initialize totals for each payment mode
-  let cashTotal = 0;
-  let mobileMoneyTotal = 0;
-  let insuranceTotal = 0;
-  let creditCardTotal = 0;
-  let merchantTotal = 0;
-
-  onValue(receiptsRef, (snapshot) => {
-    tableBody.innerHTML = ''; // Clear on update
-
-    // Reset totals every time data is updated
-    cashTotal = 0;
-    mobileMoneyTotal = 0;
-    insuranceTotal = 0;
-    creditCardTotal = 0;
-    merchantTotal = 0;
-function getCurrentShift() {
-  const now = new Date();
-
-  let shiftStart, shiftEnd, shiftName, nextShiftStart;
-
-  // Morning shift: 07:30 AM - 07:30 PM
-  const morningStart = new Date(now);
-  morningStart.setHours(7, 30, 0, 0);
-
-  const morningEnd = new Date(now);
-  morningEnd.setHours(19, 30, 0, 0);
-
-  if (now >= morningStart && now < morningEnd) {
-    // Morning Shift
-    shiftStart = morningStart;
-    shiftEnd = morningEnd;
-    shiftName = "Morning Shift";
-    nextShiftStart = shiftEnd; // next shift = night
-  } else {
-    // Night Shift: 07:30 PM - 07:30 AM
-    if (now >= morningEnd) {
-      shiftStart = morningEnd;
-      shiftEnd = new Date(morningStart);
-      shiftEnd.setDate(shiftEnd.getDate() + 1); // next morning
-    } else {
-      // before morningStart → night shift started yesterday
-      shiftEnd = morningStart;
-      shiftStart = new Date(morningEnd);
-      shiftStart.setDate(shiftStart.getDate() - 1);
+    if (!tableBody) {
+        console.error("❌ salesReceiptsTable tbody not found.");
+        return;
     }
 
-    shiftName = "Night Shift";
-    nextShiftStart = shiftEnd; // next shift = morning
-  }
-
-  // Format date like: Thu, 28th Aug 2025
-  const options = {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-    year: "numeric"
-  };
-
-  let dateStr = shiftStart.toLocaleDateString("en-GB", options);
-
-  // Add ordinal suffix (st, nd, rd, th)
-  const day = shiftStart.getDate();
-  const suffix = (day % 10 === 1 && day !== 11) ? "st"
-               : (day % 10 === 2 && day !== 12) ? "nd"
-               : (day % 10 === 3 && day !== 13) ? "rd"
-               : "th";
-
-  dateStr = dateStr.replace(/\d+/, day + suffix);
-
-  const shiftLabel = `${dateStr} - ${shiftName}`;
-
-  return {
-    shiftName,
-    shiftStart,
-    shiftEnd,
-    shiftLabel,
-    nextShiftStart
-  };
-}
-
-// Show on receipt
-const { shiftLabel, nextShiftStart } = getCurrentShift();
-document.getElementById('receipt-date').textContent = shiftLabel;
-
-function updateCountdown() {
-  const now = new Date();
-  const diff = nextShiftStart - now;
-
-  if (diff <= 0) {
-    document.getElementById('shift-countdown').textContent = "Shift change now!";
-    return;
-  }
-
-  const hours = Math.floor(diff / (1000 * 60 * 60));
-  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-  const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-
-  // Format next shift start time (hh:mm AM/PM)
-  const options = { hour: "numeric", minute: "2-digit", hour12: true };
-  const nextShiftTime = nextShiftStart.toLocaleTimeString("en-US", options);
-
-  document.getElementById('shift-countdown').textContent =
-    `Next shift begins in ${hours}h ${minutes}m ${seconds}s (at ${nextShiftTime})`;
-}
-
-
-// Run countdown every second
-setInterval(updateCountdown, 1000);
-updateCountdown();
-
-    // Collect and sort receipts by timestamp descending (latest first)
-    const receipts = [];
-    snapshot.forEach(childSnapshot => {
-      receipts.push({
-        id: childSnapshot.key,
-        data: childSnapshot.val()
-      });
-    });
-
-// Get shift window
-const { shiftStart, shiftEnd } = getCurrentShift();
-
-// Filter receipts for the current shift
-const todayReceipts = receipts.filter(({ data: receipt }) => {
-  const receiptDate = new Date(receipt.timestamp);
-  return receiptDate >= shiftStart && receiptDate <= shiftEnd;
-});
-
-todayReceipts.sort(
-  (a, b) =>
-    (Number(b.data.timestamp) || 0) -
-    (Number(a.data.timestamp) || 0)
-);
-
-const totalReceipts = todayReceipts.length;
-
-
-todayReceipts.forEach(({ id, data: receipt }, index) => {
-
-  const row =
-    document.createElement('tr');
-
-
-  // ------------------------------------------
-  // DATE
-  // ------------------------------------------
-
-  const timestamp =
-    Number(receipt.timestamp) || 0;
-
-  const formattedReceiptDate =
-    timestamp
-      ? new Date(timestamp).toLocaleString()
-      : '';
-
-
-  // ------------------------------------------
-  // SAFE NUMERIC VALUES
-  // ------------------------------------------
-
-  const totalAmount =
-    Number(receipt.totalAmount) || 0;
-
-  const balance =
-    Number(receipt.balance) || 0;
-
-
-  // Use saved amountTendered if available.
-  // Otherwise calculate it from total and balance.
-  let amountTendered;
-
-  if (
-    receipt.amountTendered !== undefined &&
-    receipt.amountTendered !== null &&
-    receipt.amountTendered !== ''
-  ) {
-
-    amountTendered =
-      Number(receipt.amountTendered) || 0;
-
-  } else {
-
-    amountTendered =
-      (balance > 0 && balance < totalAmount)
-        ? totalAmount - balance
-        : totalAmount;
-  }
-
-
-  // ------------------------------------------
-  // PAYMENT MODE TOTALS
-  // ------------------------------------------
-
-  const paymentMode =
-    String(receipt.paymentMode || '')
-      .trim()
-      .toLowerCase();
-
-
-  if (paymentMode === 'cash') {
-
-    cashTotal += amountTendered;
-
-  } else if (paymentMode === 'mobile money') {
-
-    mobileMoneyTotal += amountTendered;
-
-  } else if (paymentMode === 'insurance') {
-
-    insuranceTotal += amountTendered;
-
-  } else if (paymentMode === 'credit card') {
-
-    creditCardTotal += amountTendered;
-
-  } else if (paymentMode === 'merchant') {
-
-    merchantTotal += amountTendered;
-  }
-
-
-  // ------------------------------------------
-  // RECEIPT NUMBER
-  // ------------------------------------------
-
-  const receiptNumber =
-    String(totalReceipts - index)
-      .padStart(3, '0');
-
-
-  // ------------------------------------------
-  // TABLE ROW
-  // ------------------------------------------
-
-  const rowHTML = `
-
-    <td>${receiptNumber}</td>
-
-    <td>${receipt.patientId || ''}</td>
-
-    <td>${receipt.department || ''}</td>
-
-    <td>${receipt.paymentMode || ''}</td>
-
-    <td>${receipt.testsTaken || ''}</td>
-
-    <td>${totalAmount.toFixed(2)}</td>
-
-    <td>${amountTendered.toFixed(2)}</td>
-
-    <td>${balance.toFixed(2)}</td>
-
-    <td>${formattedReceiptDate}</td>
-
-    <td>
-
-      <button
-        class="print-btn"
-        data-receipt-no="${receiptNumber}">
-        Print
-      </button>
-
-      <button
-        class="delete-btn"
-        data-receipt-id="${id}"
-        style="background-color:red; color:white;">
-        🗑 Delete
-      </button>
-
-    </td>
-  `;
-
-
-  row.innerHTML =
-    rowHTML;
-
-  tableBody.appendChild(
-    row
-  );
-
-});
-  // Global variable to store last deleted receipt data
-let lastDeletedReceipt = null;
-let undoTimeoutId = null;
-
-// Function to show Undo Snackbar
-function showUndoSnackbar() {
-  const snackbar = document.createElement('div');
-  snackbar.id = 'undo-snackbar';
-  snackbar.style = `
-    position: fixed;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #333;
-    color: white;
-    padding: 10px 20px;
-    border-radius: 5px;
-    z-index: 1000;
-    display: flex;
-    align-items: center;
-  `;
-  snackbar.textContent = 'Receipt deleted. ';
-  
-  const undoBtn = document.createElement('button');
-  undoBtn.textContent = 'Undo';
-  undoBtn.style = `
-    margin-left: 10px;
-    background: #4CAF50;
-    border: none;
-    color: white;
-    padding: 5px 10px;
-    cursor: pointer;
-    border-radius: 3px;
-  `;
-
-  undoBtn.addEventListener('click', () => {
-    if (!lastDeletedReceipt) return;
-    const { id, data } = lastDeletedReceipt;
-
-    // Restore to Firebase
-    const receiptRef = ref(database, `salesReceipts/${id}`);
-    set(receiptRef, data)
-      .then(() => {
-        alert('Receipt restored.');
-        lastDeletedReceipt = null;
-        clearTimeout(undoTimeoutId);
-        snackbar.remove();
-      })
-      .catch(err => {
-        alert('Failed to restore receipt.');
-        console.error(err);
-      });
-  });
-
-  snackbar.appendChild(undoBtn);
-  document.body.appendChild(snackbar);
-
-  // Remove snackbar after 5 seconds if no undo
-  undoTimeoutId = setTimeout(() => {
-    snackbar.remove();
-    lastDeletedReceipt = null;
-  }, 5000);
-}
-let isAuthenticated = false;
-let authTimeoutId = null;
-
-tableBody.addEventListener('click', function (e) {
-  if (!e.target.classList.contains('delete-btn')) return;
-
-  e.preventDefault();
-  e.stopPropagation();
-
-  const receiptId = e.target.dataset.receiptId;
-  if (!receiptId) {
-    alert('Receipt ID not found.');
-    return;
-  }
-
-  const row = e.target.closest('tr');
-
-  // 1. Confirm deletion first
-  if (!confirm(`Are you sure you want to delete receipt #${receiptId}?`)) return;
-
-  // 2. Then ask for password, but only if not authenticated recently
-  if (!isAuthenticated) {
-    const password = prompt('Enter admin password to confirm deletion:');
-    if (password !== "sanyu44") {
-      alert('Incorrect password. Deletion cancelled.');
-      return;
-    }
-    isAuthenticated = true;
-
-    // Reset auth after 5 minutes
-    if (authTimeoutId) clearTimeout(authTimeoutId);
-    authTimeoutId = setTimeout(() => {
-      isAuthenticated = false;
-    }, 300000);
-  }
-
-  // 3. Proceed with deletion
-  const receiptRef = ref(database, `salesReceipts/${receiptId}`);
-
-  get(receiptRef).then(snapshot => {
-    if (!snapshot.exists()) {
-      alert('Receipt not found.');
-      return;
-    }
-
-    lastDeletedReceipt = {
-      id: receiptId,
-      data: snapshot.val()
-    };
-
-    // Fade out animation
-    row.style.transition = 'opacity 0.5s ease';
-    row.style.opacity = '0';
-
-    setTimeout(() => {
-      row.remove();
-
-      remove(receiptRef).then(() => {
-        console.log(`Receipt ${receiptId} deleted`);
-        showUndoSnackbar();
-      }).catch(err => {
-        alert('Failed to delete receipt.');
-        console.error(err);
-      });
-    }, 500);
-  }).catch(err => {
-    alert('Failed to retrieve receipt data.');
-    console.error(err);
-  });
-});
-
-    // Format the totals with commas and update the UI
-    const formatNumber = (num) => {
-      return new Intl.NumberFormat('en-US').format(num); // Format number with commas
-    };
-
-    // Update the totals on the dashboard
-    if (availableCashElement) {
-      availableCashElement.textContent = `UGX. ${formatNumber(cashTotal.toFixed(2))}`;
-    }
-    if (mobileMoneyElement) {
-      mobileMoneyElement.textContent = `UGX. ${formatNumber(mobileMoneyTotal.toFixed(2))}`;
-    }
-    if (insuranceElement) {
-      insuranceElement.textContent = `UGX. ${formatNumber(insuranceTotal.toFixed(2))}`;
-    }
-    if (creditCardElement) {
-      creditCardElement.textContent = `UGX. ${formatNumber(creditCardTotal.toFixed(2))}`;
-    }
-    if (merchantElement) {
-      merchantElement.textContent = `UGX. ${formatNumber(merchantTotal.toFixed(2))}`;
-    }
-    if (grandTotalElement) {
-      const grandTotal = cashTotal + mobileMoneyTotal + insuranceTotal + creditCardTotal + merchantTotal;
-      grandTotalElement.textContent = `UGX. ${formatNumber(grandTotal.toFixed(2))}`;
-    }
- 
-
-    // Hook up print buttons
-    document.querySelectorAll('.print-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const row = e.target.closest('tr');
-        const receiptDetails = {
-          receiptNumber: row.cells[0].textContent,
-          patientId: row.cells[1].textContent,
-          department: row.cells[2].textContent,
-          paymentMode: row.cells[3].textContent,
-          testsTaken: row.cells[4].textContent,
-          totalAmount: row.cells[5].textContent,
-          amountTendered: row.cells[6].textContent,
-          balance: row.cells[7].textContent,
-          date: row.cells[8].textContent
+    // ====================== SHIFT ======================
+
+    function getCurrentShift() {
+        const now = new Date();
+        let shiftStart, shiftEnd, shiftName, nextShiftStart;
+
+        const morningStart = new Date(now);
+        morningStart.setHours(7, 30, 0, 0);
+
+        const morningEnd = new Date(now);
+        morningEnd.setHours(19, 30, 0, 0);
+
+        if (now >= morningStart && now < morningEnd) {
+            shiftStart = morningStart;
+            shiftEnd = morningEnd;
+            shiftName = "Morning Shift";
+            nextShiftStart = shiftEnd;
+        } else {
+            if (now >= morningEnd) {
+                shiftStart = morningEnd;
+                shiftEnd = new Date(morningStart);
+                shiftEnd.setDate(shiftEnd.getDate() + 1);
+            } else {
+                shiftEnd = morningStart;
+                shiftStart = new Date(morningEnd);
+                shiftStart.setDate(shiftStart.getDate() - 1);
+            }
+
+            shiftName = "Night Shift";
+            nextShiftStart = shiftEnd;
+        }
+
+        const options = {
+            weekday: "short",
+            day: "numeric",
+            month: "short",
+            year: "numeric"
         };
-        printReceipt(receiptDetails);
-      });
+
+        let dateStr = shiftStart.toLocaleDateString("en-GB", options);
+
+        const day = shiftStart.getDate();
+
+        const suffix =
+            (day % 10 === 1 && day !== 11) ? "st" :
+            (day % 10 === 2 && day !== 12) ? "nd" :
+            (day % 10 === 3 && day !== 13) ? "rd" : "th";
+
+        dateStr = dateStr.replace(/\d+/, day + suffix);
+
+        return {
+            shiftName,
+            shiftStart,
+            shiftEnd,
+            shiftLabel: `${dateStr} - ${shiftName}`,
+            nextShiftStart
+        };
+    }
+
+    // ====================== SHIFT HEADER ======================
+
+    let currentShift = getCurrentShift();
+
+    if (receiptDateElement) {
+        receiptDateElement.textContent = currentShift.shiftLabel;
+    }
+
+    // ====================== COUNTDOWN ======================
+
+    function updateCountdown() {
+        currentShift = getCurrentShift();
+
+        if (receiptDateElement) {
+            receiptDateElement.textContent = currentShift.shiftLabel;
+        }
+
+        if (!countdownElement) return;
+
+        const now = new Date();
+        const diff = currentShift.nextShiftStart - now;
+
+        if (diff <= 0) {
+            countdownElement.textContent = "Shift change now!";
+            return;
+        }
+
+        const hours = Math.floor(diff / 3600000);
+        const minutes = Math.floor((diff % 3600000) / 60000);
+        const seconds = Math.floor((diff % 60000) / 1000);
+
+        const nextShiftTime =
+            currentShift.nextShiftStart.toLocaleTimeString(
+                "en-US",
+                {
+                    hour: "numeric",
+                    minute: "2-digit",
+                    hour12: true
+                }
+            );
+
+        countdownElement.textContent =
+            `Next shift begins in ${hours}h ${minutes}m ${seconds}s (at ${nextShiftTime})`;
+    }
+
+    updateCountdown();
+
+    // Prevent multiple countdown timers if function gets called again
+    if (window.salesReceiptCountdownInterval) {
+        clearInterval(window.salesReceiptCountdownInterval);
+    }
+
+    window.salesReceiptCountdownInterval =
+        setInterval(updateCountdown, 1000);
+
+    // ====================== NUMBER FORMAT ======================
+
+    const formatNumber = value =>
+        new Intl.NumberFormat('en-US', {
+            maximumFractionDigits: 2
+        }).format(Number(value) || 0);
+
+    // ====================== FIREBASE LISTENER ======================
+
+    onValue(receiptsRef, snapshot => {
+        const startTime = performance.now();
+
+        let cashTotal = 0;
+        let mobileMoneyTotal = 0;
+        let insuranceTotal = 0;
+        let creditCardTotal = 0;
+        let merchantTotal = 0;
+
+        currentShift = getCurrentShift();
+
+        // ====================== COLLECT CURRENT SHIFT ======================
+
+        const receipts = [];
+
+        snapshot.forEach(childSnapshot => {
+            const receipt = childSnapshot.val();
+
+            if (!receipt) return;
+
+            const timestamp = Number(receipt.timestamp) || 0;
+
+            if (
+                timestamp >= currentShift.shiftStart.getTime() &&
+                timestamp <= currentShift.shiftEnd.getTime()
+            ) {
+                receipts.push({
+                    id: childSnapshot.key,
+                    data: receipt,
+                    timestamp
+                });
+            }
+        });
+
+        // Latest first
+        receipts.sort((a, b) => b.timestamp - a.timestamp);
+
+        const totalReceipts = receipts.length;
+
+        // ====================== BUILD TABLE OFF-SCREEN ======================
+
+        const fragment = document.createDocumentFragment();
+
+        receipts.forEach(({ id, data: receipt, timestamp }, index) => {
+            const row = document.createElement('tr');
+
+            const totalAmount = Number(receipt.totalAmount) || 0;
+            const balance = Number(receipt.balance) || 0;
+
+            let amountTendered;
+
+            if (
+                receipt.amountTendered !== undefined &&
+                receipt.amountTendered !== null &&
+                receipt.amountTendered !== ''
+            ) {
+                amountTendered = Number(receipt.amountTendered) || 0;
+            } else {
+                amountTendered =
+                    balance > 0 && balance < totalAmount
+                        ? totalAmount - balance
+                        : totalAmount;
+            }
+
+            // ====================== PAYMENT TOTALS ======================
+
+            const paymentMode =
+                String(receipt.paymentMode || '')
+                    .trim()
+                    .toLowerCase();
+
+            switch (paymentMode) {
+                case 'cash':
+                    cashTotal += amountTendered;
+                    break;
+
+                case 'mobile money':
+                    mobileMoneyTotal += amountTendered;
+                    break;
+
+                case 'insurance':
+                    insuranceTotal += amountTendered;
+                    break;
+
+                case 'credit card':
+                    creditCardTotal += amountTendered;
+                    break;
+
+                case 'merchant':
+                    merchantTotal += amountTendered;
+                    break;
+            }
+
+            // ====================== RECEIPT NUMBER ======================
+
+            const receiptNumber =
+                String(totalReceipts - index).padStart(3, '0');
+
+            const formattedReceiptDate =
+                timestamp
+                    ? new Date(timestamp).toLocaleString()
+                    : '';
+
+            // ====================== ROW ======================
+
+            row.innerHTML = `
+                <td>${receiptNumber}</td>
+                <td>${receipt.patientId || ''}</td>
+                <td>${receipt.department || ''}</td>
+                <td>${receipt.paymentMode || ''}</td>
+                <td>${receipt.testsTaken || ''}</td>
+                <td>${totalAmount.toFixed(2)}</td>
+                <td>${amountTendered.toFixed(2)}</td>
+                <td>${balance.toFixed(2)}</td>
+                <td>${formattedReceiptDate}</td>
+
+                <td>
+                    <button
+                        class="print-btn"
+                        data-receipt-no="${receiptNumber}">
+                        Print
+                    </button>
+
+                    <button
+                        class="delete-btn"
+                        data-receipt-id="${id}"
+                        style="background-color:red;color:white;">
+                        🗑 Delete
+                    </button>
+                </td>
+            `;
+
+            fragment.appendChild(row);
+        });
+
+        // ONE DOM UPDATE
+        tableBody.replaceChildren(fragment);
+
+        // ====================== TOTALS ======================
+
+        if (availableCashElement) {
+            availableCashElement.textContent =
+                `UGX. ${formatNumber(cashTotal)}`;
+        }
+
+        if (mobileMoneyElement) {
+            mobileMoneyElement.textContent =
+                `UGX. ${formatNumber(mobileMoneyTotal)}`;
+        }
+
+        if (insuranceElement) {
+            insuranceElement.textContent =
+                `UGX. ${formatNumber(insuranceTotal)}`;
+        }
+
+        if (creditCardElement) {
+            creditCardElement.textContent =
+                `UGX. ${formatNumber(creditCardTotal)}`;
+        }
+
+        if (merchantElement) {
+            merchantElement.textContent =
+                `UGX. ${formatNumber(merchantTotal)}`;
+        }
+
+        if (grandTotalElement) {
+            const grandTotal =
+                cashTotal +
+                mobileMoneyTotal +
+                insuranceTotal +
+                creditCardTotal +
+                merchantTotal;
+
+            grandTotalElement.textContent =
+                `UGX. ${formatNumber(grandTotal)}`;
+        }
+
+        console.log(
+            `✅ ${totalReceipts} shift receipts displayed in ${Math.round(performance.now() - startTime)}ms`
+        );
+    }, error => {
+        console.error("❌ Failed to load sales receipts:", error);
+
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="10" style="text-align:center;padding:25px;">
+                    Unable to load receipts.
+                </td>
+            </tr>
+        `;
     });
-  });
+
+    // ====================== DELETE / PRINT EVENTS ======================
+
+    let lastDeletedReceipt = null;
+    let undoTimeoutId = null;
+    let isAuthenticated = false;
+    let authTimeoutId = null;
+
+    function showUndoSnackbar() {
+        const oldSnackbar =
+            document.getElementById('undo-snackbar');
+
+        if (oldSnackbar) oldSnackbar.remove();
+
+        const snackbar =
+            document.createElement('div');
+
+        snackbar.id = 'undo-snackbar';
+
+        snackbar.style.cssText = `
+            position:fixed;
+            bottom:20px;
+            left:50%;
+            transform:translateX(-50%);
+            background:#26352e;
+            color:white;
+            padding:10px 16px;
+            border-radius:8px;
+            z-index:10000;
+            display:flex;
+            align-items:center;
+            gap:10px;
+            box-shadow:0 8px 25px rgba(0,0,0,.2);
+        `;
+
+        const message =
+            document.createElement('span');
+
+        message.textContent =
+            'Receipt deleted.';
+
+        const undoBtn =
+            document.createElement('button');
+
+        undoBtn.textContent = 'Undo';
+
+        undoBtn.style.cssText = `
+            background:#198754;
+            border:none;
+            color:white;
+            padding:6px 12px;
+            cursor:pointer;
+            border-radius:6px;
+            font-weight:700;
+        `;
+
+        snackbar.appendChild(message);
+        snackbar.appendChild(undoBtn);
+
+        document.body.appendChild(snackbar);
+
+        undoBtn.onclick = async () => {
+            if (!lastDeletedReceipt) return;
+
+            const { id, data } =
+                lastDeletedReceipt;
+
+            try {
+                await set(
+                    ref(database, `salesReceipts/${id}`),
+                    data
+                );
+
+                lastDeletedReceipt = null;
+
+                if (undoTimeoutId) {
+                    clearTimeout(undoTimeoutId);
+                }
+
+                snackbar.remove();
+
+            } catch (error) {
+                console.error(
+                    "❌ Failed to restore receipt:",
+                    error
+                );
+
+                alert("Failed to restore receipt.");
+            }
+        };
+
+        if (undoTimeoutId) {
+            clearTimeout(undoTimeoutId);
+        }
+
+        undoTimeoutId =
+            setTimeout(() => {
+                snackbar.remove();
+                lastDeletedReceipt = null;
+            }, 5000);
+    }
+
+    // ONE event listener handles both Print + Delete
+    tableBody.addEventListener('click', async event => {
+        const printButton =
+            event.target.closest('.print-btn');
+
+        const deleteButton =
+            event.target.closest('.delete-btn');
+
+        // ====================== PRINT ======================
+
+        if (printButton) {
+            const row =
+                printButton.closest('tr');
+
+            if (!row) return;
+
+            const receiptDetails = {
+                receiptNumber: row.cells[0]?.textContent || '',
+                patientId: row.cells[1]?.textContent || '',
+                department: row.cells[2]?.textContent || '',
+                paymentMode: row.cells[3]?.textContent || '',
+                testsTaken: row.cells[4]?.textContent || '',
+                totalAmount: row.cells[5]?.textContent || '',
+                amountTendered: row.cells[6]?.textContent || '',
+                balance: row.cells[7]?.textContent || '',
+                date: row.cells[8]?.textContent || ''
+            };
+
+            printReceipt(receiptDetails);
+            return;
+        }
+
+        // ====================== DELETE ======================
+
+        if (!deleteButton) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        const receiptId =
+            deleteButton.dataset.receiptId;
+
+        if (!receiptId) {
+            alert("Receipt ID not found.");
+            return;
+        }
+
+        const row =
+            deleteButton.closest('tr');
+
+        if (
+            !confirm(
+                `Are you sure you want to delete receipt #${receiptId}?`
+            )
+        ) {
+            return;
+        }
+
+        // Ask password once every 5 minutes
+        if (!isAuthenticated) {
+            const password =
+                prompt(
+                    "Enter admin password to confirm deletion:"
+                );
+
+            if (password !== "sanyu44") {
+                alert(
+                    "Incorrect password. Deletion cancelled."
+                );
+                return;
+            }
+
+            isAuthenticated = true;
+
+            if (authTimeoutId) {
+                clearTimeout(authTimeoutId);
+            }
+
+            authTimeoutId =
+                setTimeout(() => {
+                    isAuthenticated = false;
+                }, 300000);
+        }
+
+        const receiptRef =
+            ref(
+                database,
+                `salesReceipts/${receiptId}`
+            );
+
+        try {
+            const snapshot =
+                await get(receiptRef);
+
+            if (!snapshot.exists()) {
+                alert("Receipt not found.");
+                return;
+            }
+
+            lastDeletedReceipt = {
+                id: receiptId,
+                data: snapshot.val()
+            };
+
+            // Fade immediately
+            if (row) {
+                row.style.transition =
+                    'opacity .25s ease';
+
+                row.style.opacity = '0';
+            }
+
+            setTimeout(async () => {
+                try {
+                    await remove(receiptRef);
+
+                    console.log(
+                        `🗑 Receipt ${receiptId} deleted`
+                    );
+
+                    showUndoSnackbar();
+
+                } catch (error) {
+                    console.error(
+                        "❌ Failed to delete receipt:",
+                        error
+                    );
+
+                    if (row) {
+                        row.style.opacity = '1';
+                    }
+
+                    alert(
+                        "Failed to delete receipt."
+                    );
+                }
+            }, 250);
+
+        } catch (error) {
+            console.error(
+                "❌ Failed to retrieve receipt:",
+                error
+            );
+
+            alert(
+                "Failed to retrieve receipt data."
+            );
+        }
+    });
 }
+
 loadSalesReceipts()
 function printReceipt(receipt) {
   const receiptWindow = window.open('', '_blank');
@@ -9744,9 +9860,9 @@ function printReceipt(receipt) {
 
     <div class="hospital-details">
       <h1>SANYU HOSPITAL  </h1>
-      <p>Address: Located at Katooke-Wakiso District</p>
-      <p>Phone: +256 782 477 517</p>
-      <p>Email: info@keahmedicals.com</p>
+      <p>Address: Katooke-Wakiso District</p>
+      <p>Phone: +256 708 657 717</p>
+      <p>Email: sanyuhospital@gmail.com</p>
     </div>
 
     <div class="date-time">
@@ -10349,7 +10465,7 @@ printBtn.addEventListener('click', () => {
     <img src="sanyu.png" alt="Hospital Logo" />
     <h1>SANYU HOSPITAL   KATOOKE - (UGANDA)</h1>
     <p>P.O. Box 12345, Kampala, Uganda</p>
-    <p>Tel: +256 708 657717 | Email: info@keahmedicals.com</p>
+    <p>Tel: +256 708 657717 | Email: sanyuhospital@gmail.com</p>
   </div>
 
   <h2>Daily Financial Summary - ${new Date(date).toLocaleDateString('en-UG', { weekday:'long', year:'numeric', month:'long', day:'numeric' })}</h2>
@@ -10655,7 +10771,7 @@ const reportHTML = `
     <img src="sanyu.png" alt="Logo" />
     <h1>SANYU HOSPITAL   KATOOKE - (UGANDA)</h1>
     <p>P.O. Box 12345, Kampala, Uganda</p>
-    <p>Tel: +256 708 657717 | Email: info@keahmedicals.com</p>
+    <p>Tel: +256 708 657717 | Email: sanyuhospital@gmail.com</p>
   </div>
 
   <h2>Financial Summary Report</h2>

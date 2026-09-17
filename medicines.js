@@ -1496,9 +1496,9 @@ function generateReceiptContent(cartItemsArray, billingMode) {
     </div>
     <div class="hospital-details">
       <h1>SANYU HOSPITAL </h1>
-      <p>Address: Located at Katooke-Wakiso District</p>
-      <p>Phone: +256 782 477 517</p>
-      <p>Email: info@keahmedicals.com</p>
+      <p>Address: Katooke-Wakiso District</p>
+      <p>Phone: +256 708 657 717</p>
+      <p>Email: sanyuhospital@gmail.com</p>
     </div>
   </div>
 

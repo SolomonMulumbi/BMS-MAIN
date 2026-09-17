@@ -924,63 +924,108 @@ bloodPressureInput.addEventListener('input', (event) => {
       
         <button id="fetchPatientCountBtn"> <i class="fas fa-sync-alt"></i>
                Fetch New Patient Count</button>
+
+
         <div class="popup-overlay" id="popupOverlay">
+
+
           <div class="popup">
-            
-            <span class="popup-close" id="popupClose">&times;</span>
-            
+    <div class="popup-header">
+        <div class="popup-header-icon">
+            <i class="fas fa-user-plus"></i>
+        </div>
+        <div>
             <h2>Register New Patient</h2>
-            <div id="existingPatients"></div>
-            <form class="popup-form" id="addPatientForm">
-              <label for="name">Full Name:</label>
-              <input type="text" id="name" required>
-              
-              <label for="age">Age:</label>
-<input type="number" id="age" min="0" max="120" placeholder="Enter age">
+            <p>Enter the patient's personal and contact information</p>
+        </div>
+        <span class="popup-close" id="popupClose">&times;</span>
+    </div>
 
-<label for="dob">Date of Birth:</label>
-<input type="date" id="dob" required>
+    <div id="existingPatients"></div>
 
-              
-              <label for="parents">Telephone Contact:</label>
-              <div class="telephone-input">
-                <input type="text" id="parentsCountryCode" value="+256" >
-                <input type="tel" id="parents" required placeholder="Enter phone number...">
-              </div>
-              
-              <label for="NOK">Next of Kin's Telephone Contact:</label>
-              <div class="telephone-input">
-                <input type="text" id="NOKCountryCode" value="+256" >
-                <input type="tel" id="NOK" required placeholder="Enter phone number...">
-              </div>
-              
+    <form class="popup-form" id="addPatientForm">
 
-              <label for="residence">Place of Residence:</label>
-              <input type="text" id="residence" required>
-              
-              <label for="payment">Payment Terms:</label>
-              <select id="payment" required>
+        <div class="form-section-title">
+            <i class="fas fa-user"></i>
+            <span>Personal Information</span>
+        </div>
+
+        <div class="form-group form-group-wide">
+            <label for="name">Full Name</label>
+            <input type="text" id="name" required placeholder="Enter patient's full name">
+        </div>
+
+        <div class="form-group">
+            <label for="age">Age</label>
+            <input type="number" id="age" min="0" max="120" placeholder="Enter age">
+        </div>
+
+        <div class="form-group">
+            <label for="dob">Date of Birth</label>
+            <input type="date" id="dob" required>
+        </div>
+
+        <div class="form-section-title">
+            <i class="fas fa-phone-alt"></i>
+            <span>Contact Information</span>
+        </div>
+
+        <div class="form-group">
+            <label for="parents">Telephone Contact</label>
+            <div class="telephone-input">
+                <input type="text" id="parentsCountryCode" value="+256">
+                <input type="tel" id="parents" required placeholder="Phone number">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="NOK">Next of Kin's Telephone Contact</label>
+            <div class="telephone-input">
+                <input type="text" id="NOKCountryCode" value="+256">
+                <input type="tel" id="NOK" required placeholder="Phone number">
+            </div>
+        </div>
+
+        <div class="form-group form-group-wide">
+            <label for="residence">Place of Residence</label>
+            <input type="text" id="residence" required placeholder="Enter place of residence">
+        </div>
+
+        <div class="form-section-title">
+            <i class="fas fa-clipboard-list"></i>
+            <span>Registration Details</span>
+        </div>
+
+        <div class="form-group">
+            <label for="payment">Payment Terms</label>
+            <select id="payment" required>
                 <option value="cash">Cash</option>
                 <option value="insurance">Insurance</option>
                 <option value="other">Other</option>
-              </select>
-              
-              <label for="sex">Sex:</label>
-              <select id="sex" required>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="sex">Sex</label>
+            <select id="sex" required>
                 <option value="male">Male</option>
                 <option value="female">Female</option>
                 <option value="other">Other</option>
-              </select>
-              
+            </select>
+        </div>
 
-              
-              <button type="submit">Submit</button>
-             
-            </form>
-            
-            
-          </div>
+        <div class="form-actions">
+            <button type="submit">
+                <i class="fas fa-user-plus"></i>
+                Register Patient
+            </button>
+        </div>
+    </form>
+</div>
      
+
+
+
         </div>
       </div>
       

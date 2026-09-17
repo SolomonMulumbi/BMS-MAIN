@@ -831,30 +831,75 @@ searchInput.addEventListener('input', () => {
   currentPage = 1;
   renderPatients();
 });
+// ====================== PATIENT LOADING ======================
 
-// ====================== LOAD PATIENTS ======================
+let patientsLoaded = false;
+let loading = false;
 
-onValue(patientsRef, (snapshot) => {
-    const data = snapshot.val();
+const paginationDiv = document.getElementById("pagination");
 
-    patientsData = data
-        ? Object.entries(data).map(([key, value]) => ({
-            id: key,
-            ...value
-        })).reverse()
-        : [];
+// Show placeholders immediately
+renderPlaceholders(patientsPerPage);
 
-    console.log(`✅ ${patientsData.length} patients loaded`);
+// Load patients from Firebase
+onValue(
+    patientsRef,
 
-    currentPage = 1;
-    renderPatients();
+    (snapshot) => {
+        loading = true;
 
-    // Duplicate detection runs once after Firebase data changes,
-    // NOT every time renderPatients() runs.
-    setTimeout(() => {
-        checkDuplicatePatients();
-    }, 100);
-});
+        const data = snapshot.val();
+
+        patientsData = data
+            ? Object.entries(data).map(([key, value]) => ({
+                id: key,
+                ...value
+            })).reverse()
+            : [];
+
+        patientsLoaded = true;
+        loading = false;
+
+        console.log(`✅ ${patientsData.length} patients loaded`);
+
+        // Keep page valid instead of always forcing page 1
+        const totalPages = Math.max(
+            1,
+            Math.ceil(patientsData.length / patientsPerPage)
+        );
+
+        if (currentPage > totalPages) {
+            currentPage = totalPages;
+        }
+
+        renderPatients();
+
+        // Duplicate detection runs after rendering
+        setTimeout(() => {
+            checkDuplicatePatients();
+        }, 100);
+    },
+
+    (error) => {
+        loading = false;
+        patientsLoaded = true;
+
+        console.error("❌ Failed to load patients:", error);
+
+        patientsContainer.innerHTML = `
+            <div style="
+                padding:20px;
+                text-align:center;
+                color:#7a8780;
+                font-size:11px;
+            ">
+                Unable to load patient records.
+            </div>
+        `;
+    }
+);
+
+
 // Run duplicate detection after patients have loaded
 
 // Function to check if it's today's date (helper function)
@@ -1008,7 +1053,7 @@ function openWishesPopup(patient) {
     + `Your health is important to us, and we are here to ensure you have a healthy and vibrant year ahead. 💪\n\n`
     + `Feel free to pass by and get the best care. 🚶‍♂️🚶‍♀️\n\n`
     + `Address: ${hospitalInfo}\n\n`
-    + `Contact us at +256 782 477 517 for any inquiries. 📞`;
+    + `Contact us at +256 708 657 717 for any inquiries. 📞`;
 
   const sendButton = document.createElement('button');
   sendButton.textContent = '🎉Send Wishes';
@@ -1127,60 +1172,6 @@ function renderPlaceholders(rows = 5) {
   }
 
   patientsContainer.appendChild(table);
-}
-
-// ====================== CONFIG ======================
-
-let lastFetchedKey = null;
-const batchSize = 40;
-let loading = false;
-
-const paginationDiv = document.getElementById('pagination');
-
-// ====================== FETCH IN BATCHES ======================
-async function fetchPatientsBatch() {
-  if (loading) return;
-  loading = true;
-
-  // Show skeleton immediately
-  renderPlaceholders(patientsPerPage);
-
-  let patientsQuery;
-  if (lastFetchedKey) {
-    patientsQuery = query(
-      patientsRef,
-      orderByKey(),
-      startAfter(lastFetchedKey),
-      limitToFirst(batchSize)
-    );
-  } else {
-    patientsQuery = query(
-      patientsRef,
-      orderByKey(),
-      limitToFirst(batchSize)
-    );
-  }
-
-  try {
-    const snapshot = await get(patientsQuery);
-    if (snapshot.exists()) {
-      const data = snapshot.val();
-      const newPatients = Object.keys(data).map(key => ({
-        id: key,
-        ...data[key],
-      }));
-
-      lastFetchedKey = newPatients[newPatients.length - 1].id;
-      patientsData = [...patientsData, ...newPatients];
-      renderPatients(); // render first page
-    } else {
-      renderPatients();
-    }
-  } catch (error) {
-    console.error('Error fetching patients:', error);
-  } finally {
-    loading = false;
-  }
 }
 
 
@@ -4837,7 +4828,7 @@ function generateWhatsAppMessage(fileURL) {
   // Customize the message content here based on the patient's information and the file URL
   const patientName = patient.name; // Replace with the actual patient's name
   const hospitalName = 'SANYU HOSPITAL  '; // Replace with the hospital's name
-  const contactNumber = '+256 782 477 517'; // Replace with the hospital's contact number
+  const contactNumber = '+256 708 657 717'; // Replace with the hospital's contact number
 
   // Create the message text with the file URL
   const message = `Hello ${patientName},\n\nThis is ${hospitalName}. We are pleased to share your latest medical results with you. Please click on the link below to access your results:\n\n${fileURL}\n\nFor any questions or assistance, feel free to contact us at ${contactNumber}.\n\nThank you for choosing ${hospitalName} for your healthcare needs. We value your trust and are here to assist you with any medical concerns.\n\nBest regards,\n${hospitalName}`;
@@ -7444,8 +7435,8 @@ const invoiceContent = `
     <div class="invoice-header">
       <h2>SANYU HOSPITAL  </h2>
       <p>Located at Katooke-Wakiso District</p>
-      <p>Phone: +256 782 477 517</p>
-      <p>Email: info@keahmedicals.com</p>
+      <p>Phone: +256 708 657 717</p>
+      <p>Email: sanyuhospital@gmail.com</p>
     </div>
     <div class="invoice-details">
       <h1>Test Invoice</h1>
@@ -9507,9 +9498,9 @@ function sendMessage() {
                   </div>
                   <div class="hospital-details">
                     <h1>SANYU HOSPITAL  </h1>
-                    <p>Address: Located at Katooke-Wakiso District</p>
-                    <p>Phone: +256 782 477 517</p>
-                    <p>Email: info@keahmedicals.com</p>
+                    <p>Address: Katooke-Wakiso District</p>
+                    <p>Phone: +256 708 657 717</p>
+                    <p>Email: sanyuhospital@gmail.com</p>
                   </div>
         
                   <div class="receipt">

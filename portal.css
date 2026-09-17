@@ -20204,6 +20204,8 @@ section.intro.hospital-survey-grid::after {
 ========================================================= */
 
 #duplicateGroupReviewModal {
+      overflow: auto;
+
     position:fixed;
     inset:0;
     z-index:1000001;
@@ -20220,8 +20222,8 @@ section.intro.hospital-survey-grid::after {
 
 .duplicate-merge-card {
     width:100%;
-    max-width:620px;
-    max-height:88vh;
+    max-width:670px;
+    max-height:90vh;
     display:flex;
     flex-direction:column;
     overflow:hidden;
@@ -20789,3 +20791,338 @@ section.intro.hospital-survey-grid::after {
 }
 
 
+/* ================= REGISTER PATIENT POPUP ================= */
+
+.popup {
+    position:relative;
+    width:min(680px,94vw);
+    max-height:92vh;
+    overflow:hidden;
+    margin:auto;
+    background:#fff;
+    border:1px solid #e5ece8;
+    border-radius:18px;
+    box-shadow:0 24px 70px rgba(18,45,31,.18);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    animation:patientPopupIn .25s ease;
+}
+
+/* HEADER */
+
+.popup-header {
+    position:relative;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:19px 22px;
+    background:#fbfdfc;
+    border-bottom:1px solid #edf2ef;
+}
+
+.popup-header-icon {
+    width:40px;
+    height:40px;
+    flex:0 0 40px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:11px;
+    background:#e8f6ee;
+    color:#198754;
+    font-size:14px;
+}
+
+.popup-header h2 {
+    margin:0;
+    color:#172b22;
+    font-size:17px;
+    font-weight:800;
+    letter-spacing:-.3px;
+}
+
+.popup-header p {
+    margin:3px 0 0;
+    color:#89958f;
+    font-size:9px;
+    line-height:1.4;
+}
+
+.popup-close {
+    position:absolute;
+    top:50%;
+    right:20px;
+    width:31px;
+    height:31px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transform:translateY(-50%);
+    border-radius:50%;
+    background:#edf2ef;
+    color:#718078;
+    font-size:20px;
+    line-height:1;
+    cursor:pointer;
+    transition:.2s;
+}
+
+.popup-close:hover {
+    background:#e1e9e5;
+    color:#172b22;
+}
+
+/* DUPLICATE / EXISTING PATIENT AREA */
+
+#existingPatients {
+    margin:0 22px;
+}
+
+#existingPatients:not(:empty) {
+    margin-top:15px;
+    padding:11px 13px;
+    background:#fff9eb;
+    border:1px solid #f0dfb7;
+    border-radius:10px;
+    color:#775f22;
+    font-size:10px;
+    line-height:1.5;
+}
+
+/* FORM */
+
+.popup-form {
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:13px 16px;
+    max-height:calc(92vh - 80px);
+    padding:18px 22px 22px;
+    overflow-y:auto;
+}
+
+.popup-form::-webkit-scrollbar {
+    width:5px;
+}
+
+.popup-form::-webkit-scrollbar-thumb {
+    background:#cbd8d1;
+    border-radius:10px;
+}
+
+/* SECTION HEADINGS */
+
+.form-section-title {
+    grid-column:1 / -1;
+    display:flex;
+    align-items:center;
+    gap:7px;
+    margin:7px 0 -2px;
+    padding-bottom:7px;
+    border-bottom:1px solid #edf2ef;
+    color:#344c40;
+    font-size:9px;
+    font-weight:800;
+    text-transform:uppercase;
+    letter-spacing:.5px;
+}
+
+.form-section-title:first-child {
+    margin-top:0;
+}
+
+.form-section-title i {
+    color:#198754;
+    font-size:10px;
+}
+
+/* FIELDS */
+
+.form-group {
+    display:flex;
+    flex-direction:column;
+    gap:5px;
+    min-width:0;
+}
+
+.form-group-wide {
+    grid-column:1 / -1;
+}
+
+.form-group label {
+    margin:0;
+    color:#607168;
+    font-size:9px;
+    font-weight:700;
+}
+
+.form-group input,
+.form-group select {
+    width:100%;
+    height:42px;
+    box-sizing:border-box;
+    padding:0 12px;
+    border:1px solid #dce5e0;
+    border-radius:9px;
+    outline:none;
+    background:#fafcfb;
+    color:#263a30;
+    font-family:inherit;
+    font-size:11px;
+    transition:.18s ease;
+}
+
+.form-group input::placeholder {
+    color:#a5afa9;
+}
+
+.form-group input:hover,
+.form-group select:hover {
+    border-color:#bdccc4;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    background:#fff;
+    border-color:#198754;
+    box-shadow:0 0 0 3px rgba(25,135,84,.08);
+}
+
+.form-group select {
+    cursor:pointer;
+}
+
+/* TELEPHONE INPUT */
+
+.telephone-input {
+    display:flex;
+    width:100%;
+}
+
+.telephone-input input:first-child {
+    width:68px;
+    flex:0 0 68px;
+    border-radius:9px 0 0 9px;
+    border-right:0;
+    background:#edf7f1;
+    color:#198754;
+    font-weight:800;
+    text-align:center;
+}
+
+.telephone-input input:last-child {
+    flex:1;
+    min-width:0;
+    border-radius:0 9px 9px 0;
+}
+
+.telephone-input:focus-within {
+    border-radius:9px;
+    box-shadow:0 0 0 3px rgba(25,135,84,.08);
+}
+
+.telephone-input:focus-within input {
+    border-color:#198754;
+    box-shadow:none;
+}
+
+/* BUTTON */
+
+.form-actions {
+    grid-column:1 / -1;
+    display:flex;
+    justify-content:flex-end;
+    padding-top:6px;
+}
+
+.form-actions button {
+    min-width:160px;
+    height:42px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:7px;
+    padding:0 18px;
+    border:0;
+    border-radius:9px;
+    background:#198754;
+    color:#fff;
+    font-family:inherit;
+    font-size:10px;
+    font-weight:800;
+    cursor:pointer;
+    box-shadow:0 6px 16px rgba(25,135,84,.18);
+    transition:.2s ease;
+}
+
+.form-actions button:hover {
+    background:#157347;
+    transform:translateY(-1px);
+    box-shadow:0 8px 20px rgba(25,135,84,.22);
+}
+
+.form-actions button:active {
+    transform:translateY(0);
+}
+
+/* OPEN ANIMATION */
+
+@keyframes patientPopupIn {
+    from {
+        opacity:0;
+        transform:translateY(12px) scale(.98);
+    }
+
+    to {
+        opacity:1;
+        transform:translateY(0) scale(1);
+    }
+}
+
+/* ================= MOBILE ================= */
+
+@media(max-width:600px) {
+    .popup {
+        width:calc(100vw - 18px);
+        max-height:94vh;
+        border-radius:16px;
+    }
+
+    .popup-header {
+        padding:16px;
+    }
+
+    .popup-header-icon {
+        width:36px;
+        height:36px;
+        flex-basis:36px;
+    }
+
+    .popup-header h2 {
+        font-size:15px;
+    }
+
+    .popup-close {
+        right:14px;
+    }
+
+    #existingPatients {
+        margin-left:16px;
+        margin-right:16px;
+    }
+
+    .popup-form {
+        grid-template-columns:1fr;
+        max-height:calc(94vh - 72px);
+        padding:15px 16px 18px;
+        gap:11px;
+    }
+
+    .form-group-wide,
+    .form-section-title,
+    .form-actions {
+        grid-column:1;
+    }
+
+    .form-actions button {
+        width:100%;
+    }
+}

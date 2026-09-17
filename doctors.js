@@ -586,15 +586,73 @@ searchInput.addEventListener('input', () => {
   renderPatients();
 });
 
-// Fetch a limited number of patients from Firebase (e.g., 50 patients at a time)
-const patientsRef2 = query(ref(database, 'patients'), limitToFirst(5000)); // Adjust the limit as needed
+// ====================== PATIENT LOADING ======================
 
-onValue(patientsRef2, (snapshot) => {
-  patientsData = snapshot.val() ? Object.values(snapshot.val()) : [];
+let patientsLoaded = false;
+let loading = false;
 
-  // Update pagination and render the patients
-  renderPatients();
-});
+const paginationDiv = document.getElementById("pagination");
+
+// Show placeholders immediately
+renderPlaceholders(patientsPerPage);
+
+// Load patients from Firebase
+onValue(
+    patientsRef,
+
+    (snapshot) => {
+        loading = true;
+
+        const data = snapshot.val();
+
+        patientsData = data
+            ? Object.entries(data).map(([key, value]) => ({
+                id: key,
+                ...value
+            })).reverse()
+            : [];
+
+        patientsLoaded = true;
+        loading = false;
+
+        console.log(`✅ ${patientsData.length} patients loaded`);
+
+        // Keep page valid instead of always forcing page 1
+        const totalPages = Math.max(
+            1,
+            Math.ceil(patientsData.length / patientsPerPage)
+        );
+
+        if (currentPage > totalPages) {
+            currentPage = totalPages;
+        }
+
+        renderPatients();
+
+        // Duplicate detection runs after rendering
+        setTimeout(() => {
+            checkDuplicatePatients();
+        }, 100);
+    },
+
+    (error) => {
+        loading = false;
+        patientsLoaded = true;
+
+        console.error("❌ Failed to load patients:", error);
+
+        patientsContainer.innerHTML = `
+            <div style="
+                padding:20px;
+                text-align:center;
+                color:#7a8780;
+                font-size:11px;
+            ">
+                Unable to load patient records.
+            </div>
+        `;
+    }
+);
 
 
 
@@ -636,57 +694,6 @@ function renderPlaceholders(rows = 5) {
 
 // ====================== CONFIG ======================
 
-let lastFetchedKey = null;
-const batchSize = 40;
-let loading = false;
-
-const paginationDiv = document.getElementById('pagination');
-
-// ====================== FETCH IN BATCHES ======================
-async function fetchPatientsBatch() {
-  if (loading) return;
-  loading = true;
-
-  // Show skeleton immediately
-  renderPlaceholders(patientsPerPage);
-
-  let patientsQuery;
-  if (lastFetchedKey) {
-    patientsQuery = query(
-      patientsRef,
-      orderByKey(),
-      startAfter(lastFetchedKey),
-      limitToFirst(batchSize)
-    );
-  } else {
-    patientsQuery = query(
-      patientsRef,
-      orderByKey(),
-      limitToFirst(batchSize)
-    );
-  }
-
-  try {
-    const snapshot = await get(patientsQuery);
-    if (snapshot.exists()) {
-      const data = snapshot.val();
-      const newPatients = Object.keys(data).map(key => ({
-        id: key,
-        ...data[key],
-      }));
-
-      lastFetchedKey = newPatients[newPatients.length - 1].id;
-      patientsData = [...patientsData, ...newPatients];
-      renderPatients(); // render first page
-    } else {
-      renderPatients();
-    }
-  } catch (error) {
-    console.error('Error fetching patients:', error);
-  } finally {
-    loading = false;
-  }
-}
 // Function to check if it's today's date (helper function)
 function isToday(date) {
   const today = new Date();

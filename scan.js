@@ -2825,7 +2825,7 @@ function printRecord(patient, record, visitKeys, visitDetails, latestVisitData) 
   doc.text(hospitalAddress, headerBoxCenterX, hospitalAddressY, { align: 'center' });
   
   // Print telephone contacts
-  const telephoneContacts = 'Tel: +256 782 477 517, Email: info@keahmedicals.com';
+  const telephoneContacts = 'Tel: +256 708 657 717, Email: sanyuhospital@gmail.com';
   const telephoneContactsY = headerBoxCenterY + 15; // Adjust the Y coordinate for contacts
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10); // Decrease font size for contacts
@@ -3046,8 +3046,8 @@ const invoiceNumber = generateInvoiceNumber(recordKey);
         <h2>SANYU HOSPITAL  </h2>
         <p>Katooke</p>
         <p>Wakiso District (Uganda)</p>
-        <p>Phone: +256 782 477 517</p>
-        <p>Email: info@keahmedicals.com</p>
+        <p>Phone: +256 708 657 717</p>
+        <p>Email: sanyuhospital@gmail.com</p>
       </div>
       <div class="invoice-details">
       <h1>Test Invoice</h1>
