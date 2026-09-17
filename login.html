@@ -1,85 +1,269 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8">
-  <title>Bibo Medical Systems</title>
-  <link href="BMS logo only.png" rel="icon">
-  <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap.min.css'>
-  <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/gentelella/1.3.0/css/custom.css'>
-  <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css'>
-  <link rel="stylesheet" href="login.css">
+    <meta charset="UTF-8">
 
-  <!-- Font Awesome CDN -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
 
-  <script type="module" src="login.js"></script>
+    <title>Bibo Medical Systems</title>
 
-  <!-- Viewport meta tag for responsiveness -->
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="BMS logo only.png" rel="icon">
+
+    <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap.min.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/gentelella/1.3.0/css/custom.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
+    >
+
+    <link
+        href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css"
+        rel="stylesheet"
+    >
+
+    <link rel="stylesheet" href="login.css">
+
+    <script type="module" src="login.js"></script>
 </head>
-<link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+
+
 <body>
+
+    <!-- LOGIN CARD -->
     <div class="wrapper">
+
         <form action="" id="loginForm">
-          <div class="image">
-            <img src="sanyu.png" alt="Login Image" class="centered-image">
-        </div>
-          <h1>SANYU HOSPITAL  - Login</h1>
-          
-            <div class="input-box">
-                <input type="text" placeholder="Username" required id="email">
-                <i class='bx bxs-user'></i>
+
+            <!-- LOGO -->
+            <div class="image">
+                <img
+                    src="sanyu.png"
+                    alt="Sanyu Hospital"
+                    class="centered-image"
+                >
             </div>
-            <div class="input-box">
-                <input type="password" placeholder="password" required id="password">
-                <i class='bx bxs-lock-alt'></i>
-            </div>
-            <div class="remember-forgot">
-                <label><input type="checkbox">Remember me
-                </label>
-                <a id="forgotPasswordLink" href="#">Forgot password?</a>
-            </div>
-            <button type="submit" class="btn"  id="loginBtn">Login</button>
-           <div class="register-link">
-                <p>By using BMS you agree to our <a href="#" id="termsLink">Terms and Conditions</a>
+
+
+            <!-- TITLE -->
+            <div class="login-heading">
+
+                <h1>
+                    SANYU HOSPITAL
+                </h1>
+
+                <p>
+                    Sign in to BIBO MEDSYS
                 </p>
+
             </div>
+
+
+            <!-- USERNAME -->
+            <div class="input-box">
+
+                <input
+                    type="text"
+                    placeholder="Username"
+                    required
+                    id="email"
+                    autocomplete="username"
+                >
+
+                <i class="bx bxs-user"></i>
+
+            </div>
+
+
+            <!-- PASSWORD -->
+            <div class="input-box">
+
+                <input
+                    type="password"
+                    placeholder="Password"
+                    required
+                    id="password"
+                    autocomplete="current-password"
+                >
+
+                <i class="bx bxs-lock-alt"></i>
+
+            </div>
+
+
+            <!-- OPTIONS -->
+            <div class="remember-forgot">
+
+                <label>
+                    <input type="checkbox">
+                    Remember me
+                </label>
+
+                <a
+                    id="forgotPasswordLink"
+                    href="#"
+                >
+                    Forgot password?
+                </a>
+
+            </div>
+
+
+            <!-- LOGIN -->
+            <button
+                type="submit"
+                class="btn"
+                id="loginBtn"
+            >
+                <i class="bx bx-log-in-circle"></i>
+                Login
+            </button>
+
+
+            <!-- TERMS -->
+            <div class="register-link">
+
+                <p>
+                    By using BMS you agree to our
+                    <a href="#" id="termsLink">
+                        Terms and Conditions
+                    </a>
+                </p>
+
+            </div>
+
+
+            <!-- SECURITY -->
+            <div class="security-footer">
+
+                <i class="fas fa-shield-alt"></i>
+
+                <span>
+                    Protected by BIBO MEDSYS
+                </span>
+
+            </div>
+
         </form>
+
     </div>
 
-    <!-- Modal -->
-<div id="termsModal" class="modal">
-  <div class="modal-content">
-    <span class="close">&times;</span>
-    <h2>Terms and Conditions</h2>
 
-    <p>Welcome to Bibo Medical Systems!</p>
+    <!-- =====================================================
+         TERMS MODAL
+    ====================================================== -->
 
-    <p>By using our services, you agree to comply with and be bound by the following terms and conditions. Please read them carefully.</p>
+    <div id="termsModal" class="modal">
 
-    <h3>Data Security and Privacy</h3>
-    <p>We take your privacy seriously. All user data is encrypted to ensure confidentiality. Even our company does not have access to your encrypted data. We employ industry-standard security measures to protect your information.</p>
+        <div class="modal-content">
 
-    <h3>Account Security</h3>
-    <p>You are responsible for maintaining the confidentiality of your account and password. You agree to notify us immediately of any unauthorized use of your account.</p>
+            <span class="close">&times;</span>
 
-    <h3>Prohibited Activities</h3>
-    <p>You agree not to engage in any unlawful or prohibited activities while using Bibo Medical Systems. This includes but is not limited to unauthorized access, data scraping, or any other activities that may disrupt the service.</p>
+            <h2>Terms and Conditions</h2>
 
-    <h3>Disclaimer</h3>
-    <p>Bibo Medical Systems is a dynamic platform, and as such, the system and user interface may undergo changes over time. While we make every effort to provide accurate and up-to-date services, we are not responsible for the completeness, accuracy, reliability, suitability, or availability of the information, or related graphics you provide and is contained on the platform for any purpose.</p>
-    
-    <p>The information you access on our platform is presented as is, and no changes are made by us to alter the content. It is your responsibility to verify the accuracy and relevance of the information for your specific needs. Any reliance you place on such information is at your own risk.</p>
-    
-    <p>We reserve the right to modify, update, or discontinue any part of the platform without notice. Users are encouraged to check for updates and familiarize themselves with any changes to the system or user interface.</p>
-        
-    <h3>Changes to Terms</h3>
-    <p>We reserve the right to modify these terms and conditions at any time. Changes will be effective immediately upon posting. Your continued use of our services after changes constitute your acceptance of the revised terms.</p>
+            <p>
+                Welcome to Bibo Medical Systems!
+            </p>
 
-<!-- Add your terms and conditions content here -->
-<p>If you have any questions or concerns about these terms, please contact us at <a href="mailto:info@bibotech.com" style="color: green;">info@bibotech.com</a>.</p>
+            <p>
+                By using our services, you agree to comply with
+                and be bound by the following terms and conditions.
+                Please read them carefully.
+            </p>
 
-  </div>
-</div>
+
+            <h3>Data Security and Privacy</h3>
+
+            <p>
+                We take your privacy seriously. All user data is
+                encrypted to ensure confidentiality. Even our company
+                does not have access to your encrypted data. We employ
+                industry-standard security measures to protect your
+                information.
+            </p>
+
+
+            <h3>Account Security</h3>
+
+            <p>
+                You are responsible for maintaining the confidentiality
+                of your account and password. You agree to notify us
+                immediately of any unauthorized use of your account.
+            </p>
+
+
+            <h3>Prohibited Activities</h3>
+
+            <p>
+                You agree not to engage in any unlawful or prohibited
+                activities while using Bibo Medical Systems. This includes
+                but is not limited to unauthorized access, data scraping,
+                or any other activities that may disrupt the service.
+            </p>
+
+
+            <h3>Disclaimer</h3>
+
+            <p>
+                Bibo Medical Systems is a dynamic platform, and as such,
+                the system and user interface may undergo changes over
+                time. While we make every effort to provide accurate and
+                up-to-date services, we are not responsible for the
+                completeness, accuracy, reliability, suitability, or
+                availability of the information or related graphics you
+                provide and that are contained on the platform.
+            </p>
+
+            <p>
+                The information you access on our platform is presented
+                as is, and no changes are made by us to alter the content.
+                It is your responsibility to verify the accuracy and
+                relevance of the information for your specific needs.
+            </p>
+
+            <p>
+                We reserve the right to modify, update, or discontinue
+                any part of the platform without notice. Users are
+                encouraged to check for updates and familiarize themselves
+                with changes to the system or user interface.
+            </p>
+
+
+            <h3>Changes to Terms</h3>
+
+            <p>
+                We reserve the right to modify these terms and conditions
+                at any time. Changes will be effective immediately upon
+                posting. Your continued use of our services after changes
+                constitutes your acceptance of the revised terms.
+            </p>
+
+
+            <p>
+                If you have any questions or concerns about these terms,
+                please contact us at
+                <a
+                    href="mailto:info@bibotech.com"
+                    style="color:#198754;"
+                >
+                    info@bibotech.com
+                </a>.
+            </p>
+
+        </div>
+
+    </div>
+
 </body>
 </html>

@@ -2,7 +2,7 @@
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.2/firebase-app.js";
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.0.2/firebase-storage.js";
-import { getDatabase, ref, remove, push, get, update, onValue, child, set } from "https://www.gstatic.com/firebasejs/9.0.2/firebase-database.js";
+import { getDatabase, ref, remove, push, get, update, onValue, child,query,orderByKey,limitToFirst, set } from "https://www.gstatic.com/firebasejs/9.0.2/firebase-database.js";
 import { getAuth,updateProfile, onAuthStateChanged,sendPasswordResetEmail , signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/9.0.2/firebase-auth.js";
 const firebaseConfig = {
   apiKey: "AIzaSyCi_hufIZTzsYtdPGQtvtmKmAkkrydmn_A",
@@ -832,13 +832,33 @@ searchInput.addEventListener('input', () => {
   renderPatients();
 });
 
-// Fetch patient data from Firebase// Fetch patient data from Firebase
-onValue(patientsRef, (snapshot) => {
-  patientsData = snapshot.val() ? Object.values(snapshot.val()).reverse() : [];
-  // Update the pagination and render the patients
-  renderPatients();
-});
+// ====================== LOAD PATIENTS ======================
 
+onValue(patientsRef, (snapshot) => {
+    const data = snapshot.val();
+
+    patientsData = data
+        ? Object.entries(data).map(([key, value]) => ({
+            id: key,
+            ...value
+        })).reverse()
+        : [];
+
+    console.log(`✅ ${patientsData.length} patients loaded`);
+
+    currentPage = 1;
+    renderPatients();
+
+    // Duplicate detection runs once after Firebase data changes,
+    // NOT every time renderPatients() runs.
+    setTimeout(() => {
+        checkDuplicatePatients();
+    }, 100);
+});
+// Run duplicate detection after patients have loaded
+setTimeout(() => {
+    checkDuplicatePatients();
+}, 100);
 
 // Function to check if it's today's date (helper function)
 function isToday(date) {
@@ -1166,36 +1186,1195 @@ async function fetchPatientsBatch() {
   }
 }
 
+
+
+// ============================================================
+// DUPLICATE PATIENT MANAGEMENT
+// ============================================================
+
+let currentDuplicateGroups = [];
+
+function escapeDuplicateText(value) {
+    const div = document.createElement("div");
+    div.textContent = String(value ?? "");
+    return div.innerHTML;
+}
+
+function normalizePatientName(name) {
+    return String(name || "").trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function normalizePatientPhone(phone) {
+    return String(phone || "").replace(/\D/g, "");
+}
+
+function patientsLikelySame(a, b) {
+    if (!a || !b) return false;
+
+    const nameA = normalizePatientName(a.name);
+    const nameB = normalizePatientName(b.name);
+    const phoneA = normalizePatientPhone(a.parents);
+    const phoneB = normalizePatientPhone(b.parents);
+    const dobA = String(a.dob || "").trim();
+    const dobB = String(b.dob || "").trim();
+
+    const sameName = nameA && nameA === nameB;
+    const samePhone = phoneA && phoneB && phoneA === phoneB;
+    const sameDob = dobA && dobB && dobA === dobB;
+
+    return !!(sameName && (samePhone || sameDob));
+}
+
+function findDuplicatePatients(patients) {
+    const groups = [];
+    const used = new Set();
+
+    for (let i = 0; i < patients.length; i++) {
+        if (used.has(i) || !patients[i]) continue;
+
+        const patient = patients[i];
+        const group = [patient];
+
+        for (let j = i + 1; j < patients.length; j++) {
+            if (used.has(j) || !patients[j]) continue;
+
+            if (patientsLikelySame(patient, patients[j])) {
+                group.push(patients[j]);
+                used.add(j);
+            }
+        }
+
+        if (group.length > 1) {
+            used.add(i);
+
+            groups.push({
+                name: patient.name,
+                patients: group,
+                duplicateCount: group.length,
+                extraDuplicates: group.length - 1
+            });
+        }
+    }
+
+    return groups;
+}
+
+function countPatientTests(patient) {
+    if (!patient || !patient.testsTaken || typeof patient.testsTaken !== "object") return 0;
+    return Object.keys(patient.testsTaken).length;
+}
+
+function checkDuplicatePatients() {
+    if (!Array.isArray(patientsData) || !patientsData.length) {
+        currentDuplicateGroups = [];
+        closeDuplicateNotification();
+        return;
+    }
+
+    const duplicates = findDuplicatePatients(patientsData);
+
+    if (!duplicates.length) {
+        currentDuplicateGroups = [];
+        closeDuplicateNotification();
+        return;
+    }
+
+    duplicates.forEach(group => {
+        group.patients = group.patients.filter(Boolean);
+
+        group.patients.forEach(patient => {
+            patient.testCount = countPatientTests(patient);
+        });
+
+        group.patients.sort((a, b) =>
+            Number(b.testCount || 0) - Number(a.testCount || 0)
+        );
+
+        group.totalTests = group.patients.reduce(
+            (sum, patient) => sum + Number(patient.testCount || 0), 0
+        );
+
+        group.emptyRecords = group.patients.filter(
+            patient => Number(patient.testCount || 0) === 0
+        ).length;
+    });
+
+    currentDuplicateGroups = duplicates;
+    showDuplicateSummaryNotification(duplicates);
+}
+
+// ============================================================
+// NOTIFICATION
+// ============================================================
+
+function showDuplicateSummaryNotification(groups) {
+    const existing = document.getElementById("duplicatePatientNotification");
+    if (existing) existing.remove();
+
+    const validGroups = groups.filter(group =>
+        group && Array.isArray(group.patients) &&
+        group.patients.filter(Boolean).length > 1
+    );
+
+    if (!validGroups.length) return;
+
+    const totalRegistrations = validGroups.reduce(
+        (sum, group) => sum + group.patients.filter(Boolean).length, 0
+    );
+
+    const totalDuplicates = validGroups.reduce(
+        (sum, group) => sum + Math.max(0, group.patients.filter(Boolean).length - 1), 0
+    );
+
+    const totalTests = validGroups.reduce(
+        (sum, group) => sum + group.patients.filter(Boolean).reduce(
+            (patientSum, patient) => patientSum + Number(patient.testCount || 0), 0
+        ), 0
+    );
+
+    const totalEmpty = validGroups.reduce(
+        (sum, group) => sum + group.patients.filter(
+            patient => patient && Number(patient.testCount || 0) === 0
+        ).length, 0
+    );
+
+    const notification = document.createElement("div");
+    notification.id = "duplicatePatientNotification";
+
+    notification.innerHTML = `
+        <div class="duplicate-notification-header">
+            <div class="duplicate-notification-icon">
+                <i class="fas fa-user-friends"></i>
+            </div>
+
+            <div class="duplicate-notification-app">
+                <strong>BIBO MEDSYS</strong>
+                <span>Patient Registry • Now</span>
+            </div>
+
+            <button type="button" class="duplicate-notification-close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <div class="duplicate-notification-content">
+            <h4>
+                ${validGroups.length}
+                Patient${validGroups.length === 1 ? "" : "s"}
+                With Possible Duplicates
+            </h4>
+
+            <p>
+                ${totalRegistrations} registrations,
+                ${totalDuplicates} possible duplicates,
+                ${totalTests} test records and
+                ${totalEmpty} empty registration${totalEmpty === 1 ? "" : "s"}.
+            </p>
+        </div>
+
+        <div class="duplicate-notification-actions">
+            <button type="button" class="duplicate-view-btn">
+                <i class="fas fa-list"></i>
+                Review Duplicates
+            </button>
+        </div>
+    `;
+
+    document.body.appendChild(notification);
+
+    notification.querySelector(".duplicate-notification-close").onclick =
+        closeDuplicateNotification;
+
+    notification.querySelector(".duplicate-view-btn").onclick =
+        showDuplicatePatientList;
+}
+
+function closeDuplicateNotification() {
+    const notification =
+        document.getElementById("duplicatePatientNotification");
+
+    if (!notification) return;
+
+    notification.classList.add("closing");
+
+    setTimeout(() => {
+        notification.remove();
+    }, 280);
+}
+
+// ============================================================
+// ALL DUPLICATE GROUPS
+// ============================================================
+
+function showDuplicatePatientList() {
+    closeDuplicateNotification();
+
+    document.getElementById("duplicatePatientModal")?.remove();
+
+    const validGroups = currentDuplicateGroups.filter(group =>
+        group &&
+        Array.isArray(group.patients) &&
+        group.patients.filter(Boolean).length > 1
+    );
+
+    if (!validGroups.length) {
+        console.log("✅ No duplicate patients remaining");
+        return;
+    }
+
+    const modal = document.createElement("div");
+    modal.id = "duplicatePatientModal";
+
+    const rows = validGroups.map((group, index) => {
+        const patients = group.patients.filter(Boolean);
+        const name = patients[0]?.name || group.name || "Unknown Patient";
+
+        const totalTests = patients.reduce(
+            (sum, patient) => sum + Number(patient.testCount || 0), 0
+        );
+
+        const emptyCount = patients.filter(
+            patient => Number(patient.testCount || 0) === 0
+        ).length;
+
+        return `
+            <div class="duplicate-group-row">
+
+                <div class="duplicate-group-top">
+                    <div>
+                        <span class="duplicate-group-number">
+                            DUPLICATE GROUP ${index + 1}
+                        </span>
+
+                        <strong>${escapeDuplicateText(name)}</strong>
+
+                        <span style="
+                            display:block;
+                            margin-top:4px;
+                            color:#849088;
+                            font-size:9px;
+                        ">
+                            ${patients.length} registrations •
+                            ${patients.length - 1} duplicates •
+                            ${totalTests} test records •
+                            ${emptyCount} empty
+                        </span>
+                    </div>
+
+                    <button
+                        type="button"
+                        class="duplicate-work-btn"
+                        data-index="${index}"
+                    >
+                        Review
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+
+                <div class="duplicate-list-records">
+                    ${patients.map(duplicateListRecord).join("")}
+                </div>
+
+            </div>
+        `;
+    }).join("");
+
+    modal.innerHTML = `
+        <div class="duplicate-modal-card">
+
+            <div class="duplicate-modal-header">
+                <div>
+                    <span class="duplicate-modal-tag">
+                        PATIENT DATA QUALITY
+                    </span>
+
+                    <h2>Duplicate Patients</h2>
+
+                    <p>
+                        ${validGroups.length}
+                        patient group${validGroups.length === 1 ? "" : "s"}
+                        require review.
+                    </p>
+                </div>
+
+                <button type="button" class="duplicate-modal-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="duplicate-list-container">
+                ${rows}
+            </div>
+
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+modal.querySelector(".duplicate-modal-close").onclick = () => {
+    modal.remove();
+
+    if (currentDuplicateGroups.length > 0) {
+        showDuplicateSummaryNotification(currentDuplicateGroups);
+    }
+};
+    modal.querySelectorAll(".duplicate-work-btn").forEach(button => {
+        button.onclick = () => {
+            const group =
+                validGroups[Number(button.dataset.index)];
+
+            if (!group) return;
+
+            modal.remove();
+            reviewDuplicateGroup(group);
+        };
+    });
+}
+
+function duplicateListRecord(patient) {
+    if (!patient) return "";
+
+    const count = Number(patient.testCount || 0);
+    const patientId =
+        patient.patientId || patient.id || "—";
+
+    return `
+        <div class="
+            duplicate-list-record
+            ${count === 0 ? "no-history" : "has-history"}
+        ">
+            <div>
+                <strong>
+                    PI - ${escapeDuplicateText(patientId)}
+                </strong>
+
+                <span>
+                    ${escapeDuplicateText(patient.parents || "No contact")}
+                </span>
+
+                <span>
+                    ${escapeDuplicateText(patient.dob || "No DOB")}
+                </span>
+            </div>
+
+            <div class="duplicate-test-count">
+                <strong>${count}</strong>
+
+                <span>
+                    ${count === 1 ? "Test Record" : "Test Records"}
+                </span>
+            </div>
+        </div>
+    `;
+}
+
+// ============================================================
+// REVIEW ONE DUPLICATE GROUP
+// ============================================================
+
+function reviewDuplicateGroup(group) {
+    if (!group || !Array.isArray(group.patients)) {
+        console.error("❌ Invalid duplicate group:", group);
+        return;
+    }
+
+    const patients = group.patients
+        .filter(Boolean)
+        .sort(
+            (a, b) =>
+                Number(b.testCount || 0) -
+                Number(a.testCount || 0)
+        );
+
+    if (patients.length < 2) {
+        showDuplicatePatientList();
+        return;
+    }
+
+    showDuplicateGroupReview(group, patients);
+}
+
+function showDuplicateGroupReview(group, patients) {
+    document.getElementById("duplicateGroupReviewModal")?.remove();
+
+    const modal = document.createElement("div");
+    modal.id = "duplicateGroupReviewModal";
+
+    const name =
+        patients[0]?.name ||
+        group.name ||
+        "Unknown Patient";
+
+    const totalTests = patients.reduce(
+        (sum, patient) =>
+            sum + Number(patient.testCount || 0), 0
+    );
+
+    const emptyCount = patients.filter(
+        patient => Number(patient.testCount || 0) === 0
+    ).length;
+
+    const records = patients.map((patient, index) => {
+        const count = Number(patient.testCount || 0);
+        const patientId =
+            patient.patientId || patient.id || "—";
+
+        return `
+            <label class="merge-patient-option">
+
+                <input
+                    type="radio"
+                    name="mainDuplicatePatient"
+                    value="${index}"
+                >
+
+                <div>
+                    <span class="merge-keep-label">
+                        ${count > 0
+                            ? "HAS MEDICAL HISTORY"
+                            : "NO TEST HISTORY"}
+                    </span>
+
+                    <strong>
+                        ${escapeDuplicateText(
+                            patient.name || "Unknown Patient"
+                        )}
+                    </strong>
+
+                    <small>
+                        PI - ${escapeDuplicateText(patientId)}
+                    </small>
+
+                    <small>
+                        ${escapeDuplicateText(
+                            patient.parents || "No contact"
+                        )}
+                        •
+                        ${escapeDuplicateText(
+                            patient.dob || "No DOB"
+                        )}
+                    </small>
+                </div>
+
+                <div class="duplicate-test-count">
+                    <strong>${count}</strong>
+
+                    <span>
+                        ${count === 1
+                            ? "Test Record"
+                            : "Test Records"}
+                    </span>
+                </div>
+
+            </label>
+        `;
+    }).join("");
+
+    modal.innerHTML = `
+        <div class="duplicate-merge-card">
+
+            <div class="duplicate-modal-header">
+                <div>
+                    <span class="duplicate-modal-tag">
+                        DUPLICATE MANAGEMENT
+                    </span>
+
+                    <h2>${escapeDuplicateText(name)}</h2>
+
+                    <p>
+                        ${patients.length} registrations •
+                        ${patients.length - 1} duplicates •
+                        ${totalTests} test records •
+                        ${emptyCount} empty
+                    </p>
+                </div>
+
+                <button type="button" class="duplicate-modal-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="merge-warning">
+                <i class="fas fa-info-circle"></i>
+
+                <span>
+                    Select the patient ID that should remain
+                    as the main patient record.
+                </span>
+            </div>
+
+            <div class="merge-options">
+                ${records}
+            </div>
+
+            <div class="duplicate-modal-actions">
+                <button
+                    type="button"
+                    class="duplicate-cancel-btn"
+                >
+                    Back
+                </button>
+
+                <button
+                    type="button"
+                    class="duplicate-confirm-merge"
+                    disabled
+                >
+                    Continue
+                </button>
+            </div>
+
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const continueBtn =
+        modal.querySelector(".duplicate-confirm-merge");
+
+    modal.querySelectorAll(
+        'input[name="mainDuplicatePatient"]'
+    ).forEach(input => {
+        input.onchange = () => {
+            continueBtn.disabled = false;
+        };
+    });
+modal.querySelector(".duplicate-modal-close").onclick = () => {
+    modal.remove();
+
+    if (currentDuplicateGroups && currentDuplicateGroups.length > 0) {
+        showDuplicateSummaryNotification(currentDuplicateGroups);
+    }
+};
+
+    modal.querySelector(".duplicate-cancel-btn").onclick = () => {
+        modal.remove();
+        showDuplicatePatientList();
+    };
+
+    continueBtn.onclick = () => {
+        const selected = modal.querySelector(
+            'input[name="mainDuplicatePatient"]:checked'
+        );
+
+        if (!selected) return;
+
+        const mainPatient =
+            patients[Number(selected.value)];
+
+        if (!mainPatient) return;
+
+        const duplicates =
+            patients.filter(patient => patient !== mainPatient);
+
+        modal.remove();
+
+        showDuplicateMergePlan(
+            mainPatient,
+            duplicates
+        );
+    };
+}
+
+// ============================================================
+// MERGE PLAN
+// ============================================================
+
+function showDuplicateMergePlan(mainPatient, duplicates) {
+    document.getElementById("duplicateMergeConfirm")?.remove();
+
+    const historyDuplicates =
+        duplicates.filter(
+            patient =>
+                Number(patient.testCount || 0) > 0
+        );
+
+    const emptyDuplicates =
+        duplicates.filter(
+            patient =>
+                Number(patient.testCount || 0) === 0
+        );
+
+    const modal = document.createElement("div");
+    modal.id = "duplicateMergeConfirm";
+
+    const historyHTML =
+        historyDuplicates.map(patient => `
+            <div class="merge-plan-record has-history">
+                <div>
+                    <strong>
+                        PI - ${escapeDuplicateText(
+                            patient.patientId || patient.id
+                        )}
+                    </strong>
+
+                    <span>
+                        Medical history will be transferred
+                    </span>
+                </div>
+
+                <b>
+                    ${Number(patient.testCount || 0)}
+                    tests
+                </b>
+            </div>
+        `).join("");
+
+    const emptyHTML =
+        emptyDuplicates.map(patient => `
+            <div class="merge-plan-record no-history">
+                <div>
+                    <strong>
+                        PI - ${escapeDuplicateText(
+                            patient.patientId || patient.id
+                        )}
+                    </strong>
+
+                    <span>
+                        Empty duplicate registration
+                    </span>
+                </div>
+
+                <b>0 tests</b>
+            </div>
+        `).join("");
+
+    modal.innerHTML = `
+        <div class="duplicate-merge-card">
+
+            <div class="duplicate-modal-header">
+                <div>
+                    <span class="duplicate-modal-tag">
+                        MERGE PLAN
+                    </span>
+
+                    <h2>
+                        Resolve ${duplicates.length}
+                        Duplicate${duplicates.length === 1 ? "" : "s"}
+                    </h2>
+
+                    <p>
+                        Review what BIBO MEDSYS will do before
+                        making database changes.
+                    </p>
+                </div>
+
+                <button
+                    type="button"
+                    class="duplicate-modal-close"
+                >
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div style="padding:18px 22px;">
+
+                <div class="merge-main-patient">
+                    <span>MAIN PATIENT — KEEP</span>
+
+                    <strong>
+                        ${escapeDuplicateText(
+                            mainPatient.name || "Unknown Patient"
+                        )}
+                    </strong>
+
+                    <small>
+                        PI -
+                        ${escapeDuplicateText(
+                            mainPatient.patientId ||
+                            mainPatient.id
+                        )}
+                        •
+                        ${Number(mainPatient.testCount || 0)}
+                        test records
+                    </small>
+                </div>
+
+                ${historyDuplicates.length ? `
+                    <div class="merge-plan-title">
+                        <i class="fas fa-exchange-alt"></i>
+                        ${historyDuplicates.length}
+                        record${historyDuplicates.length === 1 ? "" : "s"}
+                        with medical history
+                    </div>
+
+                    ${historyHTML}
+                ` : ""}
+
+                ${emptyDuplicates.length ? `
+                    <div class="merge-plan-title">
+                        <i class="fas fa-trash-alt"></i>
+                        ${emptyDuplicates.length}
+                        empty duplicate${emptyDuplicates.length === 1 ? "" : "s"}
+                    </div>
+
+                    ${emptyHTML}
+                ` : ""}
+
+            </div>
+
+            <div class="duplicate-modal-actions">
+                <button
+                    type="button"
+                    class="duplicate-cancel-btn"
+                >
+                    Back
+                </button>
+
+                <button
+                    type="button"
+                    class="duplicate-final-merge"
+                >
+                    <i class="fas fa-check"></i>
+                    Resolve Duplicates
+                </button>
+            </div>
+
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    modal.querySelector(".duplicate-modal-close").onclick =
+        () => modal.remove();
+
+    modal.querySelector(".duplicate-cancel-btn").onclick = () => {
+        modal.remove();
+
+        reviewDuplicateGroup({
+            name: mainPatient.name,
+            patients: [
+                mainPatient,
+                ...duplicates
+            ]
+        });
+    };
+
+    modal.querySelector(".duplicate-final-merge").onclick =
+        async function () {
+
+            await resolveDuplicatePatients(
+                mainPatient,
+                duplicates,
+                this
+            );
+        };
+}
+
+// ============================================================
+// FIREBASE MERGE
+// patients/{patientId}/testsTaken/{testKey}
+// ============================================================
+
+async function resolveDuplicatePatients(
+    mainPatient,
+    duplicatePatients,
+    button = null
+) {
+    if (
+        !mainPatient ||
+        !Array.isArray(duplicatePatients) ||
+        !duplicatePatients.length
+    ) return;
+
+    const mainId = String(
+        mainPatient.patientId ||
+        mainPatient.id ||
+        ""
+    ).trim();
+
+    if (!mainId) {
+        alert("Main patient ID is missing.");
+        return;
+    }
+
+    if (button) {
+        button.disabled = true;
+        button.innerHTML =
+            '<i class="fas fa-spinner fa-spin"></i> Resolving...';
+    }
+
+    try {
+        // Read the selected main patient again from Firebase
+        const mainSnapshot = await get(
+            ref(database, `patients/${mainId}`)
+        );
+
+        if (!mainSnapshot.exists()) {
+            throw new Error(
+                `Main patient PI-${mainId} was not found.`
+            );
+        }
+
+        const mainData = mainSnapshot.val();
+        const existingTests =
+            mainData.testsTaken || {};
+
+        let nextTestNumber =
+            getNextTestNumber(existingTests);
+
+        const updates = {};
+
+        let movedTests = 0;
+        let removedPatients = 0;
+
+        for (const duplicate of duplicatePatients) {
+            if (!duplicate) continue;
+
+            const duplicateId = String(
+                duplicate.patientId ||
+                duplicate.id ||
+                ""
+            ).trim();
+
+            if (
+                !duplicateId ||
+                duplicateId === mainId
+            ) continue;
+
+            const duplicateSnapshot = await get(
+                ref(
+                    database,
+                    `patients/${duplicateId}`
+                )
+            );
+
+            if (!duplicateSnapshot.exists()) {
+                console.warn(
+                    `⚠️ PI-${duplicateId} no longer exists`
+                );
+
+                continue;
+            }
+
+            const duplicateData =
+                duplicateSnapshot.val();
+
+            const duplicateTests =
+                duplicateData.testsTaken || {};
+
+            Object.entries(
+                duplicateTests
+            ).forEach(([oldTestKey, test]) => {
+
+                if (!test) return;
+
+                const newTestKey =
+                    `test${nextTestNumber++}`;
+
+                updates[
+                    `patients/${mainId}/testsTaken/${newTestKey}`
+                ] = test;
+
+                movedTests++;
+            });
+
+            // Delete duplicate patient only as part
+            // of the same multi-location update.
+            updates[
+                `patients/${duplicateId}`
+            ] = null;
+
+            removedPatients++;
+        }
+
+        if (!removedPatients) {
+            throw new Error(
+                "No duplicate patient records were found to resolve."
+            );
+        }
+
+        // One atomic RTDB multi-location update
+        await update(
+            ref(database),
+            updates
+        );
+
+        console.log(
+            "✅ DUPLICATE RESOLUTION COMPLETE"
+        );
+
+        console.log(
+            "Main PI:",
+            mainId
+        );
+
+        console.log(
+            "Tests moved:",
+            movedTests
+        );
+
+        console.log(
+            "Duplicates removed:",
+            removedPatients
+        );
+
+        document
+            .getElementById("duplicateMergeConfirm")
+            ?.remove();
+
+        // Remove deleted registrations from local array immediately
+        const deletedIds = new Set(
+            duplicatePatients.map(patient =>
+                String(
+                    patient.patientId ||
+                    patient.id ||
+                    ""
+                ).trim()
+            )
+        );
+
+        if (Array.isArray(patientsData)) {
+            for (let i = patientsData.length - 1; i >= 0; i--) {
+                const id = String(
+                    patientsData[i]?.patientId ||
+                    patientsData[i]?.id ||
+                    ""
+                ).trim();
+
+                if (deletedIds.has(id)) {
+                    patientsData.splice(i, 1);
+                }
+            }
+
+            const localMain = patientsData.find(patient =>
+                String(
+                    patient.patientId ||
+                    patient.id ||
+                    ""
+                ).trim() === mainId
+            );
+
+            if (localMain) {
+                localMain.testCount =
+                    Number(localMain.testCount || 0) +
+                    movedTests;
+            }
+        }
+
+        // Recalculate duplicates
+        currentDuplicateGroups =
+            findDuplicatePatients(patientsData || []);
+
+        currentDuplicateGroups.forEach(group => {
+            group.patients.forEach(patient => {
+                patient.testCount =
+                    countPatientTests(patient);
+            });
+        });
+
+        showDuplicateMergeSuccess(
+            mainPatient,
+            movedTests,
+            removedPatients
+        );
+
+    } catch (error) {
+        console.error(
+            "❌ Duplicate resolution failed:",
+            error
+        );
+
+        if (button) {
+            button.disabled = false;
+
+            button.innerHTML =
+                '<i class="fas fa-check"></i> Resolve Duplicates';
+        }
+
+        alert(
+            "Could not resolve the duplicate patients. " +
+            "No completed merge was confirmed."
+        );
+    }
+}
+
+function getNextTestNumber(tests) {
+    let highest = 0;
+
+    Object.keys(tests || {}).forEach(key => {
+        const match =
+            /^test(\d+)$/i.exec(key);
+
+        if (match) {
+            highest = Math.max(
+                highest,
+                Number(match[1])
+            );
+        }
+    });
+
+    return highest + 1;
+}
+
+// ============================================================
+// SUCCESS
+// ============================================================
+
+function showDuplicateMergeSuccess(
+    mainPatient,
+    movedTests,
+    removedPatients
+) {
+    document
+        .getElementById("duplicateMergeSuccess")
+        ?.remove();
+
+    const modal =
+        document.createElement("div");
+
+    modal.id =
+        "duplicateMergeSuccess";
+
+    modal.innerHTML = `
+        <div class="merge-confirm-card">
+
+            <div class="merge-confirm-icon">
+                <i class="fas fa-check"></i>
+            </div>
+
+            <h2>Duplicates Resolved</h2>
+
+            <p>
+                The duplicate registrations were
+                successfully consolidated.
+            </p>
+
+            <div class="merge-main-patient">
+                <span>MAIN PATIENT</span>
+
+                <strong>
+                    ${escapeDuplicateText(
+                        mainPatient.name ||
+                        "Unknown Patient"
+                    )}
+                </strong>
+
+                <small>
+                    PI -
+                    ${escapeDuplicateText(
+                        mainPatient.patientId ||
+                        mainPatient.id
+                    )}
+                </small>
+            </div>
+
+            <div style="
+                display:grid;
+                grid-template-columns:1fr 1fr;
+                gap:8px;
+                margin-top:10px;
+            ">
+
+                <div style="
+                    padding:12px;
+                    background:#f4faf7;
+                    border-radius:10px;
+                ">
+                    <strong style="
+                        display:block;
+                        font-size:18px;
+                        color:#198754;
+                    ">
+                        ${movedTests}
+                    </strong>
+
+                    <span style="
+                        font-size:9px;
+                        color:#7b8982;
+                    ">
+                        Tests transferred
+                    </span>
+                </div>
+
+                <div style="
+                    padding:12px;
+                    background:#f4faf7;
+                    border-radius:10px;
+                ">
+                    <strong style="
+                        display:block;
+                        font-size:18px;
+                        color:#198754;
+                    ">
+                        ${removedPatients}
+                    </strong>
+
+                    <span style="
+                        font-size:9px;
+                        color:#7b8982;
+                    ">
+                        Duplicates removed
+                    </span>
+                </div>
+
+            </div>
+
+            <div class="duplicate-modal-actions">
+                <button
+                    type="button"
+                    class="duplicate-final-merge"
+                >
+                    Done
+                </button>
+            </div>
+
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    modal.querySelector(
+        ".duplicate-final-merge"
+    ).onclick = () => {
+
+        modal.remove();
+
+        // Run detection again using remaining patients
+        checkDuplicatePatients();
+
+        // Re-render table if required
+        if (typeof renderPatients === "function") {
+            renderPatients();
+        }
+    };
+}
 // ====================== RENDER FUNCTION ======================
 function renderPatients() {
-  const dataToDisplay = searchResults.length > 0 ? searchResults : patientsData;
-  if (dataToDisplay.length === 0) {
-    patientsContainer.innerHTML = '<p>No patients found.</p>';
-    paginationDiv.innerHTML = '';
-    return;
-  }
+    const dataToDisplay = searchResults.length > 0 ? searchResults : patientsData;
 
-  const startIndex = (currentPage - 1) * patientsPerPage;
-  const endIndex = startIndex + patientsPerPage;
-  const patientsForPage = dataToDisplay.slice(startIndex, endIndex);
+    if (dataToDisplay.length === 0) {
+        patientsContainer.innerHTML = '<p>No patients found.</p>';
+        paginationDiv.innerHTML = '';
+        return;
+    }
 
-  const table = document.createElement('table');
-  table.classList.add('patient-table');
+    const startIndex = (currentPage - 1) * patientsPerPage;
+    const endIndex = startIndex + patientsPerPage;
+    const patientsForPage = dataToDisplay.slice(startIndex, endIndex);
 
-  const headers = ['Name', 'Place of Residence', 'Payment Terms', 'Sex', 'Patient ID', 'Contact', 'Date of Birth', 'Age', 'Actions'];
-  const headerRow = document.createElement('tr');
-  headers.forEach(headerText => {
-    const th = document.createElement('th');
-    th.textContent = headerText;
-    headerRow.appendChild(th);
-  });
-  table.appendChild(headerRow);
+    const table = document.createElement('table');
+    table.classList.add('patient-table');
 
-  // Collect patients with birthdays today
-  const todayPatients = [];
+    const headers = ['Name', 'Place of Residence', 'Payment Terms', 'Sex', 'Patient ID', 'Contact', 'Date of Birth', 'Age', 'Actions'];
+    const headerRow = document.createElement('tr');
 
-  patientsForPage.forEach(patient => {
-    const row = document.createElement('tr');
+    headers.forEach(headerText => {
+        const th = document.createElement('th');
+        th.textContent = headerText;
+        headerRow.appendChild(th);
+    });
+
+    table.appendChild(headerRow);
+
+    // Collect patients with birthdays today
+    const todayPatients = [];
+
+
+    patientsForPage.forEach(patient => {
+        const row = document.createElement('tr');
+
+        // continue your existing code...
 
     const nameCell = createTableCell(patient.name);
     const residenceCell = createTableCell(patient.residence);
@@ -8164,14 +9343,14 @@ function displayChatMessage(message) {
 
 // Function to play message sound and update span count
 function playMessageSound(sender) {
-  if (sender === 'Patients Reception') {
-    messageSentAudio.play();
-  } else {
-    newMessageAudio.play();
+//if (sender === 'Patients Reception') {
+//messageSentAudio.play();
+//} else {
+   //newMessageAudio.play();
     // Increment span count
    // const spanCount = document.getElementById('unreadMessageCount');
     //spanCount.textContent = parseInt(spanCount.textContent) + 1;
-  }
+ // }
 }
 
 // Array to store IDs of displayed messages

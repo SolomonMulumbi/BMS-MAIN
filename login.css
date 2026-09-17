@@ -1,183 +1,757 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins&display=swap');
+/* =========================================================
+   RESET
+========================================================= */
 
-*
-{
-    padding: 0;
-    margin: 0;
+* {
     box-sizing: border-box;
-    font-family: 'Poppins', sans-serif;
-
 }
-body{
-    display: flex;
-    justify-content: center;
-    align-items: center;
+
+html,
+body {
+    width: 100%;
+    min-height: 100%;
+    margin: 0;
+}
+
+
+/* =========================================================
+   PAGE
+========================================================= */
+
+body {
     min-height: 100vh;
-    background-image: url('sanyu\ back.webp'); /* Add the path to your background image */
+    min-height: 100dvh;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 24px;
+
+    font-family:
+        "Segoe UI",
+        Arial,
+        sans-serif;
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(3, 27, 19, 0.74),
+            rgba(7, 74, 48, 0.48)
+        ),
+        url("BMS 1 Logo Mockup Free PSD.png");
+
     background-size: cover;
     background-position: center;
+    background-repeat: no-repeat;
 }
+
+
+/* =========================================================
+   LOGIN CARD
+========================================================= */
+
 .wrapper {
-    width: 420px;
-    background: transparent;
-    border:2px solid rgba(255, 255, 255, .2);
-    backdrop-filter:blur(20px);
-    box-shadow: 0 0 10px rgba(0 , 0 , 0 , .2);
-    color: #fff;
-    border-radius: 10px;
-    padding: 30px 40px;
-
-}
-.wrapper h1{
-    font-size: 36px;
-    text-align: center;
-}
-.wrapper .input-box {
     position: relative;
+
     width: 100%;
-    height: 50px;
-    margin: 30px 0;
+    max-width: 400px;
+
+    margin: 0;
+
+    overflow: hidden;
+
+    background:
+        rgba(255, 255, 255, 0.95);
+
+    border:
+        1px solid
+        rgba(255, 255, 255, 0.65);
+
+    border-radius: 22px;
+
+    box-shadow:
+        0 28px 75px
+        rgba(0, 0, 0, 0.30);
+
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
 }
 
-.input-box input{
-    width: 100%;
-    height: 100%;
-    background: transparent;
-    border: none;
-    outline: none;
-    border: 2px solid rgba(255, 255, 255, .2);
-    border-radius: 40px;
-    font-size: 16px;
-    color: #fff;
-    padding: 20px 45px 20px 20px;
-}
-.input-box input::placeholder{
-    color: #fff;
-}
-.input-box i{
+
+/* GREEN ACCENT */
+
+.wrapper::before {
+    content: "";
+
     position: absolute;
-    right: 20px;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 20px;
 
-}
-.wrapper .remember-forgot{
-    display: flex;
-    justify-content: space-between;
-    font-size: 14.5px;
-    margin: -15px 0 15px;
-}
-.remember-forgot label input{
-    accent-color: #fff;
-    margin-right: 3px;
-}
-.remember-forgot a{
-    color: #afb4b0;
-    text-decoration: none;
+    top: 0;
+    left: 0;
 
-}
-.remember-forgot a:hover{
-    text-decoration: underline;
-}
-.wrapper .btn{
     width: 100%;
-    height: 45px;
-    border-radius: 40px;
-    border: none;
-    outline: none;
-    background: #fff;
-    box-shadow: 0 0 10px rgba(0 , 0 , 0 , .1);
-    cursor: pointer;
-    font-size: 16px;
-    color: #333;
-    font-weight: 600;
-}
-.wrapper .register-link{
-   text-align: center;
-    font-size: 14.5px;
-    margin:20px 0 15px;
-}
-.register-link p a{
-    color: #bdbdbd;
-    text-decoration: none;
-    font-weight: 600;
+    height: 4px;
 
+    background: #198754;
 }
-.register-link p a:hover{
-    text-decoration: underline;
+
+
+/* =========================================================
+   FORM
+========================================================= */
+
+#loginForm {
+    width: 100%;
+
+    padding:
+        30px
+        32px
+        25px;
 }
+
+
+/* =========================================================
+   LOGO
+========================================================= */
 
 .image {
-    display: grid;
-    place-items: center;
-    padding: 20px;
-    /* Add any other styling needed for the container */
+    width: 100%;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    margin-bottom: 14px;
 }
 
+
 .centered-image {
-    width: 120px;
-    border-radius: 5px;
-    background-color: whitesmoke;
-    padding: 7px;
-    /* Add any other styles for the image */
+    display: block;
+
+    width: 80px;
+    height: 80px;
+
+    object-fit: contain;
+
+    padding: 6px;
+
+    background: #f7faf8;
+
+    border:
+        1px solid
+        #e2ece6;
+
+    border-radius: 17px;
+
+    box-shadow:
+        0 7px 18px
+        rgba(25, 135, 84, 0.08);
 }
-/* Style for the spinner */
-@keyframes spin {
-    to { transform: rotate(360deg); }
-  }
-  
-  .btn {
-    /* Your existing button styles */
-  }
-  
-  /* Styling for the error message */
-  .error-message {
-    color: red;
+
+
+/* =========================================================
+   HEADING
+========================================================= */
+
+.login-heading {
+    width: 100%;
+
+    display: flex;
+    flex-direction: column;
+
+    align-items: center;
+    justify-content: center;
+
+    margin-bottom: 25px;
+
+    text-align: center;
+}
+
+
+.login-heading h1 {
+    display: block;
+
+    width: 100%;
+
+    margin: 0;
+    padding: 0;
+
+    color: #172b22;
+
+    font-size: 22px;
+    font-weight: 800;
+
+    line-height: 1.25;
+
+    letter-spacing: -0.3px;
+}
+
+
+.login-heading p {
+    display: block;
+
+    width: 100%;
+
+    margin: 6px 0 0;
+    padding: 0;
+
+    color: #78867f;
+
+    font-size: 12px;
+    font-weight: 400;
+
+    line-height: 1.5;
+}
+
+
+/* =========================================================
+   INPUT
+========================================================= */
+
+.input-box {
+    position: relative;
+
+    width: 100%;
+
+    margin-bottom: 14px;
+}
+
+
+.input-box input {
+    width: 100%;
+    height: 51px;
+
+    padding:
+        0
+        47px
+        0
+        16px;
+
+    border:
+        1px solid
+        #dce8e1;
+
+    border-radius: 12px;
+
+    outline: none;
+
+    background: #f8fbf9;
+
+    color: #263b31;
+
     font-size: 14px;
-    margin-top: 5px;
-  }
-  
-  /* Spinner icon inside the login button */
-  #loginBtn i {
-    animation: spin 1s infinite linear;
-  }
-  /* Style for the modal */
-.modal {
+    font-weight: 500;
+
+    transition:
+        border-color .2s ease,
+        box-shadow .2s ease,
+        background .2s ease;
+}
+
+
+.input-box input::placeholder {
+    color: #99a59f;
+
+    font-weight: 400;
+}
+
+
+.input-box input:focus {
+    background: #fff;
+
+    border-color: #198754;
+
+    box-shadow:
+        0 0 0 4px
+        rgba(25, 135, 84, .09);
+}
+
+
+/* ICON */
+
+.input-box i {
+    position: absolute;
+
+    top: 50%;
+    right: 16px;
+
+    transform:
+        translateY(-50%);
+
+    color: #86938c;
+
+    font-size: 19px;
+
+    pointer-events: none;
+}
+
+
+.input-box:focus-within i {
+    color: #198754;
+}
+
+
+/* =========================================================
+   REMEMBER / FORGOT
+========================================================= */
+
+.remember-forgot {
+    width: 100%;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 12px;
+
+    margin:
+        4px
+        0
+        20px;
+
+    color: #69776f;
+
+    font-size: 12px;
+}
+
+
+.remember-forgot label {
+    display: flex;
+    align-items: center;
+
+    gap: 6px;
+
+    margin: 0;
+
+    font-weight: 400;
+
+    cursor: pointer;
+}
+
+
+.remember-forgot input[type="checkbox"] {
+    width: 15px;
+    height: 15px;
+
+    margin: 0;
+
+    accent-color: #198754;
+}
+
+
+.remember-forgot a {
+    color: #198754;
+
+    font-weight: 700;
+
+    text-decoration: none;
+}
+
+
+.remember-forgot a:hover {
+    color: #126c42;
+
+    text-decoration: none;
+}
+
+
+/* =========================================================
+   LOGIN BUTTON
+========================================================= */
+
+#loginBtn.btn {
+    width: 100%;
+    height: 49px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 7px;
+
+    margin: 0;
+
+    padding: 0;
+
+    border: 0;
+    border-radius: 12px;
+
+    outline: none;
+
+    background: #198754;
+
+    color: #fff;
+
+    font-size: 14px;
+    font-weight: 700;
+
+    text-shadow: none;
+
+    cursor: pointer;
+
+    box-shadow:
+        0 9px 22px
+        rgba(25, 135, 84, .23);
+
+    transition:
+        background .2s ease,
+        transform .15s ease,
+        box-shadow .2s ease;
+}
+
+
+#loginBtn.btn:hover {
+    background: #157347;
+
+    color: #fff;
+
+    transform:
+        translateY(-1px);
+
+    box-shadow:
+        0 12px 26px
+        rgba(25, 135, 84, .28);
+}
+
+
+#loginBtn.btn:active {
+    transform:
+        translateY(0);
+}
+
+
+/* =========================================================
+   TERMS LINK
+========================================================= */
+
+.register-link {
+    width: 100%;
+
+    margin-top: 20px;
+    padding-top: 16px;
+
+    border-top:
+        1px solid
+        #edf2ef;
+
+    text-align: center;
+}
+
+
+.register-link p {
+    margin: 0;
+
+    color: #8a9690;
+
+    font-size: 10.5px;
+
+    line-height: 1.6;
+}
+
+
+.register-link a {
+    color: #198754;
+
+    font-weight: 700;
+
+    text-decoration: none;
+}
+
+
+/* =========================================================
+   SECURITY FOOTER
+========================================================= */
+
+.security-footer {
+    width: 100%;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 5px;
+
+    margin-top: 15px;
+
+    color: #a0aaa5;
+
+    font-size: 9px;
+    font-weight: 700;
+
+    letter-spacing: .7px;
+
+    text-transform: uppercase;
+}
+
+
+.security-footer i {
+    color: #198754;
+
+    font-size: 10px;
+}
+
+
+/* =========================================================
+   TERMS MODAL
+========================================================= */
+
+#termsModal.modal {
     display: none;
+
     position: fixed;
-    z-index: 1;
-    left: 0;
-    top: 0;
+
+    z-index: 999999;
+
+    inset: 0;
+
     width: 100%;
     height: 100%;
-    overflow: auto;
-    background-color: rgb(0,0,0);
-    background-color: rgba(0,0,0,0.4);
-    padding-top: 60px;
-  }
-  
-  .modal-content {
-    background-color: #fefefe;
-    margin: 5% auto;
-    padding: 20px;
-    border: 1px solid #888;
-    width: 80%;
-    height: 90%;
-    overflow: auto;
-  }
-  
-  .close {
-    color: #aaa;
-    float: right;
-    font-size: 28px;
-    font-weight: bold;
-  }
-  
-  .close:hover,
-  .close:focus {
-    color: black;
-    text-decoration: none;
+
+    overflow-y: auto;
+
+    padding: 30px 15px;
+
+    background:
+        rgba(7, 25, 17, .72);
+
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+}
+
+
+#termsModal .modal-content {
+    position: relative;
+
+    width: 100%;
+    max-width: 680px;
+
+    margin: 20px auto;
+
+    padding: 30px;
+
+    background: #fff;
+
+    border: 0;
+    border-radius: 18px;
+
+    color: #46554d;
+
+    box-shadow:
+        0 25px 70px
+        rgba(0, 0, 0, .25);
+}
+
+
+#termsModal .modal-content h2 {
+    margin:
+        0
+        0
+        20px;
+
+    color: #172b22;
+
+    font-size: 24px;
+    font-weight: 800;
+}
+
+
+#termsModal .modal-content h3 {
+    margin:
+        23px
+        0
+        7px;
+
+    color: #198754;
+
+    font-size: 15px;
+    font-weight: 700;
+}
+
+
+#termsModal .modal-content p {
+    margin-bottom: 12px;
+
+    color: #65736c;
+
+    font-size: 13px;
+
+    line-height: 1.7;
+}
+
+
+#termsModal .close {
+    position: absolute;
+
+    top: 15px;
+    right: 18px;
+
+    width: 34px;
+    height: 34px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 50%;
+
+    color: #617068;
+
+    font-size: 23px;
+    font-weight: 400;
+
+    opacity: 1;
+
     cursor: pointer;
-  }
-  
+}
+
+
+#termsModal .close:hover {
+    background: #eef6f1;
+
+    color: #198754;
+}
+
+
+/* =========================================================
+   PHONE
+========================================================= */
+
+@media (max-width: 600px) {
+
+    body {
+        padding: 15px;
+
+        background-position:
+            center center;
+    }
+
+
+    .wrapper {
+        max-width: 390px;
+
+        border-radius: 18px;
+    }
+
+
+    #loginForm {
+        padding:
+            26px
+            21px
+            22px;
+    }
+
+
+    .centered-image {
+        width: 72px;
+        height: 72px;
+    }
+
+
+    .login-heading {
+        margin-bottom: 21px;
+    }
+
+
+    .login-heading h1 {
+        font-size: 19px;
+    }
+
+
+    .login-heading p {
+        font-size: 11.5px;
+    }
+
+
+    /*
+       16px avoids unwanted input zoom
+       on many mobile browsers.
+    */
+    .input-box input {
+        height: 50px;
+
+        font-size: 16px;
+    }
+
+
+    #termsModal .modal-content {
+        margin: 5px auto;
+
+        padding:
+            25px
+            20px;
+    }
+
+}
+
+
+/* =========================================================
+   VERY SMALL PHONE
+========================================================= */
+
+@media (max-width: 360px) {
+
+    body {
+        padding: 10px;
+    }
+
+
+    #loginForm {
+        padding:
+            22px
+            17px
+            20px;
+    }
+
+
+    .remember-forgot {
+        align-items: flex-start;
+        flex-direction: column;
+
+        gap: 9px;
+    }
+
+}
+
+
+/* =========================================================
+   SHORT SCREENS
+========================================================= */
+
+@media (max-height: 650px) {
+
+    body {
+        align-items: flex-start;
+
+        overflow-y: auto;
+    }
+
+
+    .wrapper {
+        margin:
+            12px
+            auto;
+    }
+
+
+    #loginForm {
+        padding-top: 20px;
+        padding-bottom: 19px;
+    }
+
+
+    .centered-image {
+        width: 60px;
+        height: 60px;
+    }
+
+
+    .image {
+        margin-bottom: 9px;
+    }
+
+
+    .login-heading {
+        margin-bottom: 17px;
+    }
+
+}
