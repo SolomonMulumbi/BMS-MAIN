@@ -856,9 +856,6 @@ onValue(patientsRef, (snapshot) => {
     }, 100);
 });
 // Run duplicate detection after patients have loaded
-setTimeout(() => {
-    checkDuplicatePatients();
-}, 100);
 
 // Function to check if it's today's date (helper function)
 function isToday(date) {
