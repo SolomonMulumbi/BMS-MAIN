@@ -20860,14 +20860,7 @@ section.intro.hospital-survey-grid::after {
 
 /* FORM */
 
-.popup-form {
-    display:grid;
-    grid-template-columns:repeat(2,minmax(0,1fr));
-    gap:13px 16px;
-    max-height:calc(92vh - 80px);
-    padding:18px 22px 22px;
-    overflow-y:auto;
-}
+
 
 .popup-form::-webkit-scrollbar {
     width:5px;
@@ -21095,4 +21088,37 @@ section.intro.hospital-survey-grid::after {
     .form-actions button {
         width:100%;
     }
+}
+
+/* Bigger section headings */
+#addPatientForm .form-section-title {
+    font-size: 20px;
+    font-weight: 700;
+}
+
+#addPatientForm .form-section-title i {
+    font-size: 20px;
+}
+
+/* Bigger field labels */
+#addPatientForm .form-group label {
+    font-size: 17px;
+    font-weight: 600;
+}
+
+/* Bigger text inside inputs and dropdowns */
+#addPatientForm input,
+#addPatientForm select {
+    font-size: 17px;
+}
+
+/* Bigger placeholder text */
+#addPatientForm input::placeholder {
+    font-size: 16px;
+}
+
+/* Bigger Register Patient button */
+#addPatientForm .form-actions button {
+    font-size: 18px;
+    font-weight: 700;
 }
